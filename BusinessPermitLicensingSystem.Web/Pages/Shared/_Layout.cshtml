@@ -7,11 +7,12 @@
     bool rates = path.StartsWith("/RentalRates", StringComparison.OrdinalIgnoreCase);
     bool archive = path.StartsWith("/Archive", StringComparison.OrdinalIgnoreCase);
     bool audit = path.StartsWith("/AuditTrail", StringComparison.OrdinalIgnoreCase);
+    bool accounts = path.StartsWith("/UserAccounts", StringComparison.OrdinalIgnoreCase);
     bool health = path.StartsWith("/DatabaseHealth", StringComparison.OrdinalIgnoreCase);
     bool transfer = path.EndsWith("/Transfer", StringComparison.OrdinalIgnoreCase);
     bool archiveVehicles = path.StartsWith("/Archive/Vehicles", StringComparison.OrdinalIgnoreCase);
     bool vehicleTransfer = path.StartsWith("/Vehicles/Transfer", StringComparison.OrdinalIgnoreCase);
-    string pageSection = home ? "Dashboard" : reports ? "Reports" : archive ? "Archive" : rates ? "Rental Rates" : audit ? "Audit Trail" : vehicles ? "Vehicles" : profiles ? "Profiles" : health ? "Database Check" : "Workspace";
+    string pageSection = home ? "Dashboard" : reports ? "Reports" : archive ? "Archive" : rates ? "Rental Rates" : accounts ? "User Accounts" : audit ? "Audit Trail" : vehicles ? "Special Vehicle Permits" : profiles ? "Stall Owners" : health ? "Database Check" : "Workspace";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -37,29 +38,33 @@
             <symbol id="i-transfer" viewBox="0 0 24 24"><path d="M5 3h9l5 5v13H5zM14 3v5h5M8 13h8M8 17h8"/></symbol>
             <symbol id="i-reports" viewBox="0 0 24 24"><path d="M4 20V4M4 20h17M7 15l4-4 3 2 5-6"/></symbol>
             <symbol id="i-health" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+            <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 9v5m0 3h.01"/></symbol>
+            <symbol id="i-receipt" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Z"/><path d="M8 8h8M8 12h8m-8 4h5"/></symbol>
+            <symbol id="i-wallet" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 9V6a3 3 0 0 1 3-3h12M15 13h6m-5 0h.01"/></symbol>
         </svg>
         <div class="app-shell">
             <aside class="app-sidebar" id="app-sidebar" aria-label="Application navigation">
-                <a class="sidebar-brand brand" asp-page="/Index"><span class="brand-mark" aria-hidden="true">B</span><span><strong>BPLO</strong><small>Office workspace</small></span></a>
+                <a class="sidebar-brand brand" asp-page="/Index"><img class="sidebar-seal" src="~/images/masinloc-logo-sidebar.png" alt="Municipality of Masinloc seal" width="42" height="42" /><span><strong>BPLO</strong><small>Municipality of Masinloc<br />Business Permits &amp; Licensing Office</small></span></a>
                 <nav class="sidebar-nav" aria-label="Main navigation">
                     <p class="sidebar-group">Main</p>
                     <a class="sidebar-link @(home ? "active" : "")" aria-current="@(home ? "page" : null)" asp-page="/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-dashboard" /></svg>Dashboard</a>
-                    <a class="sidebar-link @(profiles && !transfer ? "active" : "")" aria-current="@(profiles && !transfer ? "page" : null)" asp-page="/Profiles/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-profiles" /></svg>Profiles</a>
-                    <a class="sidebar-link @(vehicles && !transfer ? "active" : "")" aria-current="@(vehicles && !transfer ? "page" : null)" asp-page="/Vehicles/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-vehicles" /></svg>Vehicles</a>
+                    <a class="sidebar-link @(profiles && !transfer ? "active" : "")" aria-current="@(profiles && !transfer ? "page" : null)" asp-page="/Profiles/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-profiles" /></svg>Stall Owners</a>
+                    <a class="sidebar-link @(vehicles && !transfer ? "active" : "")" aria-current="@(vehicles && !transfer ? "page" : null)" asp-page="/Vehicles/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-vehicles" /></svg>Special Vehicle Permits</a>
                     <p class="sidebar-group">Management</p>
                     <a class="sidebar-link @(rates ? "active" : "")" aria-current="@(rates ? "page" : null)" asp-page="/RentalRates/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-rates" /></svg>Rental Rates</a>
-                    <details class="sidebar-disclosure" @(archive ? "open" : "")><summary class="sidebar-link @(archive ? "active" : "")"><svg class="nav-icon" aria-hidden="true"><use href="#i-archive" /></svg>Archive<span class="disclosure-chevron" aria-hidden="true">⌄</span></summary><a class="sidebar-sublink @(archive && !archiveVehicles ? "active" : "")" aria-current="@(archive && !archiveVehicles ? "page" : null)" asp-page="/Archive/Profiles">Profiles</a><a class="sidebar-sublink @(archiveVehicles ? "active" : "")" aria-current="@(archiveVehicles ? "page" : null)" asp-page="/Archive/Vehicles">Vehicles</a></details>
+                    <details class="sidebar-disclosure" @(archive ? "open" : "")><summary class="sidebar-link @(archive ? "active" : "")"><svg class="nav-icon" aria-hidden="true"><use href="#i-archive" /></svg>Archive<span class="disclosure-chevron" aria-hidden="true">⌄</span></summary><a class="sidebar-sublink @(archive && !archiveVehicles ? "active" : "")" aria-current="@(archive && !archiveVehicles ? "page" : null)" asp-page="/Archive/Profiles">Stall Owners</a><a class="sidebar-sublink @(archiveVehicles ? "active" : "")" aria-current="@(archiveVehicles ? "page" : null)" asp-page="/Archive/Vehicles">Special Vehicle Permits</a></details>
                     <a class="sidebar-link @(audit ? "active" : "")" aria-current="@(audit ? "page" : null)" asp-page="/AuditTrail"><svg class="nav-icon" aria-hidden="true"><use href="#i-audit" /></svg>Audit Trail</a>
                     <p class="sidebar-group">Tools</p>
-                    <details class="sidebar-disclosure" @(transfer ? "open" : "")><summary class="sidebar-link @(transfer ? "active" : "")"><svg class="nav-icon" aria-hidden="true"><use href="#i-transfer" /></svg>Import / Export<span class="disclosure-chevron" aria-hidden="true">⌄</span></summary><a class="sidebar-sublink @(transfer && !vehicleTransfer ? "active" : "")" aria-current="@(transfer && !vehicleTransfer ? "page" : null)" asp-page="/Profiles/Transfer">Profiles</a><a class="sidebar-sublink @(vehicleTransfer ? "active" : "")" aria-current="@(vehicleTransfer ? "page" : null)" asp-page="/Vehicles/Transfer">Vehicles</a></details>
+                    <details class="sidebar-disclosure" @(transfer ? "open" : "")><summary class="sidebar-link @(transfer ? "active" : "")"><svg class="nav-icon" aria-hidden="true"><use href="#i-transfer" /></svg>Import / Export<span class="disclosure-chevron" aria-hidden="true">⌄</span></summary><a class="sidebar-sublink @(transfer && !vehicleTransfer ? "active" : "")" aria-current="@(transfer && !vehicleTransfer ? "page" : null)" asp-page="/Profiles/Transfer">Stall Owners</a><a class="sidebar-sublink @(vehicleTransfer ? "active" : "")" aria-current="@(vehicleTransfer ? "page" : null)" asp-page="/Vehicles/Transfer">Special Vehicle Permits</a></details>
                     <a class="sidebar-link @(reports ? "active" : "")" aria-current="@(reports ? "page" : null)" asp-page="/Reports/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-reports" /></svg>Reports</a>
+                    <a class="sidebar-link @(accounts ? "active" : "")" aria-current="@(accounts ? "page" : null)" asp-page="/UserAccounts/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-profiles" /></svg>User Accounts</a>
                     <a class="sidebar-link @(health ? "active" : "")" aria-current="@(health ? "page" : null)" asp-page="/DatabaseHealth"><svg class="nav-icon" aria-hidden="true"><use href="#i-health" /></svg>Database Check</a>
                 </nav>
                 <div class="sidebar-user"><span class="user-avatar" aria-hidden="true">@((User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "U").Substring(0, 1).ToUpperInvariant())</span><span class="user-label"><strong>@(User.FindFirst("FullName")?.Value ?? User.Identity?.Name)</strong><small>@User.FindFirst("Position")?.Value</small></span></div>
                 <form class="sidebar-logout" method="post" asp-page="/Account/Logout"><button type="submit" class="btn btn-outline-secondary btn-sm">Sign Out</button></form>
             </aside>
             <div class="app-workspace">
-                <header class="app-topbar"><button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Open navigation" aria-controls="app-sidebar" aria-expanded="false"><span aria-hidden="true">☰</span></button><span class="topbar-context">@pageSection</span><span class="topbar-office">Business Permit and Licensing Office</span></header>
+                <header class="app-topbar"><button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Open navigation" aria-controls="app-sidebar" aria-expanded="false"><span aria-hidden="true">☰</span></button><span class="topbar-municipality">Municipality of Masinloc</span><span class="topbar-province">Province of Zambales</span><span class="topbar-office">Business Permits and Licensing Office</span><span class="topbar-context visually-hidden">@pageSection</span></header>
                 <main id="main-content" class="app-main" tabindex="-1">@RenderBody()</main>
                 <footer class="app-footer">BPLO · Business Permit and Licensing Office</footer>
             </div>

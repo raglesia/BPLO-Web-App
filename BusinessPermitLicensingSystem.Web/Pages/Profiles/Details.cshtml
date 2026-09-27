@@ -25,7 +25,8 @@ else if (Model.Profile is not null)
         <dt class="col-sm-3">Payment status</dt><dd class="col-sm-9"><span class="status-badge @Model.Profile.PaymentStatus.ToLowerInvariant()">@Model.Profile.PaymentStatus</span></dd>
     </dl></section>
     <div class="page-actions"><a class="btn btn-primary" asp-page="/Profiles/Edit" asp-route-sin="@Model.Profile.Sin">Edit Profile</a>
-    <a class="btn btn-outline-primary" asp-page="/Profiles/Billing" asp-route-sin="@Model.Profile.Sin">Billing and Payments</a></div>
+    <a class="btn btn-outline-primary" asp-page="/Profiles/Billing" asp-route-sin="@Model.Profile.Sin">Billing and Payments</a>
+    <a class="btn btn-outline-primary" asp-page="/Reports/RentalPaymentPreview" asp-route-selected="@Model.Profile.Sin">Print Rental Payment Report</a></div>
     <form method="post" asp-page-handler="Archive" asp-route-sin="@Model.Profile.Sin" class="section-panel mt-4">
         <h2 class="section-heading">Archive profile</h2>
         <div class="form-check"><input asp-for="ConfirmArchive" class="form-check-input" required />

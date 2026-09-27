@@ -1,7 +1,7 @@
 @page "{vin?}"
 @model BusinessPermitLicensingSystem.Web.Pages.Vehicles.EditModel
 @{ ViewData["Title"] = Model.IsNew ? "Add vehicle" : "Edit vehicle"; }
-<div class="page-header"><div><p class="eyebrow">Vehicle permits</p><h1>@ViewData["Title"]</h1><p>Enter the registration details below.</p></div></div>
+<div class="page-header"><div><p class="eyebrow">Special Vehicle Permits</p><h1>@ViewData["Title"]</h1><p>Enter the registration details below.</p></div></div>
 @if (!Model.IsNew) { <p>VIN: @Model.Vin</p> }
 <form method="post" class="form-panel" style="max-width: 760px">
     <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>

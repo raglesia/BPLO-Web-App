@@ -1,0 +1,13 @@
+@page "{id:int}"
+@model BusinessPermitLicensingSystem.Web.Pages.UserAccounts.EditModel
+@{ ViewData["Title"] = "Edit Account"; }
+<div class="page-header"><div><p class="eyebrow">User Accounts</p><h1>Edit Account</h1><p>Update staff details. This does not change the account password.</p></div></div>
+@if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
+@if (Model.Account is not null)
+{ <form method="post" class="form-panel account-form">
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    <div class="mb-3"><label asp-for="Input.FullName" class="form-label">Full Name</label><input asp-for="Input.FullName" class="form-control" maxlength="255" required /><span asp-validation-for="Input.FullName" class="text-danger"></span></div>
+    <div class="mb-3"><label asp-for="Input.Username" class="form-label">Username</label><input asp-for="Input.Username" class="form-control" maxlength="255" required /><span asp-validation-for="Input.Username" class="text-danger"></span></div>
+    <div class="mb-3"><label asp-for="Input.Position" class="form-label">Position</label><input asp-for="Input.Position" class="form-control" maxlength="255" required /><span asp-validation-for="Input.Position" class="text-danger"></span></div>
+    <div class="form-actions"><button type="submit" class="btn btn-primary">Save Changes</button><a class="btn btn-outline-secondary" asp-page="/UserAccounts/Index">Cancel</a></div>
+</form> }

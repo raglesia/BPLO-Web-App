@@ -1,0 +1,20 @@
+@page
+@model BusinessPermitLicensingSystem.Web.Pages.Account.CreateModel
+@{ ViewData["Title"] = "Create Account"; }
+<div class="login-shell"><div class="surface">
+    <span class="brand-mark" aria-hidden="true">B</span>
+    <p class="eyebrow">BPLO access</p>
+    <h1>Create Account</h1>
+    <p>Create a BPLO account, then sign in.</p>
+    @if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
+        <form method="post" class="mt-4">
+            <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+            <div class="mb-3"><label asp-for="Input.FullName" class="form-label">Full Name</label><input asp-for="Input.FullName" class="form-control" maxlength="255" required /><span asp-validation-for="Input.FullName" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Input.Username" class="form-label">Username</label><input asp-for="Input.Username" class="form-control" maxlength="255" autocomplete="username" required /><span asp-validation-for="Input.Username" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Input.Position" class="form-label">Position</label><input asp-for="Input.Position" class="form-control" maxlength="255" required /><span asp-validation-for="Input.Position" class="text-danger"></span></div>
+            <div class="mb-3"><label for="Password" class="form-label">Password</label><input id="Password" name="Password" type="password" class="form-control" autocomplete="new-password" minlength="8" required /><p class="form-text">At least 8 characters.</p></div>
+            <div class="mb-3"><label for="ConfirmPassword" class="form-label">Confirm Password</label><input id="ConfirmPassword" name="ConfirmPassword" type="password" class="form-control" autocomplete="new-password" required /></div>
+            <button type="submit" class="btn btn-primary w-100">Create Account</button>
+        </form>
+    <p class="text-center mt-3 mb-0"><a asp-page="/Account/Login">Back to sign in</a></p>
+</div></div>

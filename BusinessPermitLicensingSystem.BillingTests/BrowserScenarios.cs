@@ -161,6 +161,9 @@ internal static class BrowserScenarios
         Page protectedPage = await anonymous.Get("/Profiles/Index");
         Check(protectedPage.Url.AbsolutePath == "/Account/Login", "anonymous redirect");
         Page login = await anonymous.Get("/Account/Login");
+        Check(Links(login).Contains("/Account/Create"), "login always links to account creation");
+        Check((await anonymous.Get("/Account/Create")).Status == HttpStatusCode.OK,
+            "account creation remains available with existing users");
         Page invalid = await anonymous.Post("/Account/Login", login,
             ("Input.Username", primary.Username), ("Input.Password", "wrong-password"));
         Page unknown = await anonymous.Post("/Account/Login", invalid,
@@ -171,8 +174,95 @@ internal static class BrowserScenarios
         using var second = new Browser(root);
         await Login(first, primary);
         await Login(second, secondary);
+        Check((await anonymous.Get("/UserAccounts")).Url.AbsolutePath == "/Account/Login" &&
+              (await anonymous.Get("/UserAccounts/Create")).Url.AbsolutePath == "/Account/Login" &&
+              (await anonymous.Get("/UserAccounts/Edit/1")).Url.AbsolutePath == "/Account/Login" &&
+              (await anonymous.Get("/UserAccounts/ResetPassword/1")).Url.AbsolutePath == "/Account/Login",
+            "account management requires authentication");
+        string accountTag = "acct_" + Unique();
+        string originalPassword = "TestPassword!" + Unique();
+        string newPassword = "ChangedPassword!" + Unique();
+        Page accountList = await first.Get("/UserAccounts");
+        Check(accountList.Status == HttpStatusCode.OK && Has(accountList, "User Accounts") &&
+              !Has(accountList, "pbkdf2:") && Has(accountList, "Create Account"),
+            "account list shows creation action without hashes");
+        Page createAccount = await anonymous.Get("/Account/Create");
+        Check((await anonymous.PostWithoutToken("/Account/Create")).Status == HttpStatusCode.BadRequest,
+            "account creation requires antiforgery token");
+        Page mismatch = await anonymous.Post("/Account/Create", createAccount,
+            ("Input.FullName", "Account Test Person"), ("Input.Username", accountTag),
+            ("Input.Position", "Clerk"), ("Password", originalPassword), ("ConfirmPassword", "different"));
+        Check(Has(mismatch, "do not match") && !Has(mismatch, originalPassword),
+            "account password mismatch is rejected without echoing password");
+        Page createdAccount = await anonymous.Post("/Account/Create", createAccount,
+            ("Input.FullName", "Account Test Person"), ("Input.Username", accountTag),
+            ("Input.Position", "Clerk"), ("Password", originalPassword), ("ConfirmPassword", originalPassword));
+        Check(createdAccount.Url.AbsolutePath == "/Account/Login" && Has(createdAccount, "Account created successfully"),
+            "public account creation returns to sign-in");
+        Check(Has(await first.Get("/UserAccounts?search=" + accountTag), accountTag),
+            "new account appears in staff list");
+        int accountId;
+        string storedHash;
+        await using (var accountQuery = new SqlCommand("SELECT Id, Password FROM Users WHERE Username=@username", sql))
+        {
+            accountQuery.Parameters.AddWithValue("@username", accountTag);
+            await using var reader = await accountQuery.ExecuteReaderAsync();
+            Check(await reader.ReadAsync(), "created account exists in development database");
+            accountId = reader.GetInt32(0);
+            storedHash = reader.GetString(1);
+        }
+        Check(storedHash.StartsWith("pbkdf2:", StringComparison.Ordinal) &&
+              storedHash != originalPassword, "new account uses PBKDF2 and stores no plaintext");
+        Page duplicate = await anonymous.Post("/Account/Create", createAccount,
+            ("Input.FullName", "Duplicate"), ("Input.Username", accountTag),
+            ("Input.Position", "Clerk"), ("Password", originalPassword), ("ConfirmPassword", originalPassword));
+        Check(Has(duplicate, "already in use"), "duplicate username rejected");
+        foreach (string term in new[] { "Account Test Person", accountTag, "Clerk" })
+            Check(Has(await first.Get("/UserAccounts?search=" + Uri.EscapeDataString(term)), accountTag),
+                "account search " + term);
+        using var accountBrowser = new Browser(root);
+        await Login(accountBrowser, new Account(accountTag, originalPassword, "Account Test Person", "new account"));
+        Page editAccount = await first.Get("/UserAccounts/Edit/" + accountId);
+        Check((await first.PostWithoutToken("/UserAccounts/Edit/" + accountId)).Status == HttpStatusCode.BadRequest,
+            "account edit requires antiforgery token");
+        string renamedUsername = accountTag + "_edited";
+        Page editedAccount = await first.Post("/UserAccounts/Edit/" + accountId, editAccount,
+            ("Input.FullName", "Account Test Updated"), ("Input.Username", renamedUsername),
+            ("Input.Position", "Supervisor"));
+        Check(editedAccount.Url.AbsolutePath == "/UserAccounts" && Has(editedAccount, renamedUsername),
+            "account full name, username, and position updated");
+        using var editedLogin = new Browser(root);
+        await Login(editedLogin, new Account(renamedUsername, originalPassword, "Account Test Updated", "edited account"));
+        Page duplicateEdit = await first.Post("/UserAccounts/Edit/" + accountId, editAccount,
+            ("Input.FullName", "Duplicate Edit"), ("Input.Username", primary.Username),
+            ("Input.Position", "Clerk"));
+        Check(Has(duplicateEdit, "already in use"), "edit username uniqueness enforced");
+        Page resetAccount = await first.Get("/UserAccounts/ResetPassword/" + accountId);
+        Check((await first.PostWithoutToken("/UserAccounts/ResetPassword/" + accountId)).Status == HttpStatusCode.BadRequest,
+            "password reset requires antiforgery token");
+        Page resetResult = await first.Post("/UserAccounts/ResetPassword/" + accountId, resetAccount,
+            ("Password", newPassword), ("ConfirmPassword", newPassword));
+        Check(resetResult.Url.AbsolutePath == "/UserAccounts" && Has(resetResult, "Password reset"),
+            "password reset succeeds");
+        using var oldLogin = new Browser(root);
+        Page oldForm = await oldLogin.Get("/Account/Login");
+        Page oldResult = await oldLogin.Post("/Account/Login", oldForm,
+            ("Input.Username", renamedUsername), ("Input.Password", originalPassword));
+        Check(Has(oldResult, "Invalid username or password"), "old password stops working");
+        using var newLogin = new Browser(root);
+        await Login(newLogin, new Account(renamedUsername, newPassword, "Account Test Updated", "reset account"));
+        Check((await accountBrowser.Get("/UserAccounts")).Status == HttpStatusCode.OK,
+            "existing account session remains active after edit and reset");
+        Check(await Count("SELECT COUNT(*) FROM AuditTrail WHERE UserId=(SELECT Id FROM Users WHERE Username=@actor) AND Details LIKE @target AND Action IN ('Update User Account','Reset User Password')",
+              ("@actor", primary.Username), ("@target", "%" + accountTag + "%")) == 2 &&
+              await Count("SELECT COUNT(*) FROM AuditTrail WHERE UserId=@id AND Action='Public Account Registration' AND Details LIKE @target",
+              ("@id", accountId), ("@target", "%" + accountTag + "%")) == 1,
+            "account changes recorded in audit trail");
+        Check(await Count("SELECT COUNT(*) FROM AuditTrail WHERE Details LIKE @password OR Details LIKE @oldPassword",
+              ("@password", "%" + newPassword + "%"), ("@oldPassword", "%" + originalPassword + "%")) == 0,
+            "passwords absent from audit details");
         Check(Has(await first.Get("/Profiles/Index"), "Stall owners") &&
-              Has(await second.Get("/Vehicles/Index"), "Vehicle permits"), "independent authenticated sessions");
+              Has(await second.Get("/Vehicles/Index"), "Special Vehicle Permits"), "independent authenticated sessions");
         Page dashboard = await first.Get("/");
         string[] homeLinks = Links(dashboard);
         Check(homeLinks.Any(x => x.StartsWith("/Profiles")) &&

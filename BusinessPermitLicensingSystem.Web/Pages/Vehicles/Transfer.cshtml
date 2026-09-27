@@ -1,7 +1,7 @@
 @page
 @model BusinessPermitLicensingSystem.Web.Pages.Vehicles.TransferModel
-@{ ViewData["Title"] = "Vehicle import and export"; }
-<div class="page-header"><div><p class="eyebrow">Vehicle permits</p><h1>Vehicle Import and Export</h1><p>Move vehicle records with a CSV or XLSX file.</p></div></div>
+@{ ViewData["Title"] = "Special Vehicle Permit import and export"; }
+<div class="page-header"><div><p class="eyebrow">Special Vehicle Permits</p><h1>Special Vehicle Permit Import and Export</h1><p>Move vehicle records with a CSV or XLSX file.</p></div></div>
 <section class="section-panel"><h2 class="section-heading">Import vehicles</h2><p>Maximum file size: 5 MB. Required columns: CompanyName, DriverName, PlateNo, SECRegNo, and DTINumber. VIN is generated on import; permit status starts Unpaid.</p>
 <form method="post" enctype="multipart/form-data" asp-page-handler="Import" class="mb-1">
     <label asp-for="Upload" class="form-label">Import file</label>

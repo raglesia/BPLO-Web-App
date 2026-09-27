@@ -9,6 +9,7 @@
 <p class="eyebrow">Staff access</p>
 <h1>Sign in to BPLO</h1>
 <p>Use your assigned account to continue.</p>
+@if (Model.AccountCreated) { <p class="text-success" role="status">Account created successfully. You can now sign in.</p> }
 <form method="post" class="mt-4">
     <input type="hidden" asp-for="ReturnUrl" />
     <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
@@ -24,4 +25,5 @@
     </div>
     <button type="submit" class="btn btn-primary w-100">Sign In</button>
 </form>
+<p class="text-center mt-3 mb-0">Need an account? <a asp-page="/Account/Create">Create Account</a></p>
 </div></div>

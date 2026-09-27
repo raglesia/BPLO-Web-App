@@ -1,22 +1,27 @@
 @page
 @model IndexModel
 @{ ViewData["Title"] = "Dashboard"; }
-<section class="dashboard-hero" aria-labelledby="dashboard-title">
-    <p class="eyebrow">Workspace overview</p>
-    <h1 id="dashboard-title">Dashboard</h1>
-    <p>Good day, @(User.FindFirst("FullName")?.Value ?? "colleague"). Here is today's BPLO workspace.</p>
+<section class="dashboard-hero page-header" aria-labelledby="dashboard-title">
+    <div><p class="eyebrow">Dashboard</p>
+    <h1 id="dashboard-title">Administrative Dashboard</h1>
+    <p>Overview of business profiles, permits, billing, and municipal collections.</p></div>
+    <div class="page-actions"><a class="btn btn-primary" asp-page="/Profiles/Create">Add Stall Owner</a><a class="btn btn-outline-primary" asp-page="/Vehicles/Edit">Add Vehicle</a></div>
 </section>
-<h2 class="section-heading">Overview</h2>
 @if (Model.ActiveProfiles.HasValue)
 {
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-3 mb-3">
-        <div class="col"><div class="card metric-card"><div class="card-body"><div class="label">Active stall owners</div><div class="value">@Model.ActiveProfiles</div><p class="hint">Current profiles</p></div></div></div>
-        <div class="col"><div class="card metric-card"><div class="card-body"><div class="label">Unverified profiles</div><div class="value">@Model.UnverifiedProfiles</div><p class="hint">Occupancy needs confirmation</p></div></div></div>
-        <div class="col"><div class="card metric-card"><div class="card-body"><div class="label">Unpaid billing periods</div><div class="value">@Model.UnpaidPeriods</div><p class="hint">Bill rows, not a money total</p></div></div></div>
-        <div class="col"><div class="card metric-card"><div class="card-body"><div class="label">Active vehicle permits</div><div class="value">@Model.ActiveVehicles</div><p class="hint">Current vehicle records</p></div></div></div>
-        <div class="col"><div class="card metric-card"><div class="card-body"><div class="label">Rent collected this month</div><div class="value money">@Model.RentCollectedThisMonth?.ToString("₱#,##0.00")</div><p class="hint">Recorded stall payments</p></div></div></div>
-        <div class="col"><div class="card metric-card"><div class="card-body"><div class="label">Vehicle permit collections this month</div><div class="value money">@Model.VehicleCollectedThisMonth?.ToString("₱#,##0.00")</div><p class="hint">Recorded vehicle payments</p></div></div></div>
-    </div>
+    <section class="section-panel dashboard-summary" aria-labelledby="summary-title">
+        <div class="summary-heading"><h2 id="summary-title" class="section-heading">Records Overview</h2></div>
+        <div class="dashboard-kpi-grid">
+            <div class="card metric-card metric-active"><div class="card-body"><div class="metric-title"><div class="label">Active Stall Owners</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-profiles" /></svg></div><div class="value">@Model.ActiveProfiles</div></div></div>
+            <div class="card metric-card metric-warning"><div class="card-body"><div class="metric-title"><div class="label">Unverified Profiles</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-alert" /></svg></div><div class="value">@Model.UnverifiedProfiles</div></div></div>
+            <div class="card metric-card metric-danger"><div class="card-body"><div class="metric-title"><div class="label">Unpaid Billing Periods</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-receipt" /></svg></div><div class="value">@Model.UnpaidPeriods</div></div></div>
+            <div class="card metric-card metric-info"><div class="card-body"><div class="metric-title"><div class="label">Active Special Vehicle Permits</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-vehicles" /></svg></div><div class="value">@Model.ActiveVehicles</div></div></div>
+        </div>
+    </section>
+    <section class="dashboard-collections" aria-labelledby="municipal-collections-title"><h2 id="municipal-collections-title" class="section-heading">Municipal Collections</h2><div class="collection-kpi-grid">
+        <div class="card metric-card collection-card"><div class="card-body"><div class="metric-title"><div class="label">Stall Rent Collections</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-wallet" /></svg></div><div class="value money">@Model.RentCollectedThisMonth?.ToString("₱#,##0.00")</div><p class="hint">This month</p></div></div>
+        <div class="card metric-card collection-card"><div class="card-body"><div class="metric-title"><div class="label">Special Vehicle Permit Collections</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-receipt" /></svg></div><div class="value money">@Model.VehicleCollectedThisMonth?.ToString("₱#,##0.00")</div><p class="hint">This month</p></div></div>
+    </div></section>
 }
 else
 {
@@ -26,14 +31,14 @@ else
 {
     var maximum = Math.Max(1m, Model.Collections.Max(month => Math.Max(month.Rent, month.Vehicles)));
     <section class="section-panel dashboard-chart" aria-labelledby="collections-title">
-        <div class="chart-heading"><div><h2 id="collections-title" class="section-heading">Monthly collections trend</h2><p>Recorded payments for the last six months</p></div><div class="chart-legend"><span><i class="legend-swatch rent"></i> Stall rent</span><span><i class="legend-swatch vehicle"></i> Vehicle permits</span></div></div>
+        <div class="chart-heading"><div><h2 id="collections-title" class="section-heading">Monthly Collection Trend</h2><p>Recorded municipal collections for the previous six months.</p></div><div class="chart-legend"><span><i class="legend-swatch rent"></i> Stall rent</span><span><i class="legend-swatch vehicle"></i> Special vehicle permits</span></div></div>
         <div class="collection-chart" aria-hidden="true">
             @foreach (var month in Model.Collections)
             {
-                <div class="chart-month"><div class="chart-bars"><div class="chart-bar rent" style="height:@((month.Rent / maximum * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%" title="Stall rent: @month.Rent.ToString("₱#,##0.00")"></div><div class="chart-bar vehicle" style="height:@((month.Vehicles / maximum * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%" title="Vehicle permits: @month.Vehicles.ToString("₱#,##0.00")"></div></div><span>@month.Month.ToString("MMM")</span></div>
+                <div class="chart-month"><div class="chart-bars"><div class="chart-bar rent" style="height:@((month.Rent / maximum * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%" title="Stall rent: @month.Rent.ToString("₱#,##0.00")"></div><div class="chart-bar vehicle" style="height:@((month.Vehicles / maximum * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%" title="Special vehicle permits: @month.Vehicles.ToString("₱#,##0.00")"></div></div><span>@month.Month.ToString("MMM")</span></div>
             }
         </div>
-        <table class="visually-hidden"><caption>Monthly collections in pesos</caption><thead><tr><th scope="col">Month</th><th scope="col">Stall rent</th><th scope="col">Vehicle permits</th></tr></thead><tbody>@foreach (var month in Model.Collections) { <tr><th scope="row">@month.Month.ToString("MMMM yyyy")</th><td>@month.Rent.ToString("₱#,##0.00")</td><td>@month.Vehicles.ToString("₱#,##0.00")</td></tr> }</tbody></table>
+        <table class="visually-hidden"><caption>Monthly collections in pesos</caption><thead><tr><th scope="col">Month</th><th scope="col">Stall rent</th><th scope="col">Special vehicle permits</th></tr></thead><tbody>@foreach (var month in Model.Collections) { <tr><th scope="row">@month.Month.ToString("MMMM yyyy")</th><td>@month.Rent.ToString("₱#,##0.00")</td><td>@month.Vehicles.ToString("₱#,##0.00")</td></tr> }</tbody></table>
     </section>
 }
 <div class="row g-3">

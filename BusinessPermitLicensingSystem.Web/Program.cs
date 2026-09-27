@@ -18,6 +18,7 @@ builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AuthorizeFolder("/");
     options.Conventions.AllowAnonymousToPage("/Account/Login");
+    options.Conventions.AllowAnonymousToPage("/Account/Create");
 });
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -42,6 +43,7 @@ builder.Services.AddScoped<ReportService>();
 builder.Services.AddScoped<VehiclePaymentReportService>();
 builder.Services.AddScoped<RentalRateService>();
 builder.Services.AddScoped<AuditTrailService>();
+builder.Services.AddScoped<UserAccountService>();
 
 var app = builder.Build();
 

@@ -1,0 +1,27 @@
+@page "/UserAccounts"
+@model BusinessPermitLicensingSystem.Web.Pages.UserAccounts.IndexModel
+@using BusinessPermitLicensingSystem.Web.Administration
+@{ ViewData["Title"] = "User Accounts"; }
+<div class="page-header"><div><p class="eyebrow">Management</p><h1>User Accounts</h1><p>Staff accounts for this BPLO workspace.</p></div><div class="page-actions"><a class="btn btn-primary" asp-page="/UserAccounts/Create">Create Account</a></div></div>
+@if (Model.Notice is not null) { <p class="text-success" role="status">@Model.Notice</p> }
+@if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
+<form method="get" class="search-panel mb-3"><label for="account-search" class="form-label">Search name, username, or position</label>
+    <div class="account-search-actions"><input id="account-search" name="search" value="@Model.Search" class="form-control" maxlength="100" /><button class="btn btn-outline-primary" type="submit">Search</button>
+        @if (!string.IsNullOrEmpty(Model.Search)) { <a class="btn btn-outline-secondary" asp-page="/UserAccounts/Index">Clear</a> }</div></form>
+@if (Model.Error is null && Model.Result.Accounts.Count > 0)
+{
+    <div class="table-responsive"><table class="table table-striped"><caption class="visually-hidden">User accounts</caption><thead><tr><th scope="col">Full Name</th><th scope="col">Username</th><th scope="col">Position</th><th scope="col">Actions</th></tr></thead><tbody>
+        @foreach (var account in Model.Result.Accounts)
+        { <tr><td>@account.FullName</td><td>@account.Username</td><td>@account.Position</td><td class="account-row-actions"><a asp-page="/UserAccounts/Edit" asp-route-id="@account.Id">Edit</a><a asp-page="/UserAccounts/ResetPassword" asp-route-id="@account.Id">Reset Password</a></td></tr> }
+    </tbody></table></div>
+    <p class="record-count">@Model.Result.Total account@(Model.Result.Total == 1 ? "" : "s")</p>
+    @if (Model.Result.Total > UserAccountService.PageSize)
+    { <nav class="pagination-actions" aria-label="User account pages">
+        @if (Model.Result.Page > 1) { <a class="btn btn-outline-secondary" asp-page="/UserAccounts/Index" asp-route-search="@Model.Search" asp-route-pageNumber="@(Model.Result.Page - 1)">Previous</a> }
+        <span class="align-self-center">Page @Model.Result.Page</span>
+        @if (Model.Result.Page * UserAccountService.PageSize < Model.Result.Total) { <a class="btn btn-outline-secondary" asp-page="/UserAccounts/Index" asp-route-search="@Model.Search" asp-route-pageNumber="@(Model.Result.Page + 1)">Next</a> }
+    </nav> }
+}
+else if (Model.Error is null)
+{ <div class="empty-state"><p>No user accounts found.</p></div> }
+<p class="form-text">Signed-in staff can manage accounts. Fine-grained administrative permissions are not configured.</p>

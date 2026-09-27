@@ -15,11 +15,13 @@ public class LoginModel(UserAuthenticationService users, ILogger<LoginModel> log
 
     [BindProperty]
     public string? ReturnUrl { get; set; }
+    public bool AccountCreated { get; private set; }
 
-    public IActionResult OnGet(string? returnUrl = null)
+    public async Task<IActionResult> OnGetAsync(string? returnUrl = null)
     {
         if (User.Identity?.IsAuthenticated == true) return RedirectToPage("/Index");
         ReturnUrl = returnUrl;
+        AccountCreated = TempData["AccountCreated"] is true;
         return Page();
     }
 

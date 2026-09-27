@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <DisableBuildCompression>true</DisableBuildCompression>
     <UserSecretsId>845355c7-6fee-4548-9bda-1be1b403a5af</UserSecretsId>
   </PropertyGroup>
 

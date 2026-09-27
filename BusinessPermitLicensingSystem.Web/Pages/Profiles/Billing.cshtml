@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Billing history";
 }
-<div class="page-header"><div><p class="eyebrow">Stall owners / Billing</p><h1>Billing and Payments</h1><p>Review outstanding periods and recorded payments.</p></div><div class="page-actions"><a class="btn btn-outline-secondary" asp-page="/Reports/Billing" asp-route-sin="@RouteData.Values["sin"]">Printable Rental Report</a></div></div>
+<div class="page-header"><div><p class="eyebrow">Stall owners / Billing</p><h1>Billing and Payments</h1><p>Review outstanding periods and recorded payments.</p></div><div class="page-actions"><a class="btn btn-outline-secondary" asp-page="/Reports/Billing" asp-route-sin="@RouteData.Values["sin"]">Print Billing Statement</a><a class="btn btn-outline-primary" asp-page="/Reports/RentalPaymentPreview" asp-route-selected="@RouteData.Values["sin"]">Print Rental Payment Report</a></div></div>
 @if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
 @if (Model.Notice is not null) { <p class="text-success" role="status">@Model.Notice</p> }
 @if (Model.Record is not null)

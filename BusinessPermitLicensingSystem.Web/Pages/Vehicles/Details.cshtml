@@ -2,9 +2,9 @@
 @using BusinessPermitLicensingSystem.Web.Vehicles
 @model BusinessPermitLicensingSystem.Web.Pages.Vehicles.DetailsModel
 @{
-    ViewData["Title"] = "Vehicle permit";
+    ViewData["Title"] = "Special Vehicle Permit";
 }
-<div class="page-header"><div><p class="eyebrow">Vehicle permits</p><h1>Special Vehicle Permit</h1><p>Annual permit assessment, payment, and history.</p></div></div>
+<div class="page-header"><div><p class="eyebrow">Special Vehicle Permits</p><h1>Special Vehicle Permit</h1><p>Annual permit assessment, payment, and history.</p></div></div>
 @if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
 @if (Model.Notice is not null) { <p class="text-success" role="status">@Model.Notice</p> }
 @if (Model.Vehicle is not null)
@@ -14,7 +14,7 @@
         <dt class="col-sm-3">VIN</dt><dd class="col-sm-9">@Model.Vehicle.Vin</dd>
         <dt class="col-sm-3">Company</dt><dd class="col-sm-9">@Model.Vehicle.Company</dd>
         <dt class="col-sm-3">Driver</dt><dd class="col-sm-9">@Model.Vehicle.Driver</dd>
-        <dt class="col-sm-3">Plate</dt><dd class="col-sm-9">@Model.Vehicle.Plate</dd>
+        <dt class="col-sm-3">Plate Number</dt><dd class="col-sm-9">@Model.Vehicle.Plate</dd>
     </dl></section>
     <section class="section-panel annual-permit-status" aria-labelledby="annual-permit-title">
         <h2 id="annual-permit-title" class="section-heading">@Model.Vehicle.SelectedYear Special Vehicle Permit</h2>
@@ -68,7 +68,7 @@
         @if (Model.Vehicle.Eligible && Model.Vehicle.Draft is not null && Model.Vehicle.Draft.GrandTotal > 0)
         {
             <section class="section-panel" id="vehicle-payment" tabindex="-1"><h2 class="section-heading">Record @Model.Vehicle.SelectedYear Permit Payment</h2>
-            <p>Annual payment for <strong>@Model.Vehicle.Company</strong> · plate <strong>@Model.Vehicle.Plate</strong> · permit year <strong>@Model.Vehicle.SelectedYear</strong>. Amount due: <strong class="money">₱@Model.Vehicle.Draft.GrandTotal.ToString("N2")</strong>. The saved assessment is checked again when you submit.</p>
+            <p>Annual payment for <strong>@Model.Vehicle.Company</strong> · plate number <strong>@Model.Vehicle.Plate</strong> · permit year <strong>@Model.Vehicle.SelectedYear</strong>. Amount due: <strong class="money">₱@Model.Vehicle.Draft.GrandTotal.ToString("N2")</strong>. The saved assessment is checked again when you submit.</p>
             <form method="post" asp-page-handler="Pay" asp-route-vin="@Model.Vehicle.Vin" style="max-width: 28rem">
                 <div class="mb-3"><label asp-for="OrNumber" class="form-label">Vehicle OR number</label>
                     <input asp-for="OrNumber" class="form-control" maxlength="100" required /></div>
@@ -98,5 +98,5 @@
         </form>
     }
 }
-<a asp-page="/Vehicles/Index">Back to vehicle permits</a>
+<a asp-page="/Vehicles/Index">Back to Special Vehicle Permits</a>
 @section Scripts { <script src="~/js/vehicle-fee-assessment.js" asp-append-version="true"></script> }

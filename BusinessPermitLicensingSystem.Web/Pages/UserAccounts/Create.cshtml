@@ -1,0 +1,14 @@
+@page
+@model BusinessPermitLicensingSystem.Web.Pages.UserAccounts.CreateModel
+@{ ViewData["Title"] = "Create Account"; }
+<div class="page-header"><div><p class="eyebrow">User Accounts</p><h1>Create Account</h1><p>Add a staff account to the development workspace.</p></div></div>
+@if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
+<form method="post" class="form-panel account-form">
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    <div class="mb-3"><label asp-for="Input.FullName" class="form-label">Full Name</label><input asp-for="Input.FullName" class="form-control" maxlength="255" autocomplete="name" required /><span asp-validation-for="Input.FullName" class="text-danger"></span></div>
+    <div class="mb-3"><label asp-for="Input.Username" class="form-label">Username</label><input asp-for="Input.Username" class="form-control" maxlength="255" autocomplete="off" required /><span asp-validation-for="Input.Username" class="text-danger"></span></div>
+    <div class="mb-3"><label asp-for="Input.Position" class="form-label">Position</label><input asp-for="Input.Position" class="form-control" maxlength="255" required /><span asp-validation-for="Input.Position" class="text-danger"></span></div>
+    <div class="mb-3"><label for="Password" class="form-label">Password</label><input id="Password" name="Password" type="password" class="form-control" autocomplete="new-password" minlength="8" required /><p class="form-text">At least 8 characters.</p></div>
+    <div class="mb-3"><label for="ConfirmPassword" class="form-label">Confirm Password</label><input id="ConfirmPassword" name="ConfirmPassword" type="password" class="form-control" autocomplete="new-password" required /></div>
+    <div class="form-actions"><button type="submit" class="btn btn-primary">Create Account</button><a class="btn btn-outline-secondary" asp-page="/UserAccounts/Index">Cancel</a></div>
+</form>
