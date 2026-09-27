@@ -37,3 +37,23 @@
 35. Only `BPLS_Dev` was used for SQL-backed work and tests.
 36. Fee drafts remain editable after payment; their current values may differ from the original assessment. User names, positions, and vehicle identity are likewise not historical snapshots. The report states these limits and flags paid-amount mismatch. Physical print pagination remains unverified.
 37. No deployment, IIS, LAN, firewall, certificate, workstation, or production SQL work occurred.
+
+## GitHub publication
+
+1. Existing Git history: none in the solution or its parent workspace.
+2. Existing history preserved: not applicable; no history was rewritten.
+3. Baseline required: yes; one honest commit represents the completed application.
+4. Excluded: generated `bin`, `obj`, phase build output, IDE and test output, local uploads, database files, secrets, logs, and the redundant root logo source file.
+5. Security and privacy review: inspected configuration, documentation, SQL samples, staged paths, and staged secret-pattern matches. The SQL sample records are synthetic.
+6. `.gitignore` reviewed and added for generated and local sensitive files.
+7. Root `README.md` created with setup, testing, and production-data boundary.
+8. Final solution build: succeeded, zero errors; existing `NU1510` package warning in WinForms project.
+9. Final `BPLS_Dev` database and browser regression suites: passed, including both printable payment reports. No production database was used.
+10. Baseline commit message: `feat: complete BPLO web app through vehicle permit payment reporting`.
+11. Baseline commit SHA: `327c69d573fdfe90c57712af7a7341c652ef39e8`.
+12. GitHub repository: `https://github.com/raglesia/BPLO-Web-App`.
+13. Branch pushed: `main`.
+14. Push succeeded: baseline published to `origin/main`; this report is a normal follow-up commit.
+15. No production data or database files were committed.
+16. No credentials or secrets were committed. Password-related matches were a placeholder example, runtime form assembly, and encoded report image false positives.
+17. No deployment was performed.
