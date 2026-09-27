@@ -1,0 +1,41 @@
+@model BusinessPermitLicensingSystem.Web.Profiles.ProfileInput
+
+<fieldset class="field-group"><legend>Owner and business</legend><div class="row g-3">
+    <div class="col-md-6"><label asp-for="FullName" class="form-label"></label><input asp-for="FullName" class="form-control" required /><span asp-validation-for="FullName" class="text-danger"></span></div>
+    <div class="col-md-6"><label asp-for="BusinessName" class="form-label"></label><input asp-for="BusinessName" class="form-control" required /><span asp-validation-for="BusinessName" class="text-danger"></span></div>
+</div></fieldset>
+<fieldset class="field-group"><legend>Stall and rental</legend><div class="row g-3">
+    <div class="col-md-6">
+        <label asp-for="BusinessSection" class="form-label"></label>
+        <select asp-for="BusinessSection" class="form-select" required>
+            <option value="">Choose a section</option>
+            @foreach (var rate in (IReadOnlyList<BusinessPermitLicensingSystem.Web.Profiles.RentalRate>)ViewData["Rates"]!)
+            {
+                <option value="@rate.Section">@rate.Section — @(rate.RateType == "Flat" ? $"{rate.FlatRate:N2} flat" : $"{rate.RatePerSqm:N2} per sqm")</option>
+            }
+        </select>
+        <span asp-validation-for="BusinessSection" class="text-danger"></span>
+    </div>
+    <div class="col-md-3"><label asp-for="StallNumber" class="form-label"></label><input asp-for="StallNumber" class="form-control" required /><span asp-validation-for="StallNumber" class="text-danger"></span></div>
+    <div class="col-md-3"><label asp-for="StallSize" class="form-label"></label><input asp-for="StallSize" class="form-control" aria-describedby="stall-size-hint" required /><span asp-validation-for="StallSize" class="text-danger"></span><div id="stall-size-hint" class="form-text">Flat-rate sections use size 0.</div></div>
+    <div class="col-md-6">
+        <label asp-for="PaymentStatus" class="form-label"></label>
+        @if (ViewData["IsPaidRecord"] as bool? == true)
+        {
+            <input type="hidden" asp-for="PaymentStatus" />
+            <input class="form-control" value="Paid" aria-label="Verification status: Paid" disabled />
+        }
+        else
+        {
+            <select asp-for="PaymentStatus" class="form-select">
+                <option value="Unverified">Unverified</option>
+                <option value="Unpaid">Unpaid</option>
+            </select>
+        }
+        <span asp-validation-for="PaymentStatus" class="text-danger"></span>
+    </div>
+    <div class="col-md-6"><label asp-for="StartDate" class="form-label">Date of occupancy</label><input asp-for="StartDate" type="date" class="form-control" aria-describedby="occupancy-hint" /><span asp-validation-for="StartDate" class="text-danger"></span><div id="occupancy-hint" class="form-text">Required for Unpaid or existing Paid records.</div></div>
+    <div class="col-12"><div class="form-check"><input asp-for="IncludeAdditionalCharge" class="form-check-input" /><label asp-for="IncludeAdditionalCharge" class="form-check-label"></label></div></div>
+    <div class="col-md-6"><label asp-for="AdditionalCharge" class="form-label">Additional charge (₱)</label><input asp-for="AdditionalCharge" type="number" min="0" step="0.01" class="form-control" /><span asp-validation-for="AdditionalCharge" class="text-danger"></span></div>
+</div></fieldset>
+<p class="note">Monthly rental is calculated from the selected section, stall size, and included additional charge when saved.</p>

@@ -1,0 +1,25 @@
+**/bin/
+**/obj/
+**/.vs/
+**/phase*-bin*/
+**/TestResults/
+**/coverage/
+**/coverage.*
+*.user
+*.suo
+*.log
+*.tmp
+*.bak
+*.mdf
+*.ldf
+*.db
+*.sqlite*
+*.pfx
+*.p12
+*.pem
+*.key
+**/uploads/
+**/temp-uploads/
+**/secrets.json
+**/appsettings.Local.json
+/Masinloc Logo.jpg

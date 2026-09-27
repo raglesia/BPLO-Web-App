@@ -1,0 +1,19 @@
+@page "/Reports"
+@model BusinessPermitLicensingSystem.Web.Pages.Reports.IndexModel
+@{ ViewData["Title"] = "Reports"; }
+<div class="page-header"><div><p class="eyebrow">Reporting</p><h1>Reports</h1><p>View, print, and download records from stored billing and payment data.</p></div></div>
+<section class="section-panel">
+    <h2 class="section-heading">Stall Owner Rental Payment</h2>
+    <p>Find and select up to three stall owners. Preview their billing documents together, then print on A4.</p>
+    <a class="btn btn-primary" asp-page="/Reports/RentalPayment">Select stall owners</a>
+</section>
+<section class="section-panel">
+    <h2 class="section-heading">Special Vehicle Permit Payment</h2>
+    <p>Find recorded annual vehicle payments. Preview up to three payment reports, then print on A4.</p>
+    <a class="btn btn-outline-primary" asp-page="/Reports/VehiclePayment">Select vehicle payments</a>
+</section>
+<section class="section-panel">
+    <h2 class="section-heading">Monthly collection summary</h2>
+    <p>View billing snapshots by billing period and recorded collections by payment date. Print or download Excel.</p>
+    <a class="btn btn-outline-primary" asp-page="/Reports/Monthly">Choose report period</a>
+</section>

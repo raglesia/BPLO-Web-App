@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="BusinessPermitLicensingSystem.Web/BusinessPermitLicensingSystem.Web.csproj" />
+  <Project Path="BusinessPermitLicensingSystem.BillingTests/BusinessPermitLicensingSystem.BillingTests.csproj" />
+  <Project Path="BusinessPermitLicensingSystem/BusinessPermitLicensingSystem.csproj" />
+</Solution>

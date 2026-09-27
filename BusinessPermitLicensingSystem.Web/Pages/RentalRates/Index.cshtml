@@ -1,0 +1,13 @@
+@page "/RentalRates"
+@model BusinessPermitLicensingSystem.Web.Pages.RentalRates.IndexModel
+@{ ViewData["Title"] = "Rental rates"; }
+<div class="page-header"><div><p class="eyebrow">Settings</p><h1>Rental Rates</h1><p>Rates for new profiles and profiles edited later. Existing rents and billing history stay unchanged.</p></div><div class="page-actions"><a class="btn btn-primary" asp-page="/RentalRates/Edit">Add Section</a></div></div>
+@if (Model.Notice is not null) { <p class="text-success" role="status">@Model.Notice</p> }
+@if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
+<div class="table-responsive"><table class="table table-striped"><caption class="visually-hidden">Current rental rates</caption>
+    <thead><tr><th scope="col">Section</th><th scope="col">Rate type</th><th scope="col">Current rate</th><th scope="col">Action</th></tr></thead>
+    <tbody>@foreach (var rate in Model.Records)
+    { <tr><td>@rate.Section</td><td>@rate.RateType</td><td>₱@rate.CurrentRate.ToString("N2") @(rate.RateType == "PerSqm" ? "per sqm" : "flat")</td>
+        <td><a asp-page="/RentalRates/Edit" asp-route-section="@rate.Section">Edit</a></td></tr> }</tbody>
+</table></div>
+@if (Model.Records.Count == 0 && Model.Error is null) { <p>No rental rates found.</p> }

@@ -1,0 +1,51 @@
+@page
+@model IndexModel
+@{ ViewData["Title"] = "Dashboard"; }
+<section class="dashboard-hero" aria-labelledby="dashboard-title">
+    <p class="eyebrow">Workspace overview</p>
+    <h1 id="dashboard-title">Dashboard</h1>
+    <p>Good day, @(User.FindFirst("FullName")?.Value ?? "colleague"). Here is today's BPLO workspace.</p>
+</section>
+<h2 class="section-heading">Overview</h2>
+@if (Model.ActiveProfiles.HasValue)
+{
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-3 mb-3">
+        <div class="col"><div class="card metric-card"><div class="card-body"><div class="label">Active stall owners</div><div class="value">@Model.ActiveProfiles</div><p class="hint">Current profiles</p></div></div></div>
+        <div class="col"><div class="card metric-card"><div class="card-body"><div class="label">Unverified profiles</div><div class="value">@Model.UnverifiedProfiles</div><p class="hint">Occupancy needs confirmation</p></div></div></div>
+        <div class="col"><div class="card metric-card"><div class="card-body"><div class="label">Unpaid billing periods</div><div class="value">@Model.UnpaidPeriods</div><p class="hint">Bill rows, not a money total</p></div></div></div>
+        <div class="col"><div class="card metric-card"><div class="card-body"><div class="label">Active vehicle permits</div><div class="value">@Model.ActiveVehicles</div><p class="hint">Current vehicle records</p></div></div></div>
+        <div class="col"><div class="card metric-card"><div class="card-body"><div class="label">Rent collected this month</div><div class="value money">@Model.RentCollectedThisMonth?.ToString("₱#,##0.00")</div><p class="hint">Recorded stall payments</p></div></div></div>
+        <div class="col"><div class="card metric-card"><div class="card-body"><div class="label">Vehicle permit collections this month</div><div class="value money">@Model.VehicleCollectedThisMonth?.ToString("₱#,##0.00")</div><p class="hint">Recorded vehicle payments</p></div></div></div>
+    </div>
+}
+else
+{
+    <p class="note" role="status">Record counts are unavailable. You can still open all work areas below.</p>
+}
+@if (Model.Collections.Count == 6)
+{
+    var maximum = Math.Max(1m, Model.Collections.Max(month => Math.Max(month.Rent, month.Vehicles)));
+    <section class="section-panel dashboard-chart" aria-labelledby="collections-title">
+        <div class="chart-heading"><div><h2 id="collections-title" class="section-heading">Monthly collections trend</h2><p>Recorded payments for the last six months</p></div><div class="chart-legend"><span><i class="legend-swatch rent"></i> Stall rent</span><span><i class="legend-swatch vehicle"></i> Vehicle permits</span></div></div>
+        <div class="collection-chart" aria-hidden="true">
+            @foreach (var month in Model.Collections)
+            {
+                <div class="chart-month"><div class="chart-bars"><div class="chart-bar rent" style="height:@((month.Rent / maximum * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%" title="Stall rent: @month.Rent.ToString("₱#,##0.00")"></div><div class="chart-bar vehicle" style="height:@((month.Vehicles / maximum * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%" title="Vehicle permits: @month.Vehicles.ToString("₱#,##0.00")"></div></div><span>@month.Month.ToString("MMM")</span></div>
+            }
+        </div>
+        <table class="visually-hidden"><caption>Monthly collections in pesos</caption><thead><tr><th scope="col">Month</th><th scope="col">Stall rent</th><th scope="col">Vehicle permits</th></tr></thead><tbody>@foreach (var month in Model.Collections) { <tr><th scope="row">@month.Month.ToString("MMMM yyyy")</th><td>@month.Rent.ToString("₱#,##0.00")</td><td>@month.Vehicles.ToString("₱#,##0.00")</td></tr> }</tbody></table>
+    </section>
+}
+<div class="row g-3">
+    <section class="col-lg-6" aria-labelledby="quick-actions-title"><div class="section-panel h-100"><h2 id="quick-actions-title" class="section-heading">Quick actions</h2><div class="quick-actions">
+        <a asp-page="/Profiles/Create">Add stall-owner profile <span aria-hidden="true">→</span></a>
+        <a asp-page="/Vehicles/Edit">Add vehicle <span aria-hidden="true">→</span></a>
+        <a asp-page="/Profiles/Index">Find a profile <span aria-hidden="true">→</span></a>
+        <a asp-page="/Reports/Index">Open reports <span aria-hidden="true">→</span></a>
+    </div></div></section>
+    <section class="col-lg-6" aria-labelledby="attention-title"><div class="section-panel h-100"><h2 id="attention-title" class="section-heading">Needs attention</h2><ul class="attention-list">
+        <li><a asp-page="/Profiles/Index" asp-route-search="Unverified"><span>Review unverified profiles</span><span class="status-badge unverified">@(Model.UnverifiedProfiles?.ToString() ?? "—")</span></a></li>
+        <li><a asp-page="/Profiles/Index" asp-route-search="Unpaid"><span>Open unpaid billing periods</span><span class="status-badge unpaid">@(Model.UnpaidPeriods?.ToString() ?? "—")</span></a></li>
+        @if (Model.ReviewNeededSin is not null) { <li><a asp-page="/Profiles/Billing" asp-route-sin="@Model.ReviewNeededSin"><span>Check older bills requiring review</span><span class="status-badge review">@Model.ReviewNeededPeriods</span></a></li> }
+    </ul><p class="small mb-0">Counts are read-only and do not change billing or payment status.</p></div></section>
+</div>

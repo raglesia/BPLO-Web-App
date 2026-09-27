@@ -1,0 +1,76 @@
+@page
+@model BusinessPermitLicensingSystem.Web.Pages.Reports.RentalPaymentModel
+@{ ViewData["Title"] = "Stall Owner Rental Payment"; }
+<div class="page-header"><div><p class="eyebrow">Reports</p><h1>Stall Owner Rental Payment</h1><p>Select up to three active stall owners for one print job.</p></div></div>
+@if (Model.Error is not null) { <p class="alert alert-danger" role="alert">@Model.Error</p> }
+<section class="section-panel rental-selector" aria-labelledby="selected-heading">
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap"><h2 class="section-heading mb-0" id="selected-heading">Selected stall owners</h2><p class="mb-0" role="status" aria-live="polite">@Model.Selected.Count of 3 selected</p></div>
+    @if (Model.Selected.Count == 0) { <p class="mt-3 mb-0">No stall owners selected yet.</p> }
+    else
+    {
+        <ol class="rental-selected-list mt-3">
+        @foreach (var owner in Model.Selected)
+        {
+            <li><div><strong>@owner.FullName</strong><span>@owner.BusinessName · Stall @owner.StallNumber · @owner.Sin</span></div>
+                <form method="get" asp-page="/Reports/RentalPayment">
+                    <input type="hidden" name="search" value="@Model.Search" />
+                    @foreach (var item in Model.Selected) { <input type="hidden" name="selected" value="@item.Sin" /> }
+                    <input type="hidden" name="remove" value="@owner.Sin" />
+                    <button type="submit" class="btn btn-outline-secondary btn-sm" aria-label="Remove @owner.FullName, @owner.Sin">Remove</button>
+                </form></li>
+        }
+        </ol>
+        <form method="get" asp-page="/Reports/RentalPaymentPreview" class="mt-3">
+            @foreach (var owner in Model.Selected) { <input type="hidden" name="selected" value="@owner.Sin" /> }
+            <button type="submit" class="btn btn-primary">Preview combined report</button>
+        </form>
+    }
+</section>
+<section class="section-panel rental-selector" aria-labelledby="search-heading">
+    <h2 class="section-heading" id="search-heading">Find stall owners</h2>
+    <form method="get" asp-page="/Reports/RentalPayment" class="row g-2 align-items-end">
+        @foreach (var owner in Model.Selected) { <input type="hidden" name="selected" value="@owner.Sin" /> }
+        <div class="col-md-8"><label for="search" class="form-label">Owner name, business, stall number, or SIN</label><input id="search" name="search" value="@Model.Search" class="form-control" maxlength="255" /></div>
+        <div class="col-auto"><button type="submit" class="btn btn-outline-primary">Search</button></div>
+    </form>
+    @if (Model.Error is null)
+    {
+        <div class="rental-results mt-3">
+        @foreach (var owner in Model.Results)
+        {
+            bool alreadySelected = Model.Selected.Any(x => string.Equals(x.Sin, owner.Sin, StringComparison.OrdinalIgnoreCase));
+            <div class="rental-result"><div><strong>@owner.FullName</strong><span>@owner.BusinessName · Stall @owner.StallNumber · @owner.Sin</span></div>
+                @if (alreadySelected) { <span class="text-muted">Selected</span> }
+                else
+                {
+                    <form method="get" asp-page="/Reports/RentalPayment" class="rental-add-form">
+                        <input type="hidden" name="search" value="@Model.Search" />
+                        <input type="hidden" name="pageNumber" value="@Model.PageNumber" />
+                        @foreach (var item in Model.Selected) { <input type="hidden" name="selected" value="@item.Sin" /> }
+                        <input type="hidden" name="add" value="@owner.Sin" />
+                        <button type="submit" class="btn btn-outline-primary btn-sm" aria-label="Select @owner.FullName, @owner.Sin">Select</button>
+                    </form>
+                }
+            </div>
+        }
+        </div>
+        @if (Model.Results.Count == 0) { <p class="mt-3">No active stall owners match this search.</p> }
+        @if (Model.TotalPages > 1)
+        {
+            <nav aria-label="Search results pages" class="mt-3 d-flex gap-2 align-items-center">
+                @if (Model.PageNumber > 1) { <form method="get" asp-page="/Reports/RentalPayment"><input type="hidden" name="search" value="@Model.Search" /><input type="hidden" name="pageNumber" value="@(Model.PageNumber - 1)" />@foreach (var item in Model.Selected) { <input type="hidden" name="selected" value="@item.Sin" /> }<button class="btn btn-outline-secondary btn-sm" type="submit">Previous</button></form> }
+                <span>Page @Model.PageNumber of @Model.TotalPages</span>
+                @if (Model.PageNumber < Model.TotalPages) { <form method="get" asp-page="/Reports/RentalPayment"><input type="hidden" name="search" value="@Model.Search" /><input type="hidden" name="pageNumber" value="@(Model.PageNumber + 1)" />@foreach (var item in Model.Selected) { <input type="hidden" name="selected" value="@item.Sin" /> }<button class="btn btn-outline-secondary btn-sm" type="submit">Next</button></form> }
+            </nav>
+        }
+        <p id="rental-limit-message" class="text-danger mt-2" role="alert" hidden>You can print up to 3 billing reports at a time.</p>
+    }
+</section>
+<script>
+document.querySelectorAll('.rental-add-form').forEach(form => form.addEventListener('submit', event => {
+    if (document.querySelectorAll('.rental-selected-list li').length >= 3) {
+        event.preventDefault();
+        document.getElementById('rental-limit-message').hidden = false;
+    }
+}));
+</script>

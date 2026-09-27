@@ -1,0 +1,57 @@
+@page
+@using BusinessPermitLicensingSystem.Web.Vehicles
+@model BusinessPermitLicensingSystem.Web.Pages.Reports.VehiclePaymentPreviewModel
+@{ ViewData["Title"] = "Special Vehicle Permit Payment Preview"; }
+<div class="page-header rental-preview-toolbar"><div><p class="eyebrow">Reports</p><h1>Special Vehicle Permit Payment</h1><p>Combined print preview · @Model.Reports.Count report@(Model.Reports.Count == 1 ? "" : "s")</p></div>
+    <div class="page-actions"><a class="btn btn-outline-secondary" asp-page="/Reports/VehiclePayment">Back to Report Selection</a>@if (Model.Reports.Count > 0) { <button class="btn btn-primary" type="button" onclick="window.print()">Print</button> }</div>
+</div>
+@if (Model.Error is not null) { <p class="alert alert-danger" role="alert">@Model.Error <a asp-page="/Reports/VehiclePayment">Choose recorded payments again</a>.</p> }
+@if (Model.Reports.Count > 0)
+{
+    <div class="rental-paper vehicle-report-paper" aria-label="Vehicle payment report preview">
+    @foreach (var report in Model.Reports)
+    {
+        <article class="rental-payment-block vehicle-payment-block" aria-label="Special Vehicle Permit payment for @report.Vin, @report.Year, OR @report.OrNumber">
+            <div class="rental-document-heading">
+                <img src="@Url.Content("~/images/masinloc-logo.jpg")" alt="Municipality of Masinloc seal" width="70" height="70" />
+                <div><strong>Municipality of Masinloc</strong><span>Province of Zambales</span><span>Business Permit and Licensing Office</span><h2>SPECIAL VEHICLE PERMIT PAYMENT</h2></div>
+            </div>
+            <dl class="rental-info-grid vehicle-report-info">
+                <div><dt>Company / Operator</dt><dd>@report.Company</dd></div><div><dt>Plate Number</dt><dd>@report.Plate</dd></div>
+                <div><dt>Driver Name</dt><dd>@(string.IsNullOrWhiteSpace(report.Driver) ? "—" : report.Driver)</dd></div><div><dt>VIN</dt><dd>@report.Vin</dd></div>
+                <div><dt>Permit Year</dt><dd>@report.Year</dd></div><div><dt>Permit Status</dt><dd>Paid</dd></div>
+                <div><dt>OR Number</dt><dd>@report.OrNumber</dd></div><div><dt>Payment Date</dt><dd>@report.PaidAt.ToString("MMMM dd, yyyy hh:mm tt")</dd></div>
+                @if (!string.IsNullOrWhiteSpace(report.SecRegistration)) { <div><dt>SEC Registration</dt><dd>@report.SecRegistration</dd></div> }
+                @if (!string.IsNullOrWhiteSpace(report.DtiRegistration)) { <div><dt>DTI Registration</dt><dd>@report.DtiRegistration</dd></div> }
+            </dl>
+            <table class="rental-charge-table vehicle-fee-table"><thead><tr><th scope="col">Fee Assessment</th><th scope="col">Amount</th><th scope="col">Fee Assessment</th><th scope="col">Amount</th></tr></thead><tbody>
+            @if (report.Assessment is not null)
+            {
+                @for (int i = 0; i < VehicleFeeDraft.FeeNames.Length; i += 2)
+                {
+                    <tr><td>@FeeLabel(i, report.Assessment)</td><td>₱@report.Assessment.Amounts[i].ToString("N2")</td>
+                        @if (i + 1 < VehicleFeeDraft.FeeNames.Length) { <td>@FeeLabel(i + 1, report.Assessment)</td><td>₱@report.Assessment.Amounts[i + 1].ToString("N2")</td> }
+                        else { <td></td><td></td> }
+                    </tr>
+                }
+            }
+            else { <tr><td colspan="4">Fee assessment unavailable for this payment.</td></tr> }
+            <tr class="rental-total"><th scope="row" colspan="3">Total Amount Paid</th><td>₱@report.AmountPaid.ToString("N2")</td></tr>
+            </tbody></table>
+            @if (report.AmountMismatch) { <p class="rental-review-note" role="note">Assessment total ₱@report.Assessment!.GrandTotal.ToString("N2") differs from recorded amount paid. Payment history amount is authoritative.</p> }
+            @if (report.AssessmentWarning is not null) { <p class="rental-review-note" role="note">@report.AssessmentWarning</p> }
+            <div class="rental-document-footer"><div><span>Processed By:</span><strong>@report.Recorder</strong><span>@report.RecorderPosition</span></div><p>Date Printed: @Model.PrintedAt.ToString("MMMM dd, yyyy hh:mm tt")</p></div>
+            <p class="rental-scope">Recorded annual payment for permit year @report.Year. Vehicle identity and saved assessment reflect currently stored records.</p>
+        </article>
+    }
+    </div>
+}
+@functions {
+    private static string FeeLabel(int index, DraftSnapshot assessment)
+    {
+        string label = VehicleFeeDraft.FeeNames[index];
+        if (index >= 15 && assessment.Data.OtherDescriptions[index - 15] is { Length: > 0 } description)
+            label += " — " + description;
+        return label;
+    }
+}

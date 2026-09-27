@@ -1,0 +1,45 @@
+@page
+@model BusinessPermitLicensingSystem.Web.Pages.Reports.BillingModel
+@{ ViewData["Title"] = "Stall-owner rental report"; }
+<div class="report-header text-center mb-4">
+    <p class="mb-0">Municipality of Masinloc<br />Province of Zambales<br />Business Permit and Licensing Office</p>
+    <h1 class="h3 mt-3">Stall-owner rental report</h1>
+    <p>Generated @DateTime.Now.ToString("MMMM dd, yyyy hh:mm tt")</p>
+</div>
+<div class="report-controls mb-3"><a asp-page="/Reports/Index">Back to reports</a>
+    @if (Model.Report is not null) { <button class="btn btn-outline-primary ms-3" type="button" onclick="window.print()">Print</button> }</div>
+@if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
+@if (Model.Report is not null)
+{
+    <dl class="row detail-list section-panel">
+        <dt class="col-sm-3">Owner</dt><dd class="col-sm-9">@Model.Report.Owner</dd>
+        <dt class="col-sm-3">SIN</dt><dd class="col-sm-9">@Model.Report.Sin</dd>
+        <dt class="col-sm-3">Business</dt><dd class="col-sm-9">@Model.Report.Business</dd>
+        <dt class="col-sm-3">Section</dt><dd class="col-sm-9">@Model.Report.Section</dd>
+        <dt class="col-sm-3">Stall / size</dt><dd class="col-sm-9">@Model.Report.Stall / @Model.Report.StallSize</dd>
+        <dt class="col-sm-3">Profile status</dt><dd class="col-sm-9">@Model.Report.Status @(Model.Report.Archived ? "(archived)" : "")</dd>
+    </dl>
+    @if (Model.Report.ReviewNeeded)
+    { <p class="text-danger" role="alert">Review needed: at least one older bill has an unknown rent basis. Its stored values appear below; no authoritative billed total is shown.</p> }
+    <h2 class="h4">Billing periods</h2>
+    <p>Amounts use stored billing snapshots. Stored penalty is shown without changing the bill.</p>
+    <div class="table-responsive"><table class="table table-sm table-striped">
+        <thead><tr><th scope="col">Period</th><th scope="col">Stored rent</th><th scope="col">Base rent</th><th scope="col">Additional</th><th scope="col">Stored penalty</th><th scope="col">Total</th><th scope="col">Status</th><th scope="col">OR</th><th scope="col">Paid</th></tr></thead>
+        <tbody>@foreach (var bill in Model.Report.Bills)
+        { <tr><td>@bill.Year-@bill.Month.ToString("D2")</td><td>@bill.StoredRent.ToString("N2")</td>
+            <td>@(bill.BaseRent?.ToString("N2") ?? "Review needed")</td><td>@bill.Additional.ToString("N2")</td>
+            <td>@bill.Penalty.ToString("N2")</td><td>@(bill.Total?.ToString("N2") ?? "Review needed")</td>
+            <td>@bill.Status</td><td>@bill.OrNumber</td><td>@bill.PaidAt?.ToString("yyyy-MM-dd")</td></tr> }</tbody>
+    </table></div>
+    <p><strong>Billed total:</strong> @(Model.Report.BilledTotal?.ToString("N2") ?? "Review needed")</p>
+    <h2 class="h4">Recorded payments</h2>
+    <div class="table-responsive"><table class="table table-sm table-striped">
+        <thead><tr><th scope="col">OR number</th><th scope="col">Payment date</th><th scope="col">Amount</th><th scope="col">Penalty</th><th scope="col">Recorded by</th><th scope="col">Covered periods</th></tr></thead>
+        <tbody>@foreach (var payment in Model.Report.Payments)
+        { <tr><td>@payment.OrNumber</td><td>@payment.PaidAt.ToString("yyyy-MM-dd HH:mm")</td>
+            <td>@payment.Amount.ToString("N2")</td><td>@payment.Penalty.ToString("N2")</td><td>@payment.Recorder</td>
+            <td>@(payment.Periods.Length == 0 ? "No period link recorded" : payment.Periods)</td></tr> }</tbody>
+    </table></div>
+    <p><strong>Recorded payment total:</strong> @Model.Report.PaymentTotal.ToString("N2")</p>
+    <p class="small">Prepared by @User.FindFirst("FullName")?.Value (@User.FindFirst("Position")?.Value)</p>
+}

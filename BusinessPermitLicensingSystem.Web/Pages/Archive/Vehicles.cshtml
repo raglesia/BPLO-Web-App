@@ -1,0 +1,26 @@
+@page
+@model BusinessPermitLicensingSystem.Web.Pages.Archive.VehiclesModel
+@{ ViewData["Title"] = "Archived vehicles"; }
+<div class="page-header"><div><p class="eyebrow">Archive</p><h1>Archived Vehicles</h1><p>Restoring keeps the VIN, permit history, fee drafts, and stored permit state.</p></div></div>
+@if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
+@if (Model.Notice is not null) { <p class="text-success" role="status">@Model.Notice</p> }
+<form method="get" class="search-panel mb-3"><label for="Search" class="form-label">Search archived vehicles</label>
+    <input id="Search" name="Search" value="@Model.Search" class="form-control" style="max-width: 24rem" />
+    <button class="btn btn-outline-primary mt-2">Search</button>
+    @if (!string.IsNullOrWhiteSpace(Model.Search)) { <a class="btn btn-link mt-2" asp-page="/Archive/Vehicles">Clear Search</a> }</form>
+<div class="table-responsive"><table class="table table-striped">
+<thead><tr><th scope="col">VIN</th><th scope="col">Company</th><th scope="col">Driver</th><th scope="col">Plate</th><th scope="col">Permit</th><th scope="col">History</th><th scope="col">Restore</th></tr></thead>
+<tbody>
+@foreach (var item in Model.Records)
+{
+    <tr><td>@item.Vin</td><td>@item.Company</td><td>@item.Driver</td><td>@item.Plate</td><td><span class="status-badge @item.Status.ToLowerInvariant()">@item.Status</span> / @item.Year</td>
+        <td><a asp-page="/Vehicles/Details" asp-route-vin="@item.Vin">Permit history and draft</a></td>
+        <td><form method="post" asp-page-handler="Restore" asp-route-vin="@item.Vin">
+            <div class="form-check"><input type="checkbox" name="ConfirmRestore" value="true" id="confirm-@item.Vin" class="form-check-input" required />
+                <label for="confirm-@item.Vin" class="form-check-label">Confirm @item.Company (@item.Vin)</label></div>
+            <button type="submit" class="btn btn-outline-primary btn-sm mt-1">Restore</button>
+        </form></td></tr>
+}
+</tbody></table></div>
+@if (Model.Records.Count == 0) { <p class="empty-state">No archived vehicles found.</p> }
+@if (Model.Records.Count == 100) { <p>Showing first 100 records. Narrow the search to find more.</p> }

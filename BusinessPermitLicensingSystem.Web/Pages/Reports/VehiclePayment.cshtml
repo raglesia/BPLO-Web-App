@@ -1,0 +1,76 @@
+@page
+@model BusinessPermitLicensingSystem.Web.Pages.Reports.VehiclePaymentModel
+@{ ViewData["Title"] = "Special Vehicle Permit Payment"; }
+<div class="page-header"><div><p class="eyebrow">Reports</p><h1>Special Vehicle Permit Payment</h1><p>Select up to three recorded annual payments for one print job.</p></div></div>
+@if (Model.Error is not null) { <p class="alert alert-danger" role="alert">@Model.Error</p> }
+<section class="section-panel vehicle-report-selector" aria-labelledby="vehicle-selected-heading">
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap"><h2 class="section-heading mb-0" id="vehicle-selected-heading">Selected payments</h2><p class="mb-0" role="status" aria-live="polite">@Model.Selected.Count of 3 selected</p></div>
+    @if (Model.Selected.Count == 0) { <p class="mt-3 mb-0">No annual payments selected yet.</p> }
+    else
+    {
+        <ol class="rental-selected-list mt-3">
+        @foreach (var payment in Model.Selected)
+        {
+            <li><div><strong>@payment.Company · @payment.Year</strong><span>Plate @payment.Plate · @payment.Vin · OR @payment.OrNumber</span></div>
+                <form method="get" asp-page="/Reports/VehiclePayment">
+                    <input type="hidden" name="search" value="@Model.Search" /><input type="hidden" name="year" value="@Model.Year" />
+                    @foreach (var item in Model.Selected) { <input type="hidden" name="selected" value="@item.Id" /> }
+                    <input type="hidden" name="remove" value="@payment.Id" />
+                    <button type="submit" class="btn btn-outline-secondary btn-sm" aria-label="Remove @payment.Company, @payment.Year, OR @payment.OrNumber">Remove</button>
+                </form></li>
+        }
+        </ol>
+        <form method="get" asp-page="/Reports/VehiclePaymentPreview" class="mt-3">
+            @foreach (var payment in Model.Selected) { <input type="hidden" name="selected" value="@payment.Id" /> }
+            <button type="submit" class="btn btn-primary">Preview combined report</button>
+        </form>
+    }
+</section>
+<section class="section-panel vehicle-report-selector" aria-labelledby="vehicle-search-heading">
+    <h2 class="section-heading" id="vehicle-search-heading">Find recorded payments</h2>
+    <form method="get" asp-page="/Reports/VehiclePayment" class="row g-2 align-items-end">
+        @foreach (var payment in Model.Selected) { <input type="hidden" name="selected" value="@payment.Id" /> }
+        <div class="col-md-7"><label for="vehicle-report-search" class="form-label">Company, driver, plate, VIN, or OR number</label><input id="vehicle-report-search" name="search" value="@Model.Search" class="form-control" maxlength="255" /></div>
+        <div class="col-md-2"><label for="vehicle-report-year" class="form-label">Permit year</label><input id="vehicle-report-year" name="year" value="@Model.Year" type="number" min="2000" max="2100" class="form-control" /></div>
+        <div class="col-auto"><button type="submit" class="btn btn-outline-primary">Search</button></div>
+    </form>
+    @if (Model.Error is null)
+    {
+        <div class="rental-results mt-3">
+        @foreach (var payment in Model.Results)
+        {
+            bool alreadySelected = Model.Selected.Any(x => x.Id == payment.Id);
+            <div class="rental-result vehicle-payment-result"><div><strong>@payment.Company · @payment.Year</strong><span>@payment.Driver · Plate @payment.Plate · @payment.Vin · OR @payment.OrNumber</span></div>
+                @if (alreadySelected) { <span class="text-muted">Selected</span> }
+                else
+                {
+                    <form method="get" asp-page="/Reports/VehiclePayment" class="vehicle-report-add-form">
+                        <input type="hidden" name="search" value="@Model.Search" /><input type="hidden" name="year" value="@Model.Year" /><input type="hidden" name="pageNumber" value="@Model.PageNumber" />
+                        @foreach (var item in Model.Selected) { <input type="hidden" name="selected" value="@item.Id" /> }
+                        <input type="hidden" name="add" value="@payment.Id" />
+                        <button type="submit" class="btn btn-outline-primary btn-sm" aria-label="Select @payment.Company, @payment.Year, OR @payment.OrNumber">Select</button>
+                    </form>
+                }
+            </div>
+        }
+        </div>
+        @if (Model.Results.Count == 0) { <p class="mt-3">No recorded payments match this search.</p> }
+        @if (Model.TotalPages > 1)
+        {
+            <nav aria-label="Payment results pages" class="mt-3 d-flex gap-2 align-items-center">
+                @if (Model.PageNumber > 1) { <form method="get" asp-page="/Reports/VehiclePayment"><input type="hidden" name="search" value="@Model.Search" /><input type="hidden" name="year" value="@Model.Year" /><input type="hidden" name="pageNumber" value="@(Model.PageNumber - 1)" />@foreach (var item in Model.Selected) { <input type="hidden" name="selected" value="@item.Id" /> }<button class="btn btn-outline-secondary btn-sm" type="submit">Previous</button></form> }
+                <span>Page @Model.PageNumber of @Model.TotalPages</span>
+                @if (Model.PageNumber < Model.TotalPages) { <form method="get" asp-page="/Reports/VehiclePayment"><input type="hidden" name="search" value="@Model.Search" /><input type="hidden" name="year" value="@Model.Year" /><input type="hidden" name="pageNumber" value="@(Model.PageNumber + 1)" />@foreach (var item in Model.Selected) { <input type="hidden" name="selected" value="@item.Id" /> }<button class="btn btn-outline-secondary btn-sm" type="submit">Next</button></form> }
+            </nav>
+        }
+        <p id="vehicle-report-limit" class="text-danger mt-2" role="alert" hidden>You can print up to 3 vehicle payment reports at a time.</p>
+    }
+</section>
+<script>
+document.querySelectorAll('.vehicle-report-add-form').forEach(form => form.addEventListener('submit', event => {
+    if (document.querySelectorAll('.rental-selected-list li').length >= 3) {
+        event.preventDefault();
+        document.getElementById('vehicle-report-limit').hidden = false;
+    }
+}));
+</script>

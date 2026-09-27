@@ -1,0 +1,27 @@
+@page
+@model BusinessPermitLicensingSystem.Web.Pages.Vehicles.TransferModel
+@{ ViewData["Title"] = "Vehicle import and export"; }
+<div class="page-header"><div><p class="eyebrow">Vehicle permits</p><h1>Vehicle Import and Export</h1><p>Move vehicle records with a CSV or XLSX file.</p></div></div>
+<section class="section-panel"><h2 class="section-heading">Import vehicles</h2><p>Maximum file size: 5 MB. Required columns: CompanyName, DriverName, PlateNo, SECRegNo, and DTINumber. VIN is generated on import; permit status starts Unpaid.</p>
+<form method="post" enctype="multipart/form-data" asp-page-handler="Import" class="mb-1">
+    <label asp-for="Upload" class="form-label">Import file</label>
+    <input asp-for="Upload" class="form-control" type="file" accept=".csv,.xlsx" required />
+    <button class="btn btn-primary mt-2" type="submit">Import vehicles</button>
+</form>
+</section><section class="section-panel"><h2 class="section-heading">Export vehicles</h2>
+<form method="get" asp-page-handler="Export" class="mb-1">
+    <label asp-for="Search" class="form-label">Export active vehicles matching search</label>
+    <input asp-for="Search" class="form-control" style="max-width: 24rem" />
+    <button class="btn btn-outline-primary mt-2" type="submit">Download Excel</button>
+</form>
+</section>
+@if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
+@if (Model.Result is not null)
+{
+    <p class="note" role="status">Total @Model.Result.Total; imported @Model.Result.Imported; skipped @Model.Result.Skipped; duplicates @Model.Result.Duplicates; invalid @Model.Result.Invalid; failed @Model.Result.Failed.</p>
+    @if (Model.Result.Issues.Count > 0)
+    { <table class="table table-sm"><thead><tr><th scope="col">Row</th><th scope="col">Result</th><th scope="col">Reason</th></tr></thead><tbody>
+        @foreach (var issue in Model.Result.Issues) { <tr><td>@issue.Row</td><td>@issue.Kind</td><td>@issue.Reason</td></tr> }
+      </tbody></table> }
+    @if (Model.Result.MoreIssues) { <p>Showing first 20 row issues.</p> }
+}

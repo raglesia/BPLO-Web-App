@@ -1,0 +1,36 @@
+@page "{sin}"
+@model ProfileDetailsModel
+@{
+    ViewData["Title"] = "Profile details";
+}
+
+<div class="page-header"><div><p class="eyebrow">Stall owners</p><h1>Profile Details</h1><p>Review the record before editing or recording payment.</p></div></div>
+@if (Model.Notice is not null) { <p class="text-success" role="status">@Model.Notice</p> }
+@if (Model.LoadError is not null)
+{
+    <p class="text-danger" role="alert">@Model.LoadError</p>
+}
+else if (Model.Profile is not null)
+{
+    <section class="section-panel"><h2 class="section-heading">Owner and stall</h2><dl class="row detail-list">
+        <dt class="col-sm-3">SIN</dt><dd class="col-sm-9">@Model.Profile.Sin</dd>
+        <dt class="col-sm-3">Full name</dt><dd class="col-sm-9">@Model.Profile.FullName</dd>
+        <dt class="col-sm-3">Business name</dt><dd class="col-sm-9">@Model.Profile.BusinessName</dd>
+        <dt class="col-sm-3">Business section</dt><dd class="col-sm-9">@Model.Profile.BusinessSection</dd>
+        <dt class="col-sm-3">Stall number</dt><dd class="col-sm-9">@Model.Profile.StallNumber</dd>
+        <dt class="col-sm-3">Stall size</dt><dd class="col-sm-9">@Model.Profile.StallSize</dd>
+        <dt class="col-sm-3">Date of occupancy</dt><dd class="col-sm-9">@(string.IsNullOrEmpty(Model.Profile.StartDate) ? "Unverified" : Model.Profile.StartDate)</dd>
+        <dt class="col-sm-3">Monthly rental</dt><dd class="col-sm-9 money">₱@Model.Profile.MonthlyRental.ToString("N2")</dd>
+        <dt class="col-sm-3">Additional charge</dt><dd class="col-sm-9 money">₱@Model.Profile.AdditionalCharge.ToString("N2")</dd>
+        <dt class="col-sm-3">Payment status</dt><dd class="col-sm-9"><span class="status-badge @Model.Profile.PaymentStatus.ToLowerInvariant()">@Model.Profile.PaymentStatus</span></dd>
+    </dl></section>
+    <div class="page-actions"><a class="btn btn-primary" asp-page="/Profiles/Edit" asp-route-sin="@Model.Profile.Sin">Edit Profile</a>
+    <a class="btn btn-outline-primary" asp-page="/Profiles/Billing" asp-route-sin="@Model.Profile.Sin">Billing and Payments</a></div>
+    <form method="post" asp-page-handler="Archive" asp-route-sin="@Model.Profile.Sin" class="section-panel mt-4">
+        <h2 class="section-heading">Archive profile</h2>
+        <div class="form-check"><input asp-for="ConfirmArchive" class="form-check-input" required />
+            <label asp-for="ConfirmArchive" class="form-check-label">Archive @Model.Profile.FullName (@Model.Profile.Sin). History will remain available.</label></div>
+        <button class="btn btn-outline-danger mt-2" type="submit">Archive profile</button>
+    </form>
+}
+<a class="btn btn-link" asp-page="/Profiles/Index">Back to Stall Owners</a>

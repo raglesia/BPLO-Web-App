@@ -1,0 +1,14 @@
+@page
+@model ProfileCreateModel
+@{
+    ViewData["Title"] = "Add profile";
+    ViewData["Rates"] = Model.Rates;
+}
+
+<div class="page-header"><div><p class="eyebrow">Stall owners</p><h1>Add Profile</h1><p>SIN is assigned when the profile is saved.</p></div></div>
+<form method="post" class="form-panel">
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    <partial name="_Fields" for="Input" />
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Save Profile</button>
+    <a class="btn btn-outline-secondary" asp-page="/Profiles/Index">Cancel</a></div>
+</form>

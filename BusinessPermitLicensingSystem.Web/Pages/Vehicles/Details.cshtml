@@ -1,0 +1,91 @@
+@page "{vin}"
+@using BusinessPermitLicensingSystem.Web.Vehicles
+@model BusinessPermitLicensingSystem.Web.Pages.Vehicles.DetailsModel
+@{
+    ViewData["Title"] = "Vehicle permit";
+}
+<div class="page-header"><div><p class="eyebrow">Vehicle permits</p><h1>Special Vehicle Permit</h1><p>Annual permit assessment, payment, and history.</p></div></div>
+@if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
+@if (Model.Notice is not null) { <p class="text-success" role="status">@Model.Notice</p> }
+@if (Model.Vehicle is not null)
+{
+    var currentPayment = Model.Vehicle.History.FirstOrDefault(payment => payment.Year == Model.Vehicle.SelectedYear);
+    <section class="section-panel"><h2 class="section-heading">Vehicle details</h2><dl class="row detail-list">
+        <dt class="col-sm-3">VIN</dt><dd class="col-sm-9">@Model.Vehicle.Vin</dd>
+        <dt class="col-sm-3">Company</dt><dd class="col-sm-9">@Model.Vehicle.Company</dd>
+        <dt class="col-sm-3">Driver</dt><dd class="col-sm-9">@Model.Vehicle.Driver</dd>
+        <dt class="col-sm-3">Plate</dt><dd class="col-sm-9">@Model.Vehicle.Plate</dd>
+    </dl></section>
+    <section class="section-panel annual-permit-status" aria-labelledby="annual-permit-title">
+        <h2 id="annual-permit-title" class="section-heading">@Model.Vehicle.SelectedYear Special Vehicle Permit</h2>
+        <p class="mb-2"><span class="status-badge @Model.Vehicle.SelectedYearStatus.ToLowerInvariant()">@Model.Vehicle.SelectedYearStatus</span> for @Model.Vehicle.SelectedYear · @Model.Vehicle.Plate</p>
+        @if (Model.Vehicle.Archived) { <p class="mb-0">This vehicle is archived. Previous permit payments remain below; no new payment can be recorded.</p> }
+        else if (!Model.Vehicle.Eligible)
+        {
+            @if (currentPayment is not null)
+            { <p class="mb-0">Paid on @currentPayment.PaidAt.ToString("yyyy-MM-dd") · OR @currentPayment.OrNumber · <strong class="money">₱@currentPayment.Amount.ToString("N2")</strong></p> }
+            else
+            { <p class="mb-0">The stored permit state says this year is paid, but no annual payment-history row is available. Review this record before any further payment.</p> }
+        }
+        else if (Model.Vehicle.Draft is null)
+        { <p class="mb-0">Create and save the permit fee assessment before recording payment. <a href="#fee-assessment">Go to fee assessment</a>.</p> }
+        else if (Model.Vehicle.Draft.GrandTotal <= 0)
+        { <p class="mb-0">The saved assessment total is zero. Enter the applicable fees and save it before recording payment. <a href="#fee-assessment">Go to fee assessment</a>.</p> }
+        else
+        { <p class="mb-0">Saved assessment: <strong class="money">₱@Model.Vehicle.Draft.GrandTotal.ToString("N2")</strong> · <a href="#vehicle-payment">Go to annual payment</a></p> }
+    </section>
+    @if (!Model.Vehicle.Archived)
+    {
+        <div class="page-actions mb-3"><a class="btn btn-outline-primary" asp-page="/Vehicles/Edit" asp-route-vin="@Model.Vehicle.Vin">Edit vehicle</a></div>
+        <h2 class="section-heading" id="fee-assessment">@Model.Vehicle.SelectedYear Fee Assessment</h2>
+        @if (Model.Vehicle.DraftError is not null) { <p class="text-danger" role="alert">@Model.Vehicle.DraftError</p> }
+        <p>Save Draft stores the fee assessment only. It does not record an annual permit payment. Existing payment amounts stay unchanged.</p>
+        <form method="post" asp-page-handler="SaveDraft" asp-route-vin="@Model.Vehicle.Vin" class="section-panel">
+            <div class="table-responsive"><table class="table table-sm"><caption class="visually-hidden">@Model.Vehicle.SelectedYear fee draft items</caption>
+                <thead><tr><th scope="col">Fee item</th><th scope="col">Amount</th><th scope="col">Other description</th></tr></thead>
+                <tbody>
+                @for (int i = 0; i < VehicleFeeDraft.FeeNames.Length; i++)
+                {
+                    <tr><th scope="row"><label for="fee-@i">@VehicleFeeDraft.FeeNames[i]</label></th>
+                        <td><input asp-for="FeeAmounts[i]" id="fee-@i" type="number" min="0" step="0.01" class="form-control" style="max-width: 12rem" required /></td>
+                        <td>@if (i >= 15) { int j = i - 15; <input asp-for="OtherDescriptions[j]" class="form-control" maxlength="255" aria-label="Other fee description @(j + 1)" /> }</td></tr>
+                }
+                </tbody>
+            </table></div>
+            <p class="money"><strong>Saved total:</strong> @(Model.Vehicle.Draft is null ? "No draft" : $"₱{Model.Vehicle.Draft.GrandTotal:N2}")</p>
+            <button class="btn btn-outline-primary" type="submit">Save Fee Draft</button>
+        </form>
+        @if (Model.Vehicle.Eligible && Model.Vehicle.Draft is not null && Model.Vehicle.Draft.GrandTotal > 0)
+        {
+            <section class="section-panel" id="vehicle-payment" tabindex="-1"><h2 class="section-heading">Record @Model.Vehicle.SelectedYear Permit Payment</h2>
+            <p>Annual payment for <strong>@Model.Vehicle.Company</strong> · plate <strong>@Model.Vehicle.Plate</strong> · permit year <strong>@Model.Vehicle.SelectedYear</strong>. Amount due: <strong class="money">₱@Model.Vehicle.Draft.GrandTotal.ToString("N2")</strong>. The saved assessment is checked again when you submit.</p>
+            <form method="post" asp-page-handler="Pay" asp-route-vin="@Model.Vehicle.Vin" style="max-width: 28rem">
+                <div class="mb-3"><label asp-for="OrNumber" class="form-label">Vehicle OR number</label>
+                    <input asp-for="OrNumber" class="form-control" maxlength="100" required /></div>
+                <div class="form-check mb-3"><input asp-for="ConfirmPayment" class="form-check-input" required />
+                    <label asp-for="ConfirmPayment" class="form-check-label">I confirm the @Model.Vehicle.SelectedYear permit, amount, and OR number entered above.</label></div>
+                <button class="btn btn-primary" type="submit">Record @Model.Vehicle.SelectedYear Permit Payment</button>
+            </form>
+            </section>
+        }
+    }
+    <h2 class="section-heading mt-4">Previous Annual Permit Payments</h2>
+    <div class="table-responsive"><table class="table table-striped financial-table"><caption class="visually-hidden">Vehicle payment history for @Model.Vehicle.Vin</caption>
+        <thead><tr><th scope="col">Permit year</th><th scope="col">OR number</th><th scope="col">Amount paid</th><th scope="col">Payment date</th><th scope="col">Recorded by</th><th scope="col">Report</th></tr></thead>
+        <tbody>
+        @foreach (var payment in Model.Vehicle.History)
+        { <tr><td>@payment.Year</td><td>@payment.OrNumber</td><td class="money">₱@payment.Amount.ToString("N2")</td>
+            <td>@payment.PaidAt.ToString("yyyy-MM-dd HH:mm")</td><td>@payment.Recorder</td><td><a asp-page="/Reports/VehiclePaymentPreview" asp-route-selected="@payment.Id">Print Payment Report</a></td></tr> }
+        </tbody>
+    </table></div>
+    @if (Model.Vehicle.History.Count == 0) { <p class="empty-state">No payment history yet.</p> }
+    @if (!Model.Vehicle.Archived)
+    {
+        <form method="post" asp-page-handler="Archive" asp-route-vin="@Model.Vehicle.Vin" class="section-panel mt-4"><h2 class="section-heading">Archive vehicle</h2>
+            <div class="form-check"><input asp-for="ConfirmArchive" class="form-check-input" required />
+                <label asp-for="ConfirmArchive" class="form-check-label">Archive @Model.Vehicle.Company (@Model.Vehicle.Vin). History and fee drafts will remain.</label></div>
+            <button class="btn btn-outline-danger mt-2" type="submit">Archive vehicle</button>
+        </form>
+    }
+}
+<a asp-page="/Vehicles/Index">Back to vehicle permits</a>

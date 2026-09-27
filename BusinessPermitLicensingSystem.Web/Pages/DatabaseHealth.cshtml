@@ -1,0 +1,10 @@
+@page
+@model DatabaseHealthModel
+@{
+    ViewData["Title"] = "Database check";
+}
+
+<div class="page-header"><div><p class="eyebrow">Administration</p><h1>Database Check</h1><p>Current development connection status.</p></div></div>
+<p class="@(Model.IsConnected ? "text-success" : "text-danger")" role="status">
+    @(Model.IsConnected ? "Database connection successful" : "Database connection failed")
+</p>

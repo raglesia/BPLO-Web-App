@@ -1,0 +1,76 @@
+@page "/Profiles/{sin}/Billing"
+@model BillingModel
+@{
+    ViewData["Title"] = "Billing history";
+}
+<div class="page-header"><div><p class="eyebrow">Stall owners / Billing</p><h1>Billing and Payments</h1><p>Review outstanding periods and recorded payments.</p></div><div class="page-actions"><a class="btn btn-outline-secondary" asp-page="/Reports/Billing" asp-route-sin="@RouteData.Values["sin"]">Printable Rental Report</a></div></div>
+@if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
+@if (Model.Notice is not null) { <p class="text-success" role="status">@Model.Notice</p> }
+@if (Model.Record is not null)
+{
+    <p><strong>@Model.Record.Name</strong> · <span class="status-badge @Model.Record.Status.ToLowerInvariant()">@Model.Record.Status</span></p>
+    @if (Model.Record.Archived) { <p>Archived profile. Billing generation is unavailable.</p> }
+    else if (Model.Record.Status == "Unverified") { <p>Unverified profile. Billing generation is unavailable.</p> }
+    else
+    {
+        <form method="post" asp-page-handler="Generate" asp-route-sin="@RouteData.Values["sin"]" class="d-inline">
+            <button class="btn btn-outline-primary" type="submit">Generate missing billing periods</button>
+        </form>
+        <form method="post" asp-page-handler="Penalties" asp-route-sin="@RouteData.Values["sin"]" class="d-inline">
+            <button class="btn btn-outline-secondary" type="submit">Recalculate profile penalty</button>
+        </form>
+    }
+    <section class="section-panel mt-4"><h2 class="section-heading">Outstanding through @Model.AsOf.ToString("MMMM yyyy")</h2>
+    @if (Model.Record.TotalDue is null)
+    {
+        <p class="text-danger" role="alert">An older bill with an additional charge needs review before payment. Its stored rent basis is unknown.</p>
+    }
+    <dl class="row detail-list">
+        <dt class="col-sm-3">Base rent</dt><dd class="col-sm-9 money">@(Model.Record.RentDue.HasValue ? $"₱{Model.Record.RentDue:N2}" : "Review needed")</dd>
+        <dt class="col-sm-3">Additional charge</dt><dd class="col-sm-9 money">@(Model.Record.AdditionalDue.HasValue ? $"₱{Model.Record.AdditionalDue:N2}" : "Review needed")</dd>
+        <dt class="col-sm-3">Penalty</dt><dd class="col-sm-9 money">@(Model.Record.PenaltyDue.HasValue ? $"₱{Model.Record.PenaltyDue:N2}" : "Review needed")</dd>
+        <dt class="col-sm-3">Total</dt><dd class="col-sm-9 money summary-total">@(Model.Record.TotalDue.HasValue ? $"₱{Model.Record.TotalDue:N2}" : "Review needed")</dd>
+    </dl></section>
+    @if (!Model.Record.Archived && Model.Record.Status != "Unverified" && Model.Record.TotalDue > 0)
+    {
+        <section class="section-panel"><h2 class="section-heading">Record full payment</h2>
+        <p>One OR number settles every unpaid billing period through this month. Amount is calculated again when submitted.</p>
+        <form method="post" asp-page-handler="Pay" asp-route-sin="@RouteData.Values["sin"]" style="max-width: 28rem">
+            <div class="mb-3"><label class="form-label" asp-for="OrNumber">OR number</label>
+                <input class="form-control" asp-for="OrNumber" maxlength="100" required /></div>
+            <div class="form-check mb-3"><input class="form-check-input" asp-for="ConfirmPayment" required />
+                <label class="form-check-label" asp-for="ConfirmPayment">Confirm full payment of all outstanding periods</label></div>
+            <button class="btn btn-primary" type="submit">Record payment</button>
+        </form>
+        </section>
+    }
+    <h2 class="section-heading">Billing periods</h2>
+    <div class="table-responsive">
+        <table class="table table-striped financial-table"><caption class="visually-hidden">Billing periods for @Model.Record.Name</caption>
+            <thead><tr><th scope="col">Period</th><th scope="col">Base rent</th><th scope="col">Additional</th><th scope="col">Penalty</th><th scope="col">Status</th><th scope="col">OR number</th><th scope="col">Date paid</th></tr></thead>
+            <tbody>
+            @foreach (var row in Model.Record.Rows)
+            {
+                <tr><td>@row.Year-@row.Month.ToString("D2")</td><td class="money">@(row.BaseRent.HasValue ? $"₱{row.BaseRent:N2}" : "Review needed")</td>
+                    <td class="money">₱@row.Additional.ToString("N2")</td><td class="money">@(row.CurrentPenalty(Model.AsOf).HasValue ? $"₱{row.CurrentPenalty(Model.AsOf):N2}" : "Review needed")</td>
+                    <td><span class="status-badge @row.Status.ToLowerInvariant()">@row.Status</span></td><td>@row.OrNumber</td><td>@row.DatePaid?.ToString("yyyy-MM-dd")</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.Record.Rows.Count == 0) { <p class="empty-state">No billing periods yet.</p> }
+    <h2 class="h4 mt-4">Payment history</h2>
+    <div class="table-responsive"><table class="table table-striped financial-table"><caption class="visually-hidden">Payment history for @Model.Record.Name</caption>
+        <thead><tr><th scope="col">OR number</th><th scope="col">Date</th><th scope="col">Amount</th><th scope="col">Penalty</th><th scope="col">Recorded by</th><th scope="col">Periods</th></tr></thead>
+        <tbody>
+        @foreach (var payment in Model.Record.Payments)
+        {
+            <tr><td>@payment.OrNumber</td><td>@payment.DatePaid.ToString("yyyy-MM-dd HH:mm")</td>
+                <td class="money">₱@payment.Amount.ToString("N2")</td><td class="money">₱@payment.Penalty.ToString("N2")</td>
+                <td>@payment.RecordedBy</td><td>@payment.Periods</td></tr>
+        }
+        </tbody>
+    </table></div>
+    @if (Model.Record.Payments.Count == 0) { <p class="empty-state">No payment history yet.</p> }
+}
+<a asp-page="/Profiles/Details" asp-route-sin="@RouteData.Values["sin"]">Back to profile</a>

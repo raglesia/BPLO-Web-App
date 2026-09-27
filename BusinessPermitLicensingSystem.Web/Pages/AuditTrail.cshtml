@@ -1,0 +1,28 @@
+@page
+@using BusinessPermitLicensingSystem.Web.Administration
+@model BusinessPermitLicensingSystem.Web.Pages.AuditTrailModel
+@{ ViewData["Title"] = "Audit trail"; }
+<div class="page-header"><div><p class="eyebrow">Administration</p><h1>Audit Trail</h1><p>Read-only history of sign-ins and business activity.</p></div></div>
+<form method="get" class="search-panel row g-2 mb-3">
+    <div class="col-auto"><label asp-for="Category" class="form-label">Category</label>
+        <select asp-for="Category" class="form-select"><option value="users">Login / logout</option><option value="activity">Business activity</option></select></div>
+    <div class="col-auto"><label asp-for="Search" class="form-label">Search</label>
+        <input asp-for="Search" class="form-control" placeholder="User, action, reference, details" /></div>
+    <div class="col-auto align-self-end"><button type="submit" class="btn btn-outline-primary">Search</button></div>
+    @if (!string.IsNullOrWhiteSpace(Model.Search)) { <div class="col-auto align-self-end"><a class="btn btn-link" asp-page="/AuditTrail" asp-route-Category="@Model.Category">Clear Search</a></div> }
+</form>
+@if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
+@if (Model.Result is not null)
+{
+    <p class="record-count">@Model.Result.Total record(s)</p>
+    <div class="table-responsive"><table class="table table-sm table-striped"><caption class="visually-hidden">Audit trail results</caption>
+        <thead><tr><th scope="col">Date/time</th><th scope="col">User</th><th scope="col">Action</th><th scope="col">SIN / reference</th><th scope="col">Details</th></tr></thead>
+        <tbody>@foreach (var entry in Model.Result.Entries)
+        { <tr><td>@entry.At.ToString("yyyy-MM-dd HH:mm")</td><td>@entry.Username</td><td>@entry.Action</td><td>@entry.Reference</td><td>@entry.Details</td></tr> }</tbody>
+    </table></div>
+    @if (Model.Result.Entries.Count == 0) { <p class="empty-state">No audit records found.</p> }
+    @if (Model.Result.Page > 1)
+    { <a class="btn btn-outline-secondary" asp-page="/AuditTrail" asp-route-Category="@Model.Category" asp-route-Search="@Model.Search" asp-route-PageNumber="@(Model.Result.Page - 1)">Previous</a> }
+    @if (Model.Result.Page * AuditTrailService.PageSize < Model.Result.Total)
+    { <a class="btn btn-outline-secondary" asp-page="/AuditTrail" asp-route-Category="@Model.Category" asp-route-Search="@Model.Search" asp-route-PageNumber="@(Model.Result.Page + 1)">Next</a> }
+}

@@ -1,0 +1,78 @@
+@{
+    var path = Context.Request.Path.Value ?? "/";
+    bool home = path == "/";
+    bool profiles = path.StartsWith("/Profiles", StringComparison.OrdinalIgnoreCase);
+    bool vehicles = path.StartsWith("/Vehicles", StringComparison.OrdinalIgnoreCase);
+    bool reports = path.StartsWith("/Reports", StringComparison.OrdinalIgnoreCase);
+    bool rates = path.StartsWith("/RentalRates", StringComparison.OrdinalIgnoreCase);
+    bool archive = path.StartsWith("/Archive", StringComparison.OrdinalIgnoreCase);
+    bool audit = path.StartsWith("/AuditTrail", StringComparison.OrdinalIgnoreCase);
+    bool health = path.StartsWith("/DatabaseHealth", StringComparison.OrdinalIgnoreCase);
+    bool transfer = path.EndsWith("/Transfer", StringComparison.OrdinalIgnoreCase);
+    bool archiveVehicles = path.StartsWith("/Archive/Vehicles", StringComparison.OrdinalIgnoreCase);
+    bool vehicleTransfer = path.StartsWith("/Vehicles/Transfer", StringComparison.OrdinalIgnoreCase);
+    string pageSection = home ? "Dashboard" : reports ? "Reports" : archive ? "Archive" : rates ? "Rental Rates" : audit ? "Audit Trail" : vehicles ? "Vehicles" : profiles ? "Profiles" : health ? "Database Check" : "Workspace";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] · BPLO</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/BusinessPermitLicensingSystem.Web.styles.css" asp-append-version="true" />
+</head>
+<body class="@(User.Identity?.IsAuthenticated == true ? "authenticated" : "")">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <symbol id="i-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+            <symbol id="i-profiles" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2M17 5a3 3 0 0 1 0 6m1 3a5 5 0 0 1 3 5v1"/></symbol>
+            <symbol id="i-vehicles" viewBox="0 0 24 24"><path d="M5 16H3v-5l2-5h14l2 5v5h-2M5 16h14M3 11h18M7 16v2m10-2v2"/><circle cx="7" cy="16" r="1"/><circle cx="17" cy="16" r="1"/></symbol>
+            <symbol id="i-rates" viewBox="0 0 24 24"><path d="M8 5h13M8 12h13M8 19h13M3 5h1M3 12h1M3 19h1"/></symbol>
+            <symbol id="i-archive" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v12h14V8M10 13h4"/></symbol>
+            <symbol id="i-audit" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 7v5l3 2"/></symbol>
+            <symbol id="i-transfer" viewBox="0 0 24 24"><path d="M5 3h9l5 5v13H5zM14 3v5h5M8 13h8M8 17h8"/></symbol>
+            <symbol id="i-reports" viewBox="0 0 24 24"><path d="M4 20V4M4 20h17M7 15l4-4 3 2 5-6"/></symbol>
+            <symbol id="i-health" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+        </svg>
+        <div class="app-shell">
+            <aside class="app-sidebar" id="app-sidebar" aria-label="Application navigation">
+                <a class="sidebar-brand brand" asp-page="/Index"><span class="brand-mark" aria-hidden="true">B</span><span><strong>BPLO</strong><small>Office workspace</small></span></a>
+                <nav class="sidebar-nav" aria-label="Main navigation">
+                    <p class="sidebar-group">Main</p>
+                    <a class="sidebar-link @(home ? "active" : "")" aria-current="@(home ? "page" : null)" asp-page="/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-dashboard" /></svg>Dashboard</a>
+                    <a class="sidebar-link @(profiles && !transfer ? "active" : "")" aria-current="@(profiles && !transfer ? "page" : null)" asp-page="/Profiles/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-profiles" /></svg>Profiles</a>
+                    <a class="sidebar-link @(vehicles && !transfer ? "active" : "")" aria-current="@(vehicles && !transfer ? "page" : null)" asp-page="/Vehicles/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-vehicles" /></svg>Vehicles</a>
+                    <p class="sidebar-group">Management</p>
+                    <a class="sidebar-link @(rates ? "active" : "")" aria-current="@(rates ? "page" : null)" asp-page="/RentalRates/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-rates" /></svg>Rental Rates</a>
+                    <details class="sidebar-disclosure" @(archive ? "open" : "")><summary class="sidebar-link @(archive ? "active" : "")"><svg class="nav-icon" aria-hidden="true"><use href="#i-archive" /></svg>Archive<span class="disclosure-chevron" aria-hidden="true">⌄</span></summary><a class="sidebar-sublink @(archive && !archiveVehicles ? "active" : "")" aria-current="@(archive && !archiveVehicles ? "page" : null)" asp-page="/Archive/Profiles">Profiles</a><a class="sidebar-sublink @(archiveVehicles ? "active" : "")" aria-current="@(archiveVehicles ? "page" : null)" asp-page="/Archive/Vehicles">Vehicles</a></details>
+                    <a class="sidebar-link @(audit ? "active" : "")" aria-current="@(audit ? "page" : null)" asp-page="/AuditTrail"><svg class="nav-icon" aria-hidden="true"><use href="#i-audit" /></svg>Audit Trail</a>
+                    <p class="sidebar-group">Tools</p>
+                    <details class="sidebar-disclosure" @(transfer ? "open" : "")><summary class="sidebar-link @(transfer ? "active" : "")"><svg class="nav-icon" aria-hidden="true"><use href="#i-transfer" /></svg>Import / Export<span class="disclosure-chevron" aria-hidden="true">⌄</span></summary><a class="sidebar-sublink @(transfer && !vehicleTransfer ? "active" : "")" aria-current="@(transfer && !vehicleTransfer ? "page" : null)" asp-page="/Profiles/Transfer">Profiles</a><a class="sidebar-sublink @(vehicleTransfer ? "active" : "")" aria-current="@(vehicleTransfer ? "page" : null)" asp-page="/Vehicles/Transfer">Vehicles</a></details>
+                    <a class="sidebar-link @(reports ? "active" : "")" aria-current="@(reports ? "page" : null)" asp-page="/Reports/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-reports" /></svg>Reports</a>
+                    <a class="sidebar-link @(health ? "active" : "")" aria-current="@(health ? "page" : null)" asp-page="/DatabaseHealth"><svg class="nav-icon" aria-hidden="true"><use href="#i-health" /></svg>Database Check</a>
+                </nav>
+                <div class="sidebar-user"><span class="user-avatar" aria-hidden="true">@((User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "U").Substring(0, 1).ToUpperInvariant())</span><span class="user-label"><strong>@(User.FindFirst("FullName")?.Value ?? User.Identity?.Name)</strong><small>@User.FindFirst("Position")?.Value</small></span></div>
+                <form class="sidebar-logout" method="post" asp-page="/Account/Logout"><button type="submit" class="btn btn-outline-secondary btn-sm">Sign Out</button></form>
+            </aside>
+            <div class="app-workspace">
+                <header class="app-topbar"><button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Open navigation" aria-controls="app-sidebar" aria-expanded="false"><span aria-hidden="true">☰</span></button><span class="topbar-context">@pageSection</span><span class="topbar-office">Business Permit and Licensing Office</span></header>
+                <main id="main-content" class="app-main" tabindex="-1">@RenderBody()</main>
+                <footer class="app-footer">BPLO · Business Permit and Licensing Office</footer>
+            </div>
+        </div>
+        <button class="sidebar-backdrop" type="button" aria-label="Close navigation" tabindex="-1"></button>
+    }
+    else
+    {
+        <main id="main-content" class="container app-main" tabindex="-1">@RenderBody()</main>
+    }
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

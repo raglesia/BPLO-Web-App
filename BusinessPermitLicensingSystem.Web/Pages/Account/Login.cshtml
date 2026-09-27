@@ -1,0 +1,27 @@
+@page
+@model LoginModel
+@{
+    ViewData["Title"] = "Log in";
+}
+
+<div class="login-shell"><div class="surface">
+<span class="brand-mark" aria-hidden="true">B</span>
+<p class="eyebrow">Staff access</p>
+<h1>Sign in to BPLO</h1>
+<p>Use your assigned account to continue.</p>
+<form method="post" class="mt-4">
+    <input type="hidden" asp-for="ReturnUrl" />
+    <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+    <div class="mb-3">
+        <label asp-for="Input.Username" class="form-label"></label>
+        <input asp-for="Input.Username" class="form-control" autocomplete="username" />
+        <span asp-validation-for="Input.Username" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Input.Password" class="form-label"></label>
+        <input asp-for="Input.Password" class="form-control" type="password" autocomplete="current-password" />
+        <span asp-validation-for="Input.Password" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary w-100">Sign In</button>
+</form>
+</div></div>

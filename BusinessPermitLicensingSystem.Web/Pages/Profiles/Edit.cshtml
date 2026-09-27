@@ -1,0 +1,15 @@
+@page "{sin}"
+@model ProfileEditModel
+@{
+    ViewData["Title"] = "Edit profile";
+    ViewData["Rates"] = Model.Rates;
+    ViewData["IsPaidRecord"] = Model.IsPaidRecord;
+}
+
+<div class="page-header"><div><p class="eyebrow">Stall owners</p><h1>Edit Profile</h1><p>SIN: <strong>@Model.Sin</strong></p></div></div>
+<form method="post" class="form-panel">
+    <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+    <partial name="_Fields" for="Input" />
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Save Changes</button>
+    <a class="btn btn-outline-secondary" asp-page="/Profiles/Details" asp-route-sin="@Model.Sin">Cancel</a></div>
+</form>

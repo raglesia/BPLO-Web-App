@@ -1,0 +1,44 @@
+@page
+@model BusinessPermitLicensingSystem.Web.Pages.Reports.RentalPaymentPreviewModel
+@{ ViewData["Title"] = "Stall Owner Rental Payment Preview"; }
+<div class="page-header rental-preview-toolbar"><div><p class="eyebrow">Reports</p><h1>Stall Owner Rental Payment</h1><p>Combined print preview · @Model.Reports.Count report@(Model.Reports.Count == 1 ? "" : "s")</p></div>
+    <div class="page-actions"><a class="btn btn-outline-secondary" asp-page="/Reports/RentalPayment">Back to selection</a>@if (Model.Error is null) { <button class="btn btn-primary" type="button" onclick="window.print()">Print</button> }</div>
+</div>
+@if (Model.Error is not null) { <p class="alert alert-danger" role="alert">@Model.Error <a asp-page="/Reports/RentalPayment">Choose stall owners again</a>.</p> }
+@if (Model.Reports.Count > 0)
+{
+    <div class="rental-paper" aria-label="Rental payment report preview">
+    @foreach (var report in Model.Reports)
+    {
+        var dueBills = report.Bills.Where(x => x.Status.Equals("Unpaid", StringComparison.OrdinalIgnoreCase)).ToList();
+        bool review = report.ReviewNeeded;
+        decimal? rent = review ? null : dueBills.Sum(x => x.BaseRent ?? 0);
+        decimal penalty = dueBills.Sum(x => x.Penalty);
+        decimal additional = dueBills.Sum(x => x.Additional);
+        decimal? total = review ? null : dueBills.Sum(x => x.Total ?? 0);
+        string status = review ? "Review Needed" : dueBills.Count > 0 ? "Unpaid" : report.Bills.Count > 0 ? "Paid" : "No bill prepared";
+        <article class="rental-payment-block" aria-label="Rental payment report for @report.Owner, @report.Sin">
+            <div class="rental-document-heading">
+                <img src="@Url.Content("~/images/masinloc-logo.jpg")" alt="Municipality of Masinloc seal" width="70" height="70" />
+                <div><strong>Municipality of Masinloc</strong><span>Province of Zambales</span><span>Business Permit and Licensing Office</span><h2>STALL OWNER RENTAL PAYMENT</h2></div>
+            </div>
+            <dl class="rental-info-grid">
+                <div><dt>Stall Owner Name</dt><dd>@report.Owner</dd></div><div><dt>Business Name</dt><dd>@report.Business</dd></div>
+                <div><dt>Stall Number</dt><dd>@report.Stall</dd></div><div><dt>SIN</dt><dd>@report.Sin</dd></div>
+                <div><dt>Business Section</dt><dd>@report.Section</dd></div><div><dt>Payment Status</dt><dd>@status</dd></div>
+                <div class="rental-info-wide"><dt>Date Processed</dt><dd>@Model.PrintedAt.ToString("MMMM dd, yyyy hh:mm tt")</dd></div>
+            </dl>
+            <table class="rental-charge-table"><thead><tr><th scope="col">Tax Description</th><th scope="col">Amount</th></tr></thead><tbody>
+                <tr><td>Monthly Stall Rental Fee</td><td>@(rent?.ToString("₱#,##0.00") ?? "Review Needed")</td></tr>
+                <tr><td>Penalty</td><td>@penalty.ToString("₱#,##0.00")</td></tr>
+                <tr><td>Additional Charge</td><td>@additional.ToString("₱#,##0.00")</td></tr>
+                <tr class="rental-total"><th scope="row">Total Amount Due</th><td>@(total?.ToString("₱#,##0.00") ?? "Review Needed")</td></tr>
+            </tbody></table>
+            @if (review) { <p class="rental-review-note">Review Needed: an unpaid historical bill has an unknown rent basis. No authoritative total is shown.</p> }
+            else if (report.Bills.Count == 0) { <p class="rental-review-note">No billing period has been prepared. Use the existing billing workflow before requesting payment.</p> }
+            <div class="rental-document-footer"><div><span>Processed By:</span><strong>@Model.ProcessedBy</strong><span>@Model.Position</span></div><p>Date Printed: @Model.PrintedAt.ToString("MMMM dd, yyyy hh:mm tt")</p></div>
+            <p class="rental-scope">Amounts include all stored unpaid billing periods. Printing this report does not prepare or change bills.</p>
+        </article>
+    }
+    </div>
+}
