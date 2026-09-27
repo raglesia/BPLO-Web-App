@@ -28,6 +28,28 @@ h1{font-size:clamp(1.48rem,2vw,1.78rem);line-height:1.2;margin-bottom:.35rem}h2{
 @media print{@page{size:A4 portrait;margin:10mm}.rental-preview-toolbar,.rental-selector{display:none!important}.rental-paper{max-width:none;margin:0;padding:0;box-shadow:none}.rental-payment-block{margin-bottom:5mm;border-color:#111;break-inside:avoid!important;page-break-inside:avoid!important}.rental-document-heading,.rental-document-footer{break-inside:avoid}.rental-charge-table thead th{background:#eee!important;print-color-adjust:exact}.rental-payment-block:last-child{margin-bottom:0}}
 .vehicle-payment-result span{overflow-wrap:anywhere}.vehicle-report-info div{grid-template-columns:31mm 1fr}.vehicle-fee-table{font-size:8.5pt}.vehicle-fee-table th,.vehicle-fee-table td{padding:1mm 1.5mm}.vehicle-fee-table th:nth-child(2),.vehicle-fee-table td:nth-child(2),.vehicle-fee-table th:nth-child(4),.vehicle-fee-table td:nth-child(4){text-align:right;width:20mm;white-space:nowrap}.vehicle-fee-table th:nth-child(3),.vehicle-fee-table td:nth-child(3){text-align:left;width:auto}.vehicle-fee-table .rental-total th{text-align:left}.vehicle-payment-block{font-size:9.5pt}.vehicle-payment-block .rental-info-grid{row-gap:.5mm}
 @media print{.vehicle-report-selector{display:none!important}.vehicle-payment-block{break-inside:avoid!important;page-break-inside:avoid!important}.vehicle-fee-table thead th{background:#eee!important;print-color-adjust:exact}}
+
+/* Special Vehicle Permit fee entry */
+.assessment-heading{font-size:.92rem;font-weight:700;margin:0 0 .7rem;color:var(--ink)}
+.standard-fee-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:1.5rem;row-gap:.55rem}
+.fee-entry{display:grid;grid-template-columns:minmax(0,1fr) minmax(115px,150px);align-items:center;gap:.55rem;min-width:0}
+.fee-entry label,.other-fee-entry label{font-size:.84rem;font-weight:600;color:var(--ink)}
+.fee-entry .fee-amount,.other-fee-entry .fee-amount{text-align:right;font-variant-numeric:tabular-nums}
+.fee-error{grid-column:1/-1;color:var(--danger);font-size:.78rem}
+.fee-error:empty{display:none}
+.other-fee-heading{margin-top:1.3rem;padding-top:1.1rem;border-top:1px solid var(--line)}
+.other-fee-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem 1rem;margin-top:.8rem}
+.other-fee-entry{display:grid;grid-template-columns:minmax(0,1fr) minmax(115px,150px);gap:.35rem .6rem;align-items:end;padding:.7rem;border:1px solid var(--line);border-radius:var(--radius);min-width:0}
+.other-fee-entry strong{grid-column:1/-1;font-size:.82rem}
+.other-fee-entry label{display:block;margin-bottom:.25rem}
+.other-fee-entry>div{min-width:0}
+.assessment-summary{display:flex;align-items:end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-top:1.25rem;padding:1rem;background:var(--soft);border:1px solid var(--line);border-radius:var(--radius)}
+.assessment-summary-label,.assessment-total{display:block}
+.assessment-summary-label{font-size:.8rem;font-weight:700;color:var(--muted)}
+.assessment-total{font-size:1.5rem;font-weight:800;line-height:1.25;color:var(--ink)}
+.assessment-actions{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap}
+@media(max-width:760px){.standard-fee-grid,.other-fee-grid{grid-template-columns:1fr}}
+@media(max-width:390px){.fee-entry{grid-template-columns:minmax(0,1fr) 120px}.other-fee-entry{grid-template-columns:minmax(0,1fr) 120px}.assessment-actions{width:100%}.assessment-actions .btn{width:100%}}
 .chart-heading{display:flex;align-items:start;justify-content:space-between;gap:1rem}.chart-heading h2{margin-bottom:.15rem}.chart-heading p{font-size:.78rem;margin:0}.chart-legend{display:flex;flex-wrap:wrap;gap:1rem;font-size:.76rem;color:var(--muted)}.legend-swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:.3rem}.legend-swatch.rent,.chart-bar.rent{background:#376d8d}.legend-swatch.vehicle,.chart-bar.vehicle{background:#64a69f}.collection-chart{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.5rem;height:166px;padding:.7rem .2rem .1rem;border-bottom:1px solid var(--line)}.chart-month{height:100%;display:flex;flex-direction:column;align-items:center;min-width:0}.chart-bars{height:calc(100% - 25px);width:100%;display:flex;align-items:end;justify-content:center;gap:5px;border-bottom:1px solid #e5ecf0;background:linear-gradient(to top,transparent 24%,#eef2f4 25%,transparent 25.5%,transparent 49%,#eef2f4 50%,transparent 50.5%,transparent 74%,#eef2f4 75%,transparent 75.5%)}.chart-bar{width:clamp(12px,20%,28px);min-height:1px;border-radius:3px 3px 0 0}.chart-month>span{font-size:.75rem;color:var(--muted);padding-top:.3rem}.metric-card .money{font-size:clamp(1.15rem,1.8vw,1.55rem);white-space:nowrap}.dashboard-chart{margin-bottom:1rem}@media(max-width:600px){.chart-heading{display:block}.chart-legend{margin-top:.4rem}.collection-chart{height:145px}}
 @media(max-width:991px){.app-sidebar{visibility:hidden;pointer-events:none}.sidebar-open .app-sidebar{visibility:visible;pointer-events:auto}}
 .icon-sprite{position:absolute;width:0;height:0;overflow:hidden}.nav-icon{width:17px;height:17px;flex:0 0 17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}

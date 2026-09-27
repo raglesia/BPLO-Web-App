@@ -40,20 +40,30 @@
         <h2 class="section-heading" id="fee-assessment">@Model.Vehicle.SelectedYear Fee Assessment</h2>
         @if (Model.Vehicle.DraftError is not null) { <p class="text-danger" role="alert">@Model.Vehicle.DraftError</p> }
         <p>Save Draft stores the fee assessment only. It does not record an annual permit payment. Existing payment amounts stay unchanged.</p>
-        <form method="post" asp-page-handler="SaveDraft" asp-route-vin="@Model.Vehicle.Vin" class="section-panel">
-            <div class="table-responsive"><table class="table table-sm"><caption class="visually-hidden">@Model.Vehicle.SelectedYear fee draft items</caption>
-                <thead><tr><th scope="col">Fee item</th><th scope="col">Amount</th><th scope="col">Other description</th></tr></thead>
-                <tbody>
-                @for (int i = 0; i < VehicleFeeDraft.FeeNames.Length; i++)
+        <form method="post" asp-page-handler="SaveDraft" asp-route-vin="@Model.Vehicle.Vin" class="section-panel vehicle-assessment" data-fee-assessment>
+            <h3 class="assessment-heading">Standard Fees</h3>
+            <div class="standard-fee-grid">
+                @for (int i = 0; i < 15; i++)
                 {
-                    <tr><th scope="row"><label for="fee-@i">@VehicleFeeDraft.FeeNames[i]</label></th>
-                        <td><input asp-for="FeeAmounts[i]" id="fee-@i" type="number" min="0" step="0.01" class="form-control" style="max-width: 12rem" required /></td>
-                        <td>@if (i >= 15) { int j = i - 15; <input asp-for="OtherDescriptions[j]" class="form-control" maxlength="255" aria-label="Other fee description @(j + 1)" /> }</td></tr>
+                    <div class="fee-entry"><label for="fee-@i">@VehicleFeeDraft.FeeNames[i]</label>
+                        <input asp-for="FeeAmounts[i]" id="fee-@i" type="text" inputmode="decimal" autocomplete="off" class="form-control fee-amount" aria-describedby="fee-error-@i" required />
+                        <span id="fee-error-@i" class="fee-error" aria-live="polite"></span></div>
                 }
-                </tbody>
-            </table></div>
-            <p class="money"><strong>Saved total:</strong> @(Model.Vehicle.Draft is null ? "No draft" : $"₱{Model.Vehicle.Draft.GrandTotal:N2}")</p>
-            <button class="btn btn-outline-primary" type="submit">Save Fee Draft</button>
+            </div>
+            <h3 class="assessment-heading other-fee-heading">Other Fees</h3>
+            <p class="form-text">Name each additional fee. A blank name retains its Other Fee number on reports.</p>
+            <div class="other-fee-grid">
+                @for (int j = 0; j < 4; j++)
+                {
+                    int feeIndex = j + 15;
+                    <div class="other-fee-entry"><strong>Other Fee @(j + 1)</strong>
+                        <div><label for="other-description-@j">Description</label><input asp-for="OtherDescriptions[j]" id="other-description-@j" aria-label="Other Fee @(j + 1) description" class="form-control" maxlength="255" placeholder="Fee name" /></div>
+                        <div><label for="fee-@feeIndex">Amount</label><input asp-for="FeeAmounts[feeIndex]" id="fee-@feeIndex" aria-label="Other Fee @(j + 1) amount" type="text" inputmode="decimal" autocomplete="off" class="form-control fee-amount" aria-describedby="fee-error-@feeIndex" required /><span id="fee-error-@feeIndex" class="fee-error" aria-live="polite"></span></div>
+                    </div>
+                }
+            </div>
+            <div class="assessment-summary"><div><span class="assessment-summary-label">Total Amount Due</span><output id="fee-total" class="money assessment-total" aria-live="polite">₱0.00</output><span class="form-text">Current form total. Save Draft to use this assessment for payment.</span></div>
+                <div class="assessment-actions"><span class="form-text">Saved total: @(Model.Vehicle.Draft is null ? "No draft" : $"₱{Model.Vehicle.Draft.GrandTotal:N2}")</span><button class="btn btn-primary" type="submit">Save Draft</button></div></div>
         </form>
         @if (Model.Vehicle.Eligible && Model.Vehicle.Draft is not null && Model.Vehicle.Draft.GrandTotal > 0)
         {
@@ -89,3 +99,4 @@
     }
 }
 <a asp-page="/Vehicles/Index">Back to vehicle permits</a>
+@section Scripts { <script src="~/js/vehicle-fee-assessment.js" asp-append-version="true"></script> }

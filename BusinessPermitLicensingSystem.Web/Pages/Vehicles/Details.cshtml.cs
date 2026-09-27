@@ -36,6 +36,8 @@ public class DetailsModel(VehicleService vehicles, ArchiveService archive, ILogg
 
     public async Task<IActionResult> OnPostSaveDraftAsync(string vin)
     {
+        if (ModelState.Any(entry => entry.Key.StartsWith("FeeAmounts[", StringComparison.Ordinal) && entry.Value?.Errors.Count > 0))
+        { Error = "Enter valid fee amounts using numbers with at most two decimal places."; return await LoadAsync(vin, false); }
         try
         {
             var result = await vehicles.SaveDraftAsync(vin, DateTime.Today.Year,
@@ -82,6 +84,11 @@ public class DetailsModel(VehicleService vehicles, ArchiveService archive, ILogg
             {
                 FeeAmounts = Vehicle.Draft?.Amounts.ToList() ?? Enumerable.Repeat(0m, VehicleFeeDraft.FeeNames.Length).ToList();
                 OtherDescriptions = Vehicle.Draft?.Data.OtherDescriptions.ToList() ?? ["", "", "", ""];
+            }
+            else
+            {
+                while (FeeAmounts.Count < VehicleFeeDraft.FeeNames.Length) FeeAmounts.Add(0m);
+                while (OtherDescriptions.Count < 4) OtherDescriptions.Add("");
             }
             return Page();
         }

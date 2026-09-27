@@ -435,6 +435,24 @@ internal static class BrowserScenarios
         Check(Has(draftSaved, "Fee draft saved") && Has(draftSaved, "123.45"), "vehicle draft persists through PRG");
         Page draftReloaded = await first.Get("/Vehicles/Details/" + vin);
         Check(Has(draftReloaded, "Saved total:") && Has(draftReloaded, "₱123.45"), "vehicle draft survives reload");
+        var namedOtherFee = draftFields.Select(field => field.Item1 switch
+        {
+            "OtherDescriptions[0]" => (field.Item1, "Special inspection"),
+            "FeeAmounts[15]" => (field.Item1, "25.00"),
+            _ => field
+        }).ToArray();
+        Page namedDraft = await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", draftReloaded, namedOtherFee);
+        Check(Has(namedDraft, "Fee draft saved"), "named other-fee draft saves");
+        Page namedReloaded = await first.Get("/Vehicles/Details/" + vin);
+        Check(Has(namedReloaded, "Special inspection") && Has(namedReloaded, "₱148.45"),
+            "other-fee name, amount, and computed total survive reload");
+        var invalidDraft = draftFields.Select(field => field.Item1 == "FeeAmounts[0]"
+            ? (field.Item1, "invalid") : field).ToArray();
+        Page rejectedDraft = await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", namedReloaded, invalidDraft);
+        Check(Has(rejectedDraft, "Enter valid fee amounts") &&
+              Has(await first.Get("/Vehicles/Details/" + vin), "₱148.45"),
+            "invalid fee input is rejected without changing saved draft");
+        await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", namedReloaded, draftFields);
         string competingVin = Extract(VinPattern, concurrentVehicles[0]);
         Page noTokenPay = await first.PostWithoutToken($"/Vehicles/Details/{vin}?handler=Pay",
             ("OrNumber", "P15-NO-TOKEN-" + Unique()), ("ConfirmPayment", "true"));
