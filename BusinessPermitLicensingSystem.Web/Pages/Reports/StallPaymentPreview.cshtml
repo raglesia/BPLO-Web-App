@@ -1,0 +1,12 @@
+@page
+@model BusinessPermitLicensingSystem.Web.Pages.Reports.StallPaymentPreviewModel
+@{ ViewData["Title"] = "Stall Owner Payment Report"; }
+<div class="page-header rental-preview-toolbar"><h1>Stall Owner Payment Report</h1><div class="page-actions"><a asp-page="/Profiles/Billing" asp-route-sin="@Model.Sin" class="btn btn-outline-secondary">Back to Billing</a>@if(Model.Payment is not null) { <button type="button" class="btn btn-primary" onclick="window.print()">Print</button> }</div></div>
+@if(Model.Error is not null) { <p class="alert alert-danger" role="alert">@Model.Error</p> }
+@if(Model.Payment is {} payment) {
+<div class="rental-paper"><article class="rental-payment-block">
+<div class="rental-document-heading"><img src="~/images/masinloc-logo.jpg" alt="Municipality of Masinloc seal" width="70" height="70"/><div><strong>Municipality of Masinloc</strong><span>Province of Zambales</span><span>Business Permit and Licensing Office</span><h2>STALL OWNER PAYMENT REPORT</h2></div></div>
+<dl class="rental-info-grid"><div><dt>Stall Owner</dt><dd>@Model.Record!.Name</dd></div><div><dt>SIN</dt><dd>@Model.Sin</dd></div><div><dt>OR Number</dt><dd>@payment.OrNumber</dd></div><div><dt>Payment Date</dt><dd>@payment.DatePaid.ToString("MMMM dd, yyyy hh:mm tt")</dd></div><div><dt>Recorded By</dt><dd>@payment.RecordedBy</dd></div><div><dt>Covered Periods</dt><dd>@(string.IsNullOrWhiteSpace(payment.Periods) ? "No period link recorded" : payment.Periods)</dd></div></dl>
+<table class="rental-charge-table"><tbody><tr><th scope="row">Recorded Penalty</th><td>₱@payment.Penalty.ToString("N2")</td></tr><tr class="rental-total"><th scope="row">Total Amount Paid</th><td>₱@payment.Amount.ToString("N2")</td></tr></tbody></table><p class="rental-scope">Recorded payment history is authoritative. Current outstanding bills are not included in this payment amount.</p>
+</article></div>
+}

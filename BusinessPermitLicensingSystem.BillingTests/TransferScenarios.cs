@@ -26,7 +26,7 @@ internal static class TransferScenarios
         int draftsBefore = (int)(await Scalar("SELECT COUNT(*) FROM VehiclePermitFeeDrafts") ?? 0);
         int auditsBefore = (int)(await Scalar("SELECT COUNT(*) FROM AuditTrail") ?? 0);
         string run = Guid.NewGuid().ToString("N")[..10];
-        string stall = BitConverter.ToUInt32(Guid.NewGuid().ToByteArray()).ToString();
+        string stall = "FC" + BitConverter.ToUInt32(Guid.NewGuid().ToByteArray()) + "-A";
         string sin1 = "SIN-IMPTEST-" + run + "-1", sin2 = "SIN-IMPTEST-" + run + "-2";
         string plate1 = "IMP-" + run + "-1", plate2 = "IMP-" + run + "-2";
         string section = (string)(await Scalar("SELECT TOP (1) Section FROM RentalRates ORDER BY Section") ?? throw new Exception("No rental rate"));
@@ -41,13 +41,29 @@ internal static class TransferScenarios
             "profile CSV mixed rows, duplicate SIN, missing value, invalid date");
         Check((int)(await Scalar("SELECT COUNT(*) FROM Profiling WHERE SIN=@sin", ("@sin", sin1)) ?? 0) == 1,
             "import keeps supplied SIN");
+        string reviewSin = "SIN-REVIEW-" + run;
+        string reviewCsv = header + ",ImportReadiness,ReviewIssues\n" +
+            string.Join(',', new[] { reviewSin, "Synthetic O'Neil Owner", "", "Unknown Section", stall, "", "100", "Unverified", "", "0", "0", "Review Required", "Missing area and business name" });
+        var reviewOnly = await service.ImportAsync(File("review.csv", Encoding.UTF8.GetBytes(reviewCsv)), false, default, user);
+        Check(reviewOnly.Imported == 1 &&
+              (int)(await Scalar("SELECT COUNT(*) FROM Profiling WHERE SIN=@sin AND PaymentStatus='Unverified' AND StallSize='' AND BusinessName=''", ("@sin", reviewSin)) ?? 0) == 1 &&
+              (int)(await Scalar("SELECT COUNT(*) FROM AuditTrail WHERE SIN=@sin AND Action='Import Review' AND Details LIKE '%Missing area%'", ("@sin", reviewSin)) ?? 0) == 1,
+            "review-required import preserves incomplete values and review notes as Unverified");
+        var reviewedPaid = await service.ImportAsync(File("review-paid.csv", Encoding.UTF8.GetBytes(reviewCsv.Replace(reviewSin, reviewSin + "-PAID").Replace(",Unverified,", ",Paid,"))), false, default, user);
+        Check(reviewedPaid.Imported == 0 && reviewedPaid.Invalid == 1, "review-required imports cannot bypass verification using Paid status");
+        var billing = new BusinessPermitLicensingSystem.Web.Billing.BillingService(configuration);
+        Check(await billing.GenerateAsync(reviewSin, DateTime.Today, default) == 0,
+            "incomplete imported Unverified profile cannot generate bills");
+        var profiles = new BusinessPermitLicensingSystem.Web.Profiles.ProfileService(configuration);
+        Check((await profiles.GetImportReviewAsync(reviewSin, default))?.Contains("Missing area") == true,
+            "profile details can reload persisted review notes");
         using (var workbook = new XLWorkbook())
         {
             var sheet = workbook.AddWorksheet("Profiles");
             for (int i = 0; i < TransferService.ProfileHeaders.Length; i++) sheet.Cell(1, i + 1).Value = TransferService.ProfileHeaders[i];
             string[] data = profileRow(sin2, "Synthetic Excel Owner", business: "=SUM(1,1)").Split(',');
             // Business contains a comma: enter the cells directly instead of parsing the CSV helper line.
-            data = [sin2, "Synthetic Excel Owner", "=SUM(1,1)", section, (ulong.Parse(stall) + 1).ToString(), "2", "100", "Unverified", "", "0", "0"];
+            data = [sin2, "Synthetic Excel Owner", "=SUM(1,1)", section, stall + "-B", "2", "100", "Unverified", "", "0", "0"];
             for (int i = 0; i < data.Length; i++) sheet.Cell(2, i + 1).SetValue(data[i]);
             using var output = new MemoryStream(); workbook.SaveAs(output);
             var excel = await service.ImportAsync(File("profiles.xlsx", output.ToArray()), false, default);
@@ -116,8 +132,8 @@ internal static class TransferScenarios
               (int)(await Scalar("SELECT COUNT(*) FROM VehiclePermitHistory") ?? 0) == permitsBefore &&
               (int)(await Scalar("SELECT COUNT(*) FROM VehiclePermitFeeDrafts") ?? 0) == draftsBefore,
               "imports create no billing, payment, permit history, or fee drafts");
-        Check((int)(await Scalar("SELECT COUNT(*) FROM AuditTrail") ?? 0) == auditsBefore + 4,
-            "bulk imports create no audit rows; archive and restore retain their audit behavior");
+        Check((int)(await Scalar("SELECT COUNT(*) FROM AuditTrail") ?? 0) == auditsBefore + 5,
+            "review import retains one review note; archive and restore retain their audit behavior");
 
         async Task<object?> Scalar(string sql, params (string, object)[] args)
         { await using var command = new SqlCommand(sql, connection); foreach (var (name, value) in args) command.Parameters.AddWithValue(name, value); return await command.ExecuteScalarAsync(); }

@@ -26,7 +26,7 @@ public sealed class TransferService(IConfiguration configuration)
     private static readonly string[] ProfileExportHeaders = ["SIN", "Full Name", "Business Name", "Business Section", "Stall Number", "Stall Size", "Monthly Rental", "Payment Status", "Penalty", "Additional Charge", "Date of Occupancy"];
     private static readonly string[] VehicleExportHeaders = ["VIN", "Company Name", "Driver Name", "Plate No", "SEC Reg No", "DTI Number", "Permit Status", "Permit Year", "Date Added"];
 
-    public async Task<ImportResult> ImportAsync(IFormFile file, bool vehicle, CancellationToken token)
+    public async Task<ImportResult> ImportAsync(IFormFile file, bool vehicle, CancellationToken token, int? userId = null)
     {
         if (file.Length == 0 || file.Length > MaxFileBytes) throw new ArgumentException("Choose a nonempty CSV or XLSX file no larger than 5 MB.");
         string extension = Path.GetExtension(file.FileName).ToLowerInvariant();
@@ -48,12 +48,15 @@ public sealed class TransferService(IConfiguration configuration)
         foreach (var row in rows.Rows)
         {
             if (row.Values.Values.All(string.IsNullOrWhiteSpace)) { issues.Add(new(row.Number, "Skipped", "Empty row.")); continue; }
+            bool review = !vehicle && Value(row.Values, "ImportReadiness").Equals("Review Required", StringComparison.OrdinalIgnoreCase);
+            if (review && (Value(row.Values, "PaymentStatus") != "Unverified" || Value(row.Values, "ReviewIssues").Length == 0 || userId is null))
+            { issues.Add(new(row.Number, "Invalid", "Review rows require Unverified status, ReviewIssues, and a signed-in importer.")); continue; }
             string? error = vehicle ? ValidateVehicle(row.Values) : await ValidateProfileAsync(connection, row.Values, token);
             if (error is not null) { issues.Add(new(row.Number, "Invalid", error)); continue; }
             try
             {
                 if (vehicle) await InsertVehicleAsync(connection, row.Values, token);
-                else await InsertProfileAsync(connection, row.Values, token);
+                else await InsertProfileAsync(connection, row.Values, token, review ? userId : null);
                 imported++;
             }
             catch (SqlException exception) when (exception.Number is 2601 or 2627)
@@ -157,13 +160,14 @@ public sealed class TransferService(IConfiguration configuration)
 
     private static async Task<string?> ValidateProfileAsync(SqlConnection connection, Dictionary<string, string> values, CancellationToken token)
     {
-        foreach (string field in new[] { "SIN", "FullName", "BusinessName", "BusinessSection", "StallNumber", "StallSize", "MonthlyRental", "PaymentStatus" })
+        bool review = Value(values, "ImportReadiness").Equals("Review Required", StringComparison.OrdinalIgnoreCase) && Value(values, "PaymentStatus") == "Unverified";
+        foreach (string field in (review ? new[] { "SIN", "FullName", "StallNumber", "MonthlyRental", "PaymentStatus" } : new[] { "SIN", "FullName", "BusinessName", "BusinessSection", "StallNumber", "StallSize", "MonthlyRental", "PaymentStatus" }))
             if (Value(values, field).Length == 0) return field + " is required.";
         if (Value(values, "SIN").Length > 100 || Value(values, "FullName").Length > 255 || Value(values, "BusinessName").Length > 255 ||
             Value(values, "BusinessSection").Length > 255 || Value(values, "StallNumber").Length > 100 || Value(values, "StallSize").Length > 100)
             return "A field exceeds its database length.";
-        if (!Regex.IsMatch(Value(values, "FullName"), @"^[\p{L}. ]+$")) return "FullName may contain only letters, spaces, or periods.";
-        if (!Regex.IsMatch(Value(values, "StallNumber"), @"^[0-9,]+$")) return "StallNumber may contain only digits and commas.";
+        if (!review && !Regex.IsMatch(Value(values, "FullName"), @"^[\p{L}. ]+$")) return "FullName may contain only letters, spaces, or periods.";
+        if (!Regex.IsMatch(Value(values, "StallNumber"), @"^[A-Za-z0-9][A-Za-z0-9 ,&/\-]*$")) return "StallNumber may contain letters, digits, spaces, commas, hyphens, slashes, or ampersands.";
         string status = Value(values, "PaymentStatus");
         if (status is not ("Unverified" or "Unpaid" or "Paid")) return "PaymentStatus must be Unverified, Unpaid, or Paid.";
         string date = Value(values, "StartDate");
@@ -172,6 +176,8 @@ public sealed class TransferService(IConfiguration configuration)
         foreach (string field in new[] { "MonthlyRental", "Penalty", "AdditionalCharge" })
             if (!decimal.TryParse(MoneyValue(values, field), NumberStyles.Number, CultureInfo.InvariantCulture, out decimal amount) || amount < 0 || amount > 9999999999999999.99m || decimal.Round(amount, 2) != amount)
                 return field + " must be a nonnegative amount with at most two decimals.";
+        // Incomplete official records remain non-billable until ProfileService validates verification.
+        if (review) return null;
         await using var rate = new SqlCommand("SELECT RateType FROM RentalRates WHERE Section=@section", connection);
         rate.Parameters.Add("@section", SqlDbType.NVarChar, 255).Value = Value(values, "BusinessSection");
         string? rateType = (string?)await rate.ExecuteScalarAsync(token);
@@ -181,13 +187,14 @@ public sealed class TransferService(IConfiguration configuration)
         return null;
     }
 
-    private static async Task InsertProfileAsync(SqlConnection connection, Dictionary<string, string> values, CancellationToken token)
+    private static async Task InsertProfileAsync(SqlConnection connection, Dictionary<string, string> values, CancellationToken token, int? reviewUserId)
     {
+        await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(token);
         await using var command = new SqlCommand("""
             INSERT INTO Profiling (SIN, FullName, BusinessName, BusinessSection, StallNumber, StallSize,
                 MonthlyRental, PaymentStatus, StartDate, Penalty, AdditionalCharge, IsArchived)
             VALUES (@sin, @name, @business, @section, @stall, @size, @rental, @status, @date, @penalty, @additional, 0)
-            """, connection);
+            """, connection, transaction);
         foreach (var (name, field, size) in new[] { ("@sin", "SIN", 100), ("@name", "FullName", 255), ("@business", "BusinessName", 255),
             ("@section", "BusinessSection", 255), ("@stall", "StallNumber", 100), ("@size", "StallSize", 100), ("@status", "PaymentStatus", 50) })
             command.Parameters.Add(name, SqlDbType.NVarChar, size).Value = Value(values, field);
@@ -196,6 +203,20 @@ public sealed class TransferService(IConfiguration configuration)
         foreach (var (name, field) in new[] { ("@rental", "MonthlyRental"), ("@penalty", "Penalty"), ("@additional", "AdditionalCharge") })
         { var p = command.Parameters.Add(name, SqlDbType.Decimal); p.Precision = 18; p.Scale = 2; p.Value = decimal.Parse(MoneyValue(values, field), CultureInfo.InvariantCulture); }
         await command.ExecuteNonQueryAsync(token);
+        if (reviewUserId.HasValue)
+        {
+            await using var note = new SqlCommand("""
+                INSERT INTO AuditTrail (Action,SIN,UserId,Timestamp,Details)
+                VALUES ('Import Review',@sin,@user,SYSDATETIME(),@details)
+                """, connection, transaction);
+            note.Parameters.AddWithValue("@sin", Value(values, "SIN"));
+            note.Parameters.AddWithValue("@user", reviewUserId.Value);
+            note.Parameters.AddWithValue("@details", Value(values, "ReviewIssues") + " | Source: " + Value(values, "SourceSheet") +
+                " row " + Value(values, "SourceRow") + " | Original business type: " + Value(values, "SourceSection") +
+                " | Original size: " + Value(values, "SourceStallSize"));
+            await note.ExecuteNonQueryAsync(token);
+        }
+        await transaction.CommitAsync(token);
     }
 
     private static async Task InsertVehicleAsync(SqlConnection connection, Dictionary<string, string> values, CancellationToken token)

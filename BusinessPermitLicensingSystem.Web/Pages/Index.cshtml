@@ -4,7 +4,7 @@
 <section class="dashboard-hero page-header" aria-labelledby="dashboard-title">
     <div><p class="eyebrow">Dashboard</p>
     <h1 id="dashboard-title">Administrative Dashboard</h1>
-    <p>Overview of business profiles, permits, billing, and municipal collections.</p></div>
+    <p>Overview of Stall Owners Profile, Special Vehicle Permits, Billing, and Municipal Collections.</p></div>
     <div class="page-actions"><a class="btn btn-primary" asp-page="/Profiles/Create">Add Stall Owner</a><a class="btn btn-outline-primary" asp-page="/Vehicles/Edit">Add Vehicle</a></div>
 </section>
 @if (Model.ActiveProfiles.HasValue)
@@ -12,15 +12,15 @@
     <section class="section-panel dashboard-summary" aria-labelledby="summary-title">
         <div class="summary-heading"><h2 id="summary-title" class="section-heading">Records Overview</h2></div>
         <div class="dashboard-kpi-grid">
-            <div class="card metric-card metric-active"><div class="card-body"><div class="metric-title"><div class="label">Active Stall Owners</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-profiles" /></svg></div><div class="value">@Model.ActiveProfiles</div></div></div>
-            <div class="card metric-card metric-warning"><div class="card-body"><div class="metric-title"><div class="label">Unverified Profiles</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-alert" /></svg></div><div class="value">@Model.UnverifiedProfiles</div></div></div>
-            <div class="card metric-card metric-danger"><div class="card-body"><div class="metric-title"><div class="label">Unpaid Billing Periods</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-receipt" /></svg></div><div class="value">@Model.UnpaidPeriods</div></div></div>
-            <div class="card metric-card metric-info"><div class="card-body"><div class="metric-title"><div class="label">Active Special Vehicle Permits</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-vehicles" /></svg></div><div class="value">@Model.ActiveVehicles</div></div></div>
+            <div class="card metric-card metric-active"><div class="card-body"><div class="metric-title"><div class="label">Active Stall Owners</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-profiles" /></svg></div><div class="value">@Model.ActiveProfiles</div><p class="hint">Active Profiles</p></div></div>
+            <div class="card metric-card metric-warning"><div class="card-body"><div class="metric-title"><div class="label">Unverified Profiles</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-alert" /></svg></div><div class="value">@Model.UnverifiedProfiles</div><p class="hint">Pending Verification</p></div></div>
+            <div class="card metric-card metric-danger"><div class="card-body"><div class="metric-title"><div class="label">Unpaid Billing Periods</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-receipt" /></svg></div><div class="value">@Model.UnpaidPeriods</div><p class="hint">Outstanding Periods</p></div></div>
+            <div class="card metric-card metric-info"><div class="card-body"><div class="metric-title"><div class="label">Active Special Vehicle Permits</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-vehicles" /></svg></div><div class="value">@Model.ActiveVehicles</div><p class="hint">Active Permits</p></div></div>
         </div>
     </section>
     <section class="dashboard-collections" aria-labelledby="municipal-collections-title"><h2 id="municipal-collections-title" class="section-heading">Municipal Collections</h2><div class="collection-kpi-grid">
-        <div class="card metric-card collection-card"><div class="card-body"><div class="metric-title"><div class="label">Stall Rent Collections</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-wallet" /></svg></div><div class="value money">@Model.RentCollectedThisMonth?.ToString("₱#,##0.00")</div><p class="hint">This month</p></div></div>
-        <div class="card metric-card collection-card"><div class="card-body"><div class="metric-title"><div class="label">Special Vehicle Permit Collections</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-receipt" /></svg></div><div class="value money">@Model.VehicleCollectedThisMonth?.ToString("₱#,##0.00")</div><p class="hint">This month</p></div></div>
+        <div class="card metric-card collection-card"><div class="card-body"><div class="metric-title"><div class="label">Stall Rent Collections</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-wallet" /></svg></div><div class="value money">@Model.RentCollectedThisMonth?.ToString("₱#,##0.00")</div><p class="hint">Collected this month</p></div></div>
+        <div class="card metric-card collection-card"><div class="card-body"><div class="metric-title"><div class="label">Special Vehicle Permit Collections</div><svg class="metric-icon" aria-hidden="true" focusable="false"><use href="#i-receipt" /></svg></div><div class="value money">@Model.VehicleCollectedThisMonth?.ToString("₱#,##0.00")</div><p class="hint">Collected this month</p></div></div>
     </div></section>
 }
 else
@@ -42,13 +42,13 @@ else
     </section>
 }
 <div class="row g-3">
-    <section class="col-lg-6" aria-labelledby="quick-actions-title"><div class="section-panel h-100"><h2 id="quick-actions-title" class="section-heading">Quick actions</h2><div class="quick-actions">
+    <section class="col-lg-6" aria-labelledby="quick-actions-title"><div class="section-panel h-100"><h2 id="quick-actions-title" class="section-heading">Quick Actions</h2><div class="quick-actions">
         <a asp-page="/Profiles/Create">Add stall-owner profile <span aria-hidden="true">→</span></a>
         <a asp-page="/Vehicles/Edit">Add vehicle <span aria-hidden="true">→</span></a>
         <a asp-page="/Profiles/Index">Find a profile <span aria-hidden="true">→</span></a>
         <a asp-page="/Reports/Index">Open reports <span aria-hidden="true">→</span></a>
     </div></div></section>
-    <section class="col-lg-6" aria-labelledby="attention-title"><div class="section-panel h-100"><h2 id="attention-title" class="section-heading">Needs attention</h2><ul class="attention-list">
+    <section class="col-lg-6" aria-labelledby="attention-title"><div class="section-panel h-100"><h2 id="attention-title" class="section-heading">Needs Attention</h2><ul class="attention-list">
         <li><a asp-page="/Profiles/Index" asp-route-search="Unverified"><span>Review unverified profiles</span><span class="status-badge unverified">@(Model.UnverifiedProfiles?.ToString() ?? "—")</span></a></li>
         <li><a asp-page="/Profiles/Index" asp-route-search="Unpaid"><span>Open unpaid billing periods</span><span class="status-badge unpaid">@(Model.UnpaidPeriods?.ToString() ?? "—")</span></a></li>
         @if (Model.ReviewNeededSin is not null) { <li><a asp-page="/Profiles/Billing" asp-route-sin="@Model.ReviewNeededSin"><span>Check older bills requiring review</span><span class="status-badge review">@Model.ReviewNeededPeriods</span></a></li> }

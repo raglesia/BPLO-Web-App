@@ -4,7 +4,7 @@
 <div class="page-header"><div><p class="eyebrow">Reports</p><h1>Stall Owner Rental Payment</h1><p>Select up to three active stall owners for one print job.</p></div></div>
 @if (Model.Error is not null) { <p class="alert alert-danger" role="alert">@Model.Error</p> }
 <section class="section-panel rental-selector" aria-labelledby="selected-heading">
-    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap"><h2 class="section-heading mb-0" id="selected-heading">Selected stall owners</h2><p class="mb-0" role="status" aria-live="polite">@Model.Selected.Count of 3 selected</p></div>
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap"><h2 class="section-heading mb-0" id="selected-heading">Selected Stall Owners</h2><p class="mb-0" role="status" aria-live="polite">@Model.Selected.Count of 3 selected</p></div>
     @if (Model.Selected.Count == 0) { <p class="mt-3 mb-0">No stall owners selected yet.</p> }
     else
     {
@@ -27,10 +27,10 @@
     }
 </section>
 <section class="section-panel rental-selector" aria-labelledby="search-heading">
-    <h2 class="section-heading" id="search-heading">Find stall owners</h2>
+    <h2 class="section-heading" id="search-heading">Find Stall Owners</h2>
     <form method="get" asp-page="/Reports/RentalPayment" class="row g-2 align-items-end">
         @foreach (var owner in Model.Selected) { <input type="hidden" name="selected" value="@owner.Sin" /> }
-        <div class="col-md-8"><label for="search" class="form-label">Owner name, business, stall number, or SIN</label><input id="search" name="search" value="@Model.Search" class="form-control" maxlength="255" /></div>
+        <div class="col-md-8"><label for="search" class="form-label">Owner Name, Business, Stall Number, or SIN</label><input id="search" name="search" value="@Model.Search" class="form-control" maxlength="255" /></div>
         <div class="col-auto"><button type="submit" class="btn btn-outline-primary">Search</button></div>
     </form>
     @if (Model.Error is null)

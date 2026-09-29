@@ -6,16 +6,16 @@
 <form method="post" class="form-panel" style="max-width: 36rem">
     <div asp-validation-summary="All" class="text-danger" role="alert"></div>
     @if (Model.IsNew)
-    { <div class="mb-3"><label asp-for="Input.Section" class="form-label">Section name</label>
+    { <div class="mb-3"><label asp-for="Input.Section" class="form-label">Section Name</label>
         <input asp-for="Input.Section" class="form-control" maxlength="255" required /></div> }
     else
     { <p><strong>Section:</strong> @Model.Section</p> }
-    <div class="mb-3"><label asp-for="Input.RateType" class="form-label">Rate type</label>
+    <div class="mb-3"><label asp-for="Input.RateType" class="form-label">Rate Type</label>
         <select asp-for="Input.RateType" class="form-select"><option value="PerSqm">Per square meter</option><option value="Flat">Flat</option></select></div>
     <div class="mb-3"><label asp-for="Input.RatePerSqm" class="form-label">Rate per sqm (₱)</label>
         <input asp-for="Input.RatePerSqm" type="number" min="0" step="0.01" class="form-control" />
         <span asp-validation-for="Input.RatePerSqm" class="text-danger"></span></div>
-    <div class="mb-3"><label asp-for="Input.FlatRate" class="form-label">Flat rate (₱)</label>
+    <div class="mb-3"><label asp-for="Input.FlatRate" class="form-label">Flat Rate (₱)</label>
         <input asp-for="Input.FlatRate" type="number" min="0" step="0.01" class="form-control" />
         <span asp-validation-for="Input.FlatRate" class="text-danger"></span></div>
     <p>Enter a positive rate for the selected type. The other rate is stored as zero.</p>

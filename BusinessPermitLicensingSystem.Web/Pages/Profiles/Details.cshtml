@@ -12,7 +12,14 @@
 }
 else if (Model.Profile is not null)
 {
-    <section class="section-panel"><h2 class="section-heading">Owner and stall</h2><dl class="row detail-list">
+    @if (Model.ImportReview is not null)
+    {
+        <section class="section-panel"><h2 class="section-heading">Imported Record Review</h2>
+            <p>@Model.ImportReview</p>
+            @if (Model.Profile.PaymentStatus == "Unverified") { <p>Billing and payments remain blocked until this profile is verified.</p> }
+        </section>
+    }
+    <section class="section-panel"><h2 class="section-heading">Owner and Stall</h2><dl class="row detail-list">
         <dt class="col-sm-3">SIN</dt><dd class="col-sm-9">@Model.Profile.Sin</dd>
         <dt class="col-sm-3">Full name</dt><dd class="col-sm-9">@Model.Profile.FullName</dd>
         <dt class="col-sm-3">Business name</dt><dd class="col-sm-9">@Model.Profile.BusinessName</dd>
@@ -28,7 +35,7 @@ else if (Model.Profile is not null)
     <a class="btn btn-outline-primary" asp-page="/Profiles/Billing" asp-route-sin="@Model.Profile.Sin">Billing and Payments</a>
     <a class="btn btn-outline-primary" asp-page="/Reports/RentalPaymentPreview" asp-route-selected="@Model.Profile.Sin">Print Rental Payment Report</a></div>
     <form method="post" asp-page-handler="Archive" asp-route-sin="@Model.Profile.Sin" class="section-panel mt-4">
-        <h2 class="section-heading">Archive profile</h2>
+        <h2 class="section-heading">Archive Profile</h2>
         <div class="form-check"><input asp-for="ConfirmArchive" class="form-check-input" required />
             <label asp-for="ConfirmArchive" class="form-check-label">Archive @Model.Profile.FullName (@Model.Profile.Sin). History will remain available.</label></div>
         <button class="btn btn-outline-danger mt-2" type="submit">Archive profile</button>

@@ -43,10 +43,22 @@ internal static class VehicleScenarios
         foreach (string vin in new[] { first, second, concurrent, rollback }) await InsertVehicle(connection, vin);
         foreach (string vin in new[] { first, second, concurrent, rollback })
         {
-            var save = await service.SaveDraftAsync(vin, 2026, amounts, ["one", "", "", ""], PaidAt, default);
+            var details = vin == first ? new DraftData {
+                LineOfBusiness = "Transport", Description = "Shuttle", Location = "Masinloc",
+                Employees = "3", Capital = "1,234.56", Stickers = "2",
+                Organization = "Partnership", Quarter = "2ND QUARTER",
+                SanitaryType = "FOOD", FireType = "OTHER" } : null;
+            var save = await service.SaveDraftAsync(vin, 2026, amounts, ["one", "", "", ""], PaidAt, default, details);
             Check(save.Success && save.Total == 110m && await CountHistory(connection, vin) == 0,
                 "saving draft does not create payment for " + vin);
         }
+        var savedDetails = (await service.GetAsync(first, PaidAt, default))!.Draft!.Data;
+        Check(savedDetails.LineOfBusiness == "Transport" && savedDetails.Description == "Shuttle" &&
+              savedDetails.Location == "Masinloc" && savedDetails.Employees == "3" &&
+              savedDetails.Capital == "1,234.56" && savedDetails.Stickers == "2" &&
+              savedDetails.Organization == "Partnership" && savedDetails.Quarter == "2ND QUARTER" &&
+              savedDetails.SanitaryType == "FOOD" && savedDetails.FireType == "OTHER",
+            "annual permit details save and reload with fee draft");
         Check((await service.GetAsync(first, PaidAt, default)) is { Eligible: true, SelectedYearStatus: "Unpaid", Draft.GrandTotal: 110m },
             "current year eligibility and stored draft display");
         string orFirst = $"DEV-VEH-{run}-1";

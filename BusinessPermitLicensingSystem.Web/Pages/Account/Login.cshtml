@@ -4,13 +4,15 @@
     ViewData["Title"] = "Log in";
 }
 
-<div class="login-shell"><div class="surface">
-<span class="brand-mark" aria-hidden="true">B</span>
-<p class="eyebrow">Staff access</p>
-<h1>Sign in to BPLO</h1>
-<p>Use your assigned account to continue.</p>
+<div class="login-shell bplo-login"><div class="surface">
+<div class="login-brand">
+    <img class="login-logo" src="~/images/masinloc-login-logo.jpg" asp-append-version="true" alt="Municipality of Masinloc logo" width="104" height="104" />
+    <p class="login-office-name">Business Permit and Licensing Office</p>
+    <p class="login-lgu-name">LGU Masinloc</p>
+    <h1 class="login-account-heading">Log in to Your Account</h1>
+</div>
 @if (Model.AccountCreated) { <p class="text-success" role="status">Account created successfully. You can now sign in.</p> }
-<form method="post" class="mt-4">
+<form method="post" class="login-form">
     <input type="hidden" asp-for="ReturnUrl" />
     <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
     <div class="mb-3">
@@ -20,10 +22,19 @@
     </div>
     <div class="mb-3">
         <label asp-for="Input.Password" class="form-label"></label>
-        <input asp-for="Input.Password" class="form-control" type="password" autocomplete="current-password" />
+        <div class="login-password-field">
+            <input asp-for="Input.Password" class="form-control" type="password" autocomplete="current-password" />
+            <button class="login-password-toggle" id="password-toggle" type="button" aria-label="Show password" aria-controls="Input_Password" aria-pressed="false">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="password-eye-slash" d="m3 3 18 18" hidden /></svg>
+            </button>
+        </div>
         <span asp-validation-for="Input.Password" class="text-danger"></span>
     </div>
-    <button type="submit" class="btn btn-primary w-100">Sign In</button>
+    <div class="form-check mb-3"><input asp-for="Input.RememberMe" class="form-check-input" /><label asp-for="Input.RememberMe" class="form-check-label">Remember me</label></div>
+    <button type="submit" class="btn btn-primary w-100 login-submit">Sign In</button>
 </form>
-<p class="text-center mt-3 mb-0">Need an account? <a asp-page="/Account/Create">Create Account</a></p>
+<p class="text-center mt-3 mb-0 login-signup">Don't have an account? <a asp-page="/Account/Create">Sign up</a></p>
 </div></div>
+@section Scripts {
+    <script src="~/js/login.js" asp-append-version="true"></script>
+}

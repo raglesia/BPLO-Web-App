@@ -57,7 +57,12 @@ public class LoginModel(UserAuthenticationService users, ILogger<LoginModel> log
         };
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+            CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity),
+            new AuthenticationProperties
+            {
+                IsPersistent = Input.RememberMe,
+                ExpiresUtc = Input.RememberMe ? DateTimeOffset.UtcNow.AddDays(14) : null
+            });
 
         return !string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl)
             ? LocalRedirect(ReturnUrl)
@@ -66,6 +71,8 @@ public class LoginModel(UserAuthenticationService users, ILogger<LoginModel> log
 
     public class LoginInput
     {
+        public bool RememberMe { get; set; }
+
         [Required]
         [StringLength(255)]
         public string Username { get; set; } = "";

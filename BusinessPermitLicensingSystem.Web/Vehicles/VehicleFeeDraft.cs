@@ -5,6 +5,54 @@ namespace BusinessPermitLicensingSystem.Web.Vehicles;
 
 public static class VehicleFeeDraft
 {
+    public static IReadOnlyList<(string Field, string Message)> ValidatePermitDetails(DraftData details)
+    {
+        var errors = new List<(string, string)>();
+        foreach (var (field, value) in new[] { (nameof(DraftData.LineOfBusiness), details.LineOfBusiness),
+                     (nameof(DraftData.Description), details.Description), (nameof(DraftData.Location), details.Location) })
+            if ((value?.Trim().Length ?? 0) > 255) errors.Add((field, "Use at most 255 characters."));
+
+        if (!int.TryParse(details.Employees, NumberStyles.None, CultureInfo.InvariantCulture, out int employees) || employees < 0)
+            errors.Add((nameof(DraftData.Employees), "Enter a whole number of employees, 0 or greater."));
+        if (!int.TryParse(details.Stickers, NumberStyles.None, CultureInfo.InvariantCulture, out int stickers) || stickers < 0)
+            errors.Add((nameof(DraftData.Stickers), "Enter a whole number of stickers, 0 or greater."));
+        if (!decimal.TryParse(details.Capital, NumberStyles.Number, AmountCulture, out decimal capital) ||
+            capital < 0 || capital > MaximumAmount || decimal.Round(capital, 2) != capital)
+            errors.Add((nameof(DraftData.Capital), "Enter non-negative capital with at most two decimal places."));
+
+        CheckOption(nameof(DraftData.Organization), details.Organization,
+            ["Individual", "Sole Proprietorship", "Partnership", "Corporation", "Cooperative", "Other"]);
+        CheckOption(nameof(DraftData.Quarter), details.Quarter,
+            ["1ST QUARTER", "2ND QUARTER", "3RD QUARTER", "4TH QUARTER"]);
+        CheckOption(nameof(DraftData.SanitaryType), details.SanitaryType, ["OTHER", "FOOD", "NON-FOOD"]);
+        CheckOption(nameof(DraftData.FireType), details.FireType, ["ESTAB", "OTHER"]);
+        return errors;
+
+        void CheckOption(string field, string? value, string[] options)
+        {
+            if (!string.IsNullOrEmpty(value) && !options.Contains(value, StringComparer.Ordinal))
+                errors.Add((field, "Select a listed option."));
+        }
+    }
+
+    public static DraftData NormalizePermitDetails(DraftData details)
+    {
+        if (ValidatePermitDetails(details).Count != 0)
+            throw new ArgumentException("Permit details contain invalid values.");
+        return new DraftData
+        {
+            LineOfBusiness = details.LineOfBusiness?.Trim() ?? "",
+            Description = details.Description?.Trim() ?? "",
+            Location = details.Location?.Trim() ?? "",
+            Employees = int.Parse(details.Employees, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
+            Capital = decimal.Parse(details.Capital, NumberStyles.Number, AmountCulture).ToString("N2", AmountCulture),
+            Stickers = int.Parse(details.Stickers, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
+            Organization = details.Organization ?? "",
+            Quarter = details.Quarter ?? "",
+            SanitaryType = details.SanitaryType ?? "",
+            FireType = details.FireType ?? ""
+        };
+    }
     public static readonly string[] FeeNames =
     [
         "Mayor's Permit Fee", "Sanitary Fee", "Garbage Fee", "Market Clearance",
@@ -15,6 +63,13 @@ public static class VehicleFeeDraft
     ];
     private static readonly CultureInfo AmountCulture = CultureInfo.GetCultureInfo("en-PH");
     public const decimal MaximumAmount = 9999999999999999.99m;
+
+    public static decimal OccupationalPermitAmount(string employees)
+    {
+        if (!int.TryParse(employees, NumberStyles.None, CultureInfo.InvariantCulture, out int count) || count < 0)
+            throw new ArgumentException("Enter a whole number of employees, 0 or greater.");
+        return count * 300m;
+    }
 
     public static decimal Total(IReadOnlyList<decimal> amounts)
     {

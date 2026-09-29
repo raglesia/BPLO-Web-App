@@ -8,13 +8,35 @@ namespace BusinessPermitLicensingSystem.Web.Reports;
 public sealed record ReportBill(int Year, int Month, decimal StoredRent, decimal? BaseRent,
     decimal Additional, decimal Penalty, string Status, string? OrNumber, DateTime? PaidAt)
 {
+    public decimal? CurrentPenalty(DateTime asOf) => Status == "Unpaid"
+        ? BaseRent is decimal rent ? BillingRules.Penalty(rent, Year, Month, asOf) : null
+        : Penalty;
     public bool ReviewNeeded => BaseRent is null;
     public decimal? Total => BaseRent is decimal value ? BillingRules.Total(value, Additional, Penalty) : null;
 }
 public sealed record ReportPayment(string Sin, string Owner, string OrNumber, DateTime PaidAt, decimal Amount, decimal Penalty, string Recorder, string Periods);
 public sealed record ProfileReport(string Sin, string Owner, string Business, string Section, string Stall,
-    string StallSize, string Status, bool Archived, IReadOnlyList<ReportBill> Bills, IReadOnlyList<ReportPayment> Payments)
+    string StallSize, string Status, bool Archived, IReadOnlyList<ReportBill> Bills, IReadOnlyList<ReportPayment> Payments, decimal MonthlyRental = 0, decimal AdditionalCharge = 0, string StartDate = "")
 {
+    public bool CanAssess(DateTime asOf) => Status != "Unverified" && !Archived &&
+        DateTime.TryParse(StartDate, System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out var occupancy) && occupancy.Date <= asOf.Date;
+
+    public IReadOnlyList<ReportBill> AssessmentBills(DateTime asOf)
+    {
+        if (!CanAssess(asOf)) return Bills;
+        var occupancy = DateTime.Parse(StartDate, System.Globalization.CultureInfo.InvariantCulture);
+        var result = Bills.ToList();
+        var missing = BillingRules.MissingPeriods(occupancy, asOf, Bills.Select(x => (x.Year, x.Month)));
+        if (missing.Count > 0)
+        {
+            decimal baseRent = BillingRules.BaseFromCombinedProfile(MonthlyRental, AdditionalCharge);
+            result.AddRange(missing.Select(x => new ReportBill(x.Year, x.Month, baseRent, baseRent,
+                AdditionalCharge, 0m, "Unpaid", null, null)));
+        }
+        return result;
+    }
+
     public bool ReviewNeeded => Bills.Any(x => x.ReviewNeeded);
     public decimal? BilledTotal => ReviewNeeded ? null : Bills.Sum(x => x.Total ?? 0);
     public decimal PaymentTotal => Payments.Sum(x => x.Amount);
@@ -49,21 +71,23 @@ public sealed class ReportService(IConfiguration configuration)
         if (string.IsNullOrWhiteSpace(sin) || sin.Length > 100) return null;
         await using var connection = await OpenAsync(token);
         await using var profile = new SqlCommand("""
-            SELECT SIN, FullName, BusinessName, BusinessSection, StallNumber, StallSize, PaymentStatus, IsArchived
+            SELECT SIN, FullName, BusinessName, BusinessSection, StallNumber, StallSize, PaymentStatus, IsArchived, MonthlyRental, AdditionalCharge, StartDate
             FROM Profiling WHERE SIN=@sin
             """, connection);
         profile.Parameters.Add("@sin", SqlDbType.NVarChar, 100).Value = sin;
-        string id, owner, business, section, stall, size, status; bool archived;
+        string id, owner, business, section, stall, size, status, startDate; bool archived; decimal monthlyRental, additionalCharge;
         await using (var reader = await profile.ExecuteReaderAsync(token))
         {
             if (!await reader.ReadAsync(token)) return null;
             id = reader.GetString(0); owner = reader.GetString(1); business = reader.GetString(2);
             section = reader.GetString(3); stall = reader.GetString(4); size = reader.GetString(5);
             status = reader.GetString(6); archived = !reader.IsDBNull(7) && reader.GetInt32(7) != 0;
+            monthlyRental = reader.GetDecimal(8); additionalCharge = reader.GetDecimal(9);
+            startDate = reader.IsDBNull(10) ? "" : reader.GetString(10);
         }
         var bills = await ReadBillsAsync(connection, "WHERE mb.SIN=@sin", ("@sin", SqlDbType.NVarChar, sin), token);
         var payments = await ReadPaymentsAsync(connection, "WHERE ph.SIN=@sin", ("@sin", SqlDbType.NVarChar, sin), token);
-        return new(id, owner, business, section, stall, size, status, archived, bills.Select(x => x.Bill).ToList(), payments);
+        return new(id, owner, business, section, stall, size, status, archived, bills.Select(x => x.Bill).ToList(), payments, monthlyRental, additionalCharge, startDate);
     }
 
     public async Task<MonthlyReport> MonthlyAsync(int fromYear, int fromMonth, int toYear, int toMonth, CancellationToken token)

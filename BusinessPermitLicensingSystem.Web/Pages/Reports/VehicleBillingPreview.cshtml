@@ -1,0 +1,63 @@
+@page
+@using BusinessPermitLicensingSystem.Web.Vehicles
+@model BusinessPermitLicensingSystem.Web.Pages.Reports.VehicleBillingPreviewModel
+@{ ViewData["Title"] = "Special Vehicle Permit Billing Report"; }
+<div class="page-header rental-preview-toolbar">
+    <div><p class="eyebrow">Reports</p><h1>Special Vehicle Permit Billing Report</h1><p>Saved current-year assessment for Treasury payment.</p></div>
+    <div class="page-actions"><a class="btn btn-outline-secondary" asp-page="/Vehicles/Details" asp-route-vin="@Request.Query["vin"]">Back to Vehicle Details</a>
+        @if (Model.Vehicle is not null) { <button class="btn btn-primary" type="button" onclick="window.print()">Print</button> }
+    </div>
+</div>
+@if (Model.Error is not null) { <p class="alert alert-danger" role="alert">@Model.Error</p> }
+@if (Model.Vehicle is { } vehicle && vehicle.Draft is { } assessment)
+{
+    var details = assessment.Data;
+    <div class="rental-paper vehicle-billing-paper" aria-label="Vehicle billing report preview">
+    <article class="rental-payment-block vehicle-billing-block">
+        <div class="rental-document-heading">
+            <img src="@Url.Content("~/images/masinloc-logo.jpg")" alt="Municipality of Masinloc seal" width="70" height="70" />
+            <div><strong>Municipality of Masinloc</strong><span>Province of Zambales</span><span>Business Permit and Licensing Office</span><h2>SPECIAL VEHICLE PERMIT BILLING REPORT</h2></div>
+        </div>
+        <dl class="rental-info-grid">
+            <div><dt>Company / Operator:</dt><dd>@vehicle.Company</dd></div><div><dt>VIN:</dt><dd>@vehicle.Vin</dd></div>
+            <div><dt>Driver:</dt><dd>@vehicle.Driver</dd></div><div><dt>Plate Number:</dt><dd>@vehicle.Plate</dd></div>
+            <div><dt>Permit Year:</dt><dd>@vehicle.SelectedYear</dd></div><div class="d-print-none"><dt>Payment Status:</dt><dd>@vehicle.SelectedYearStatus</dd></div>
+            <div><dt>Assessment Status:</dt><dd>@(vehicle.SelectedYearStatus == "Paid" ? "Saved assessment" : "For Payment")</dd></div>
+            @foreach (var field in new[] { ("Line of Business", details.LineOfBusiness), ("Description", details.Description), ("Location", details.Location), ("No. of Employees", details.Employees), ("Organization", details.Organization), ("Quarter", details.Quarter), ("Capital", details.Capital), ("No. of Stickers", details.Stickers) })
+            {
+                @if (!string.IsNullOrWhiteSpace(field.Item2)) { <div class="@(field.Item1 == "Quarter" ? "d-print-none" : "")"><dt>@field.Item1:</dt><dd>@field.Item2</dd></div> }
+            }
+        </dl>
+        <table class="rental-charge-table"><thead><tr><th scope="col">Fee Assessment</th><th scope="col">Amount</th></tr></thead><tbody>
+        @for (int i = 0; i < VehicleFeeDraft.FeeNames.Length; i++)
+        {
+            if (assessment.Amounts[i] == 0m) { continue; }
+            var classification = i == 1 ? details.SanitaryType : i == 8 ? details.FireType : "";
+            <tr><th scope="row">@VehicleFeeDraft.FeeNames[i]@if (!string.IsNullOrWhiteSpace(classification)) { <span> — @classification</span> }@if (i >= 15 && !string.IsNullOrWhiteSpace(details.OtherDescriptions[i - 15])) { <span> — @details.OtherDescriptions[i - 15]</span> }</th><td>₱@assessment.Amounts[i].ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("en-PH"))</td></tr>
+        }
+        <tr class="rental-total"><th scope="row">Total Amount Due</th><td>₱@assessment.GrandTotal.ToString("N2", System.Globalization.CultureInfo.GetCultureInfo("en-PH"))</td></tr>
+        </tbody></table>
+        <div class="vehicle-approval-area">
+            <div class="vehicle-signatory">
+                <span>Processed By:</span>
+                <div class="vehicle-signatory-details"><strong>@Model.ProcessedBy</strong><span>@Model.Position</span></div>
+                <div class="vehicle-signatory-date"><span>Date:</span><span>@Model.PrintedAt.ToString("MMMM d, yyyy", System.Globalization.CultureInfo.GetCultureInfo("en-PH"))</span></div>
+            </div>
+            <div class="vehicle-approval-grid">
+                <div class="vehicle-signatory">
+                    <span>Recommending Approval:</span>
+                    <div class="vehicle-signatory-details"><strong>Ruena E. Mendoza</strong><span>MCDO/OIC-BPLO</span></div>
+                    <div class="vehicle-signatory-date"><span>Date:</span><span>&nbsp;</span></div>
+                </div>
+                <div class="vehicle-signatory">
+                    <span>Approved By:</span>
+                    <div class="vehicle-signatory-details"><strong>HON. HAZEL J. LIM</strong><span>Municipal Mayor</span></div>
+                </div>
+            </div>
+            <p class="vehicle-print-date">Date Printed: @Model.PrintedAt.ToString("MMMM dd, yyyy hh:mm tt")</p>
+        </div>
+    </article>
+    </div>
+}
+
+

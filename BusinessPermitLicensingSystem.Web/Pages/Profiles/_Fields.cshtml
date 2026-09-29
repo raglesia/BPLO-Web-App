@@ -34,8 +34,8 @@
         }
         <span asp-validation-for="PaymentStatus" class="text-danger"></span>
     </div>
-    <div class="col-md-6"><label asp-for="StartDate" class="form-label">Date of occupancy</label><input asp-for="StartDate" type="date" class="form-control" aria-describedby="occupancy-hint" /><span asp-validation-for="StartDate" class="text-danger"></span><div id="occupancy-hint" class="form-text">Required for Unpaid or existing Paid records.</div></div>
+    <div class="col-md-6"><label asp-for="StartDate" class="form-label">Date of Occupancy</label><input asp-for="StartDate" type="date" class="form-control" aria-describedby="occupancy-hint" /><span asp-validation-for="StartDate" class="text-danger"></span><div id="occupancy-hint" class="form-text">Required for Unpaid or existing Paid records.</div></div>
     <div class="col-12"><div class="form-check"><input asp-for="IncludeAdditionalCharge" class="form-check-input" /><label asp-for="IncludeAdditionalCharge" class="form-check-label"></label></div></div>
-    <div class="col-md-6"><label asp-for="AdditionalCharge" class="form-label">Additional charge (₱)</label><input asp-for="AdditionalCharge" type="number" min="0" step="0.01" class="form-control" /><span asp-validation-for="AdditionalCharge" class="text-danger"></span></div>
+    <div class="col-md-6"><label asp-for="AdditionalCharge" class="form-label">Additional Charge (₱)</label><input asp-for="AdditionalCharge" type="number" min="0" step="0.01" class="form-control" /><span asp-validation-for="AdditionalCharge" class="text-danger"></span></div>
 </div></fieldset>
 <p class="note">Monthly rental is calculated from the selected section, stall size, and included additional charge when saved.</p>

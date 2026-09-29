@@ -44,7 +44,7 @@
         </svg>
         <div class="app-shell">
             <aside class="app-sidebar" id="app-sidebar" aria-label="Application navigation">
-                <a class="sidebar-brand brand" asp-page="/Index"><img class="sidebar-seal" src="~/images/masinloc-logo-sidebar.png" alt="Municipality of Masinloc seal" width="42" height="42" /><span><strong>BPLO</strong><small>Municipality of Masinloc<br />Business Permits &amp; Licensing Office</small></span></a>
+                <a class="sidebar-brand brand" asp-page="/Index"><img class="sidebar-seal" src="~/images/masinloc-logo-sidebar.png" alt="Municipality of Masinloc seal" width="42" height="42" /><span class="sidebar-office-brand"><span class="sidebar-office-name">Business Permit and Licensing Office</span></span></a>
                 <nav class="sidebar-nav" aria-label="Main navigation">
                     <p class="sidebar-group">Main</p>
                     <a class="sidebar-link @(home ? "active" : "")" aria-current="@(home ? "page" : null)" asp-page="/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-dashboard" /></svg>Dashboard</a>
@@ -64,12 +64,12 @@
                 <form class="sidebar-logout" method="post" asp-page="/Account/Logout"><button type="submit" class="btn btn-outline-secondary btn-sm">Sign Out</button></form>
             </aside>
             <div class="app-workspace">
-                <header class="app-topbar"><button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Open navigation" aria-controls="app-sidebar" aria-expanded="false"><span aria-hidden="true">☰</span></button><span class="topbar-municipality">Municipality of Masinloc</span><span class="topbar-province">Province of Zambales</span><span class="topbar-office">Business Permits and Licensing Office</span><span class="topbar-context visually-hidden">@pageSection</span></header>
+                <header class="app-topbar"><button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Open navigation" aria-controls="app-sidebar" aria-expanded="false"><span class="toggle-icon" aria-hidden="true">☰</span><span class="toggle-label" aria-hidden="true">Menu</span></button><span class="topbar-office">Business Permit and Licensing Office</span><time id="philippine-clock" class="topbar-clock" aria-label="Current Philippine date and time"></time><span class="topbar-context visually-hidden">@pageSection</span></header>
                 <main id="main-content" class="app-main" tabindex="-1">@RenderBody()</main>
                 <footer class="app-footer">BPLO · Business Permit and Licensing Office</footer>
             </div>
         </div>
-        <button class="sidebar-backdrop" type="button" aria-label="Close navigation" tabindex="-1"></button>
+        <div class="sidebar-backdrop" aria-hidden="true"></div>
     }
     else
     {

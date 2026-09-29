@@ -50,6 +50,14 @@ public sealed class ProfileService(IConfiguration configuration)
         return await GetAsync(connection, null, sin, cancellationToken);
     }
 
+    public async Task<string?> GetImportReviewAsync(string sin, CancellationToken token)
+    {
+        await using var connection = await OpenAsync(token);
+        await using var command = new SqlCommand("SELECT TOP (1) Details FROM AuditTrail WHERE SIN=@sin AND Action='Import Review' ORDER BY Id DESC", connection);
+        command.Parameters.AddWithValue("@sin", sin);
+        return await command.ExecuteScalarAsync(token) as string;
+    }
+
     public async Task<IReadOnlyList<RentalRate>> GetRatesAsync(CancellationToken cancellationToken)
     {
         await using var connection = await OpenAsync(cancellationToken);
@@ -149,8 +157,8 @@ public sealed class ProfileService(IConfiguration configuration)
             return (null, new(null, "Enter a full name using letters, spaces, or periods.", "Input.FullName"));
         if (business.Length == 0)
             return (null, new(null, "Business name is required.", "Input.BusinessName"));
-        if (stall.Length == 0 || !Regex.IsMatch(stall, @"^[0-9,]+$"))
-            return (null, new(null, "Stall number may contain only digits and commas.", "Input.StallNumber"));
+        if (stall.Length == 0 || !Regex.IsMatch(stall, @"^[A-Za-z0-9][A-Za-z0-9 ,&/\-]*$"))
+            return (null, new(null, "Stall number may contain letters, digits, spaces, commas, hyphens, slashes, or ampersands.", "Input.StallNumber"));
 
         bool existingPaid = existing?.PaymentStatus == "Paid";
         if (existingPaid ? input.PaymentStatus != "Paid" : input.PaymentStatus is not ("Unverified" or "Unpaid"))

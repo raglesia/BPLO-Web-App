@@ -5,11 +5,11 @@
 @if (!Model.IsNew) { <p>VIN: @Model.Vin</p> }
 <form method="post" class="form-panel" style="max-width: 760px">
     <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-    <div class="mb-3"><label asp-for="Input.CompanyName" class="form-label">Company name</label><input asp-for="Input.CompanyName" class="form-control" /><span asp-validation-for="Input.CompanyName" class="text-danger"></span></div>
-    <div class="mb-3"><label asp-for="Input.DriverName" class="form-label">Driver name</label><input asp-for="Input.DriverName" class="form-control" /><span asp-validation-for="Input.DriverName" class="text-danger"></span></div>
-    <div class="mb-3"><label asp-for="Input.PlateNo" class="form-label">Plate number</label><input asp-for="Input.PlateNo" class="form-control" /><span asp-validation-for="Input.PlateNo" class="text-danger"></span></div>
-    <div class="mb-3"><label asp-for="Input.SecRegNo" class="form-label">SEC registration number</label><input asp-for="Input.SecRegNo" class="form-control" /><span asp-validation-for="Input.SecRegNo" class="text-danger"></span></div>
-    <div class="mb-3"><label asp-for="Input.DtiNumber" class="form-label">DTI number</label><input asp-for="Input.DtiNumber" class="form-control" /><span asp-validation-for="Input.DtiNumber" class="text-danger"></span></div>
+    <div class="mb-3"><label asp-for="Input.CompanyName" class="form-label">Company Name</label><input asp-for="Input.CompanyName" class="form-control" /><span asp-validation-for="Input.CompanyName" class="text-danger"></span></div>
+    <div class="mb-3"><label asp-for="Input.DriverName" class="form-label">Driver Name</label><input asp-for="Input.DriverName" class="form-control" /><span asp-validation-for="Input.DriverName" class="text-danger"></span></div>
+    <div class="mb-3"><label asp-for="Input.PlateNo" class="form-label">Plate Number</label><input asp-for="Input.PlateNo" class="form-control" /><span asp-validation-for="Input.PlateNo" class="text-danger"></span></div>
+    <div class="mb-3"><label asp-for="Input.SecRegNo" class="form-label">SEC Registration Number</label><input asp-for="Input.SecRegNo" class="form-control" /><span asp-validation-for="Input.SecRegNo" class="text-danger"></span></div>
+    <div class="mb-3"><label asp-for="Input.DtiNumber" class="form-label">DTI Number</label><input asp-for="Input.DtiNumber" class="form-control" /><span asp-validation-for="Input.DtiNumber" class="text-danger"></span></div>
     <div class="form-actions"><button type="submit" class="btn btn-primary">@(Model.IsNew ? "Save Vehicle" : "Save Changes")</button>
     <a asp-page="/Vehicles/Index" class="btn btn-outline-secondary">Cancel</a></div>
 </form>

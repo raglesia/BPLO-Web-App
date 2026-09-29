@@ -10,6 +10,7 @@ public class ProfileDetailsModel(ProfileService profiles, ArchiveService archive
 {
     public ProfileRecord? Profile { get; private set; }
     public string? LoadError { get; private set; }
+    public string? ImportReview { get; private set; }
     public string? Notice { get; private set; }
     [BindProperty] public bool ConfirmArchive { get; set; }
 
@@ -38,6 +39,7 @@ public class ProfileDetailsModel(ProfileService profiles, ArchiveService archive
         try
         {
             Profile = await profiles.GetAsync(sin, HttpContext.RequestAborted);
+            ImportReview = await profiles.GetImportReviewAsync(sin, HttpContext.RequestAborted);
             return Profile is null ? NotFound() : Page();
         }
         catch (Exception exception)

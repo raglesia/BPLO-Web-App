@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using BusinessPermitLicensingSystem.Web.Transfer;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +23,7 @@ public class TransferModel(TransferService transfer, ILogger<TransferModel> logg
         if (Upload is null) { Error = "Choose a CSV or XLSX file."; return Page(); }
         try
         {
-            Result = ImportSummary.From(await transfer.ImportAsync(Upload, false, HttpContext.RequestAborted));
+            Result = ImportSummary.From(await transfer.ImportAsync(Upload, false, HttpContext.RequestAborted, int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!)));
             TempData["ProfileImportSummary"] = JsonSerializer.Serialize(Result);
             return RedirectToPage();
         }

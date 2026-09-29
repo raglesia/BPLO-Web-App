@@ -10,13 +10,13 @@
 @if (Model.Vehicle is not null)
 {
     var currentPayment = Model.Vehicle.History.FirstOrDefault(payment => payment.Year == Model.Vehicle.SelectedYear);
-    <section class="section-panel"><h2 class="section-heading">Vehicle details</h2><dl class="row detail-list">
+    <section class="section-panel vehicle-assessment-width"><h2 class="section-heading">Vehicle Identity</h2><dl class="row detail-list">
         <dt class="col-sm-3">VIN</dt><dd class="col-sm-9">@Model.Vehicle.Vin</dd>
         <dt class="col-sm-3">Company</dt><dd class="col-sm-9">@Model.Vehicle.Company</dd>
         <dt class="col-sm-3">Driver</dt><dd class="col-sm-9">@Model.Vehicle.Driver</dd>
         <dt class="col-sm-3">Plate Number</dt><dd class="col-sm-9">@Model.Vehicle.Plate</dd>
     </dl></section>
-    <section class="section-panel annual-permit-status" aria-labelledby="annual-permit-title">
+    <section class="section-panel annual-permit-status vehicle-assessment-width" aria-labelledby="annual-permit-title">
         <h2 id="annual-permit-title" class="section-heading">@Model.Vehicle.SelectedYear Special Vehicle Permit</h2>
         <p class="mb-2"><span class="status-badge @Model.Vehicle.SelectedYearStatus.ToLowerInvariant()">@Model.Vehicle.SelectedYearStatus</span> for @Model.Vehicle.SelectedYear · @Model.Vehicle.Plate</p>
         @if (Model.Vehicle.Archived) { <p class="mb-0">This vehicle is archived. Previous permit payments remain below; no new payment can be recorded.</p> }
@@ -36,21 +36,73 @@
     </section>
     @if (!Model.Vehicle.Archived)
     {
-        <div class="page-actions mb-3"><a class="btn btn-outline-primary" asp-page="/Vehicles/Edit" asp-route-vin="@Model.Vehicle.Vin">Edit vehicle</a></div>
-        <h2 class="section-heading" id="fee-assessment">@Model.Vehicle.SelectedYear Fee Assessment</h2>
+        <div class="page-actions mb-3 vehicle-assessment-width"><a class="btn btn-outline-primary" asp-page="/Vehicles/Edit" asp-route-vin="@Model.Vehicle.Vin">Edit vehicle</a></div>
+        <div class="vehicle-assessment-width"><h2 class="section-heading" id="fee-assessment">@Model.Vehicle.SelectedYear Fee Assessment</h2>
         @if (Model.Vehicle.DraftError is not null) { <p class="text-danger" role="alert">@Model.Vehicle.DraftError</p> }
-        <p>Save Draft stores the fee assessment only. It does not record an annual permit payment. Existing payment amounts stay unchanged.</p>
-        <form method="post" asp-page-handler="SaveDraft" asp-route-vin="@Model.Vehicle.Vin" class="section-panel vehicle-assessment" data-fee-assessment>
-            <h3 class="assessment-heading">Standard Fees</h3>
-            <div class="standard-fee-grid">
-                @for (int i = 0; i < 15; i++)
+        <p>Save Draft stores the fee assessment only. It does not record an annual permit payment. Existing payment amounts stay unchanged.</p></div>
+        <form method="post" asp-page-handler="SaveDraft" asp-route-vin="@Model.Vehicle.Vin" class="vehicle-assessment vehicle-assessment-width" data-fee-assessment>
+            <section class="section-panel assessment-section" aria-labelledby="permit-details-title">
+            <h3 id="permit-details-title" class="assessment-heading">Permit Details</h3>
+            <p class="form-text">These details describe the annual permit. Fee amounts are entered separately below.</p>
+            <div class="permit-details-grid">
+                <div><label asp-for="PermitDetails.LineOfBusiness" class="form-label">Line of Business</label><input asp-for="PermitDetails.LineOfBusiness" class="form-control" maxlength="255" /><span asp-validation-for="PermitDetails.LineOfBusiness" class="text-danger"></span></div>
+                <div><label asp-for="PermitDetails.Description" class="form-label">Description</label><input asp-for="PermitDetails.Description" class="form-control" maxlength="255" /><span asp-validation-for="PermitDetails.Description" class="text-danger"></span></div>
+                <div><label asp-for="PermitDetails.Location" class="form-label">Location</label><input asp-for="PermitDetails.Location" class="form-control" maxlength="255" /><span asp-validation-for="PermitDetails.Location" class="text-danger"></span></div>
+                <div><label asp-for="PermitDetails.Employees" class="form-label">No. of Employees</label><input asp-for="PermitDetails.Employees" class="form-control" inputmode="numeric" pattern="[0-9]+" maxlength="10" /><span asp-validation-for="PermitDetails.Employees" class="text-danger"></span></div>
+                <div><label asp-for="PermitDetails.Organization" class="form-label">Organization</label><select asp-for="PermitDetails.Organization" class="form-select"><option value="">Select organization</option><option>Individual</option><option>Sole Proprietorship</option><option>Partnership</option><option>Corporation</option><option>Cooperative</option><option>Other</option></select><span asp-validation-for="PermitDetails.Organization" class="text-danger"></span></div>
+                <div><label asp-for="PermitDetails.Quarter" class="form-label">Quarter</label><select asp-for="PermitDetails.Quarter" class="form-select"><option value="">Select quarter</option><option>1ST QUARTER</option><option>2ND QUARTER</option><option>3RD QUARTER</option><option>4TH QUARTER</option></select><span asp-validation-for="PermitDetails.Quarter" class="text-danger"></span></div>
+                <div><label asp-for="PermitDetails.Capital" class="form-label">Capital</label><input asp-for="PermitDetails.Capital" class="form-control" inputmode="decimal" maxlength="30" data-capital /><span asp-validation-for="PermitDetails.Capital" class="text-danger"></span></div>
+                <div><label asp-for="PermitDetails.Stickers" class="form-label">No. of Stickers</label><input asp-for="PermitDetails.Stickers" class="form-control" inputmode="numeric" pattern="[0-9]+" maxlength="10" /><span asp-validation-for="PermitDetails.Stickers" class="text-danger"></span></div>
+            </div>
+            </section>
+            <section class="section-panel assessment-section" aria-labelledby="permit-fees-title">
+            <h3 id="permit-fees-title" class="assessment-heading">Permit and License Fees</h3>
+            <div class="fee-columns">
+                <div class="fee-column">
+                @for (int i = 0; i < 6; i++)
+                {
+                    <div class="fee-entry @(i == 1 ? "classified-fee" : "")"><label for="fee-@i">@VehicleFeeDraft.FeeNames[i]</label>
+                        @if (i == 1)
+                        { <div><select asp-for="PermitDetails.SanitaryType" class="form-select" aria-label="Sanitary Fee classification"><option value="">Select type</option><option>OTHER</option><option>FOOD</option><option>NON-FOOD</option></select><span asp-validation-for="PermitDetails.SanitaryType" class="text-danger"></span></div> }
+                        <input asp-for="FeeAmounts[i]" id="fee-@i" type="text" inputmode="decimal" autocomplete="off" class="form-control fee-amount" aria-describedby="fee-error-@i" required />
+                        <span id="fee-error-@i" class="fee-error" aria-live="polite"></span></div>
+                }
+                </div>
+                <div class="fee-column">
+                @for (int i = 6; i < 11; i++)
+                {
+                    <div class="fee-entry @(i == 8 ? "classified-fee" : "")"><label for="fee-@i">@VehicleFeeDraft.FeeNames[i]</label>
+                        @if (i == 8)
+                        { <div><select asp-for="PermitDetails.FireType" class="form-select" aria-label="Fire Inspection Fee classification"><option value="">Select type</option><option>ESTAB</option><option>OTHER</option></select><span asp-validation-for="PermitDetails.FireType" class="text-danger"></span></div> }
+                        <input asp-for="FeeAmounts[i]" id="fee-@i" type="text" inputmode="decimal" autocomplete="off" class="form-control fee-amount" aria-describedby="fee-error-@i" required />
+                        <span id="fee-error-@i" class="fee-error" aria-live="polite"></span></div>
+                }
+                </div>
+            </div>
+            </section>
+            <section class="section-panel assessment-section" aria-labelledby="additional-fees-title">
+            <h3 id="additional-fees-title" class="assessment-heading">Additional Fees</h3>
+            <div class="fee-columns">
+                <div class="fee-column">
+                @for (int i = 11; i < 15; i += 2)
                 {
                     <div class="fee-entry"><label for="fee-@i">@VehicleFeeDraft.FeeNames[i]</label>
                         <input asp-for="FeeAmounts[i]" id="fee-@i" type="text" inputmode="decimal" autocomplete="off" class="form-control fee-amount" aria-describedby="fee-error-@i" required />
                         <span id="fee-error-@i" class="fee-error" aria-live="polite"></span></div>
                 }
+                </div>
+                <div class="fee-column">
+                @for (int i = 12; i < 15; i += 2)
+                {
+                    <div class="fee-entry"><label for="fee-@i">@VehicleFeeDraft.FeeNames[i]</label>
+                        <input asp-for="FeeAmounts[i]" id="fee-@i" type="text" inputmode="decimal" autocomplete="off" class="form-control fee-amount" aria-describedby="fee-error-@i" required />
+                        <span id="fee-error-@i" class="fee-error" aria-live="polite"></span></div>
+                }
+                </div>
             </div>
-            <h3 class="assessment-heading other-fee-heading">Other Fees</h3>
+            </section>
+            <section class="section-panel assessment-section" aria-labelledby="other-fees-title">
+            <h3 id="other-fees-title" class="assessment-heading">Other Fees</h3>
             <p class="form-text">Name each additional fee. A blank name retains its Other Fee number on reports.</p>
             <div class="other-fee-grid">
                 @for (int j = 0; j < 4; j++)
@@ -62,15 +114,20 @@
                     </div>
                 }
             </div>
-            <div class="assessment-summary"><div><span class="assessment-summary-label">Total Amount Due</span><output id="fee-total" class="money assessment-total" aria-live="polite">₱0.00</output><span class="form-text">Current form total. Save Draft to use this assessment for payment.</span></div>
-                <div class="assessment-actions"><span class="form-text">Saved total: @(Model.Vehicle.Draft is null ? "No draft" : $"₱{Model.Vehicle.Draft.GrandTotal:N2}")</span><button class="btn btn-primary" type="submit">Save Draft</button></div></div>
+            </section>
+            <section class="section-panel assessment-summary" aria-label="Total Amount Due and Save Draft"><div><span class="assessment-summary-label">Total Amount Due</span><output id="fee-total" class="money assessment-total" aria-live="polite">₱0.00</output><span class="form-text">Current form total. Save Draft to use this assessment for payment.</span></div>
+                <div class="assessment-actions"><span class="form-text">Saved total: @(Model.Vehicle.Draft is null ? "No draft" : $"₱{Model.Vehicle.Draft.GrandTotal:N2}")</span><button class="btn btn-primary" type="submit">Save Draft</button>
+                    @if (!Model.Vehicle.Archived && Model.Vehicle.Draft is not null) { <a class="btn btn-outline-primary" asp-page="/Reports/VehicleBillingPreview" asp-route-vin="@Model.Vehicle.Vin">Print Billing Report</a> }
+                    <span class="form-text">Save Draft → Print Billing Report → Record Permit Payment. Billing uses the saved assessment.</span>
+                </div>
+            </section>
         </form>
         @if (Model.Vehicle.Eligible && Model.Vehicle.Draft is not null && Model.Vehicle.Draft.GrandTotal > 0)
         {
-            <section class="section-panel" id="vehicle-payment" tabindex="-1"><h2 class="section-heading">Record @Model.Vehicle.SelectedYear Permit Payment</h2>
+            <section class="section-panel vehicle-assessment-width" id="vehicle-payment" tabindex="-1"><h2 class="section-heading">Record @Model.Vehicle.SelectedYear Permit Payment</h2>
             <p>Annual payment for <strong>@Model.Vehicle.Company</strong> · plate number <strong>@Model.Vehicle.Plate</strong> · permit year <strong>@Model.Vehicle.SelectedYear</strong>. Amount due: <strong class="money">₱@Model.Vehicle.Draft.GrandTotal.ToString("N2")</strong>. The saved assessment is checked again when you submit.</p>
             <form method="post" asp-page-handler="Pay" asp-route-vin="@Model.Vehicle.Vin" style="max-width: 28rem">
-                <div class="mb-3"><label asp-for="OrNumber" class="form-label">Vehicle OR number</label>
+                <div class="mb-3"><label asp-for="OrNumber" class="form-label">Vehicle OR Number</label>
                     <input asp-for="OrNumber" class="form-control" maxlength="100" required /></div>
                 <div class="form-check mb-3"><input asp-for="ConfirmPayment" class="form-check-input" required />
                     <label asp-for="ConfirmPayment" class="form-check-label">I confirm the @Model.Vehicle.SelectedYear permit, amount, and OR number entered above.</label></div>
@@ -91,7 +148,7 @@
     @if (Model.Vehicle.History.Count == 0) { <p class="empty-state">No payment history yet.</p> }
     @if (!Model.Vehicle.Archived)
     {
-        <form method="post" asp-page-handler="Archive" asp-route-vin="@Model.Vehicle.Vin" class="section-panel mt-4"><h2 class="section-heading">Archive vehicle</h2>
+        <form method="post" asp-page-handler="Archive" asp-route-vin="@Model.Vehicle.Vin" class="section-panel mt-4"><h2 class="section-heading">Archive Vehicle</h2>
             <div class="form-check"><input asp-for="ConfirmArchive" class="form-check-input" required />
                 <label asp-for="ConfirmArchive" class="form-check-label">Archive @Model.Vehicle.Company (@Model.Vehicle.Vin). History and fee drafts will remain.</label></div>
             <button class="btn btn-outline-danger mt-2" type="submit">Archive vehicle</button>

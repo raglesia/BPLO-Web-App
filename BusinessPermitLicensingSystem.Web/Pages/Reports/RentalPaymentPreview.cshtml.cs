@@ -30,7 +30,7 @@ public class RentalPaymentPreviewModel(ReportService reports, ILogger<RentalPaym
                 }
                 list.Add(report);
             }
-            PrintedAt = DateTime.Now;
+            PrintedAt = DateTime.UtcNow.AddHours(8);
             Reports = list;
         }
         catch (Exception exception)

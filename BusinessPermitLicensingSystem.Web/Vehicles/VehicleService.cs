@@ -110,15 +110,29 @@ public sealed class VehicleService(IConfiguration configuration)
 
     public async Task<DraftSaveResult> SaveDraftAsync(string vin, int year,
         IReadOnlyList<decimal> amounts, IReadOnlyList<string> otherDescriptions,
-        DateTime asOf, CancellationToken cancellationToken)
+        DateTime asOf, CancellationToken cancellationToken, DraftData? permitDetails = null)
     {
         if (year != asOf.Year) return new(false, "Only the current permit-year draft can be updated.");
+        if (permitDetails is not null)
+        {
+            if (VehicleFeeDraft.ValidatePermitDetails(permitDetails).Count != 0)
+                return new(false, "Review the highlighted permit details.");
+            if (amounts.Count == VehicleFeeDraft.FeeNames.Length)
+            {
+                var computedAmounts = amounts.ToArray();
+                computedAmounts[4] = VehicleFeeDraft.OccupationalPermitAmount(permitDetails.Employees);
+                amounts = computedAmounts;
+            }
+        }
         decimal total;
         try { total = VehicleFeeDraft.Total(amounts); }
         catch (Exception exception) when (exception is ArgumentException or OverflowException)
         { return new(false, "Enter non-negative fee amounts with at most two decimals."); }
         if (otherDescriptions.Count != 4 || otherDescriptions.Any(x => x is not null && x.Length > 255))
             return new(false, "Enter four other-fee descriptions of at most 255 characters.");
+        if (permitDetails is not null && VehicleFeeDraft.ValidatePermitDetails(permitDetails).Count != 0)
+            return new(false, "Review the highlighted permit details.");
+        DraftData? normalizedDetails = permitDetails is null ? null : VehicleFeeDraft.NormalizePermitDetails(permitDetails);
 
         await using var connection = await OpenAsync(cancellationToken);
         await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
@@ -142,6 +156,20 @@ public sealed class VehicleService(IConfiguration configuration)
             await using (var reader = await priorCommand.ExecuteReaderAsync(cancellationToken))
                 if (await reader.ReadAsync(cancellationToken))
                     prior = VehicleFeeDraft.Read(reader.GetString(0), reader.GetDecimal(1)).Data;
+            if (normalizedDetails is not null)
+            {
+                prior ??= new DraftData();
+                prior.LineOfBusiness = normalizedDetails.LineOfBusiness;
+                prior.Description = normalizedDetails.Description;
+                prior.Location = normalizedDetails.Location;
+                prior.Employees = normalizedDetails.Employees;
+                prior.Capital = normalizedDetails.Capital;
+                prior.Stickers = normalizedDetails.Stickers;
+                prior.Organization = normalizedDetails.Organization;
+                prior.Quarter = normalizedDetails.Quarter;
+                prior.SanitaryType = normalizedDetails.SanitaryType;
+                prior.FireType = normalizedDetails.FireType;
+            }
             var (json, _) = VehicleFeeDraft.Create(amounts, otherDescriptions, prior);
             await using var save = new SqlCommand("""
                 UPDATE VehiclePermitFeeDrafts

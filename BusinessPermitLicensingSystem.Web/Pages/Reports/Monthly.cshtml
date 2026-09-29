@@ -3,7 +3,7 @@
 @{ ViewData["Title"] = "Monthly collection summary"; }
 <div class="report-header text-center mb-4">
     <p class="mb-0">Municipality of Masinloc<br />Business Permit and Licensing Office</p>
-    <h1 class="h3 mt-3">Monthly collection summary report</h1>
+    <h1 class="h3 mt-3">Monthly Collection Summary Report</h1>
     @if (Model.Report is not null) { <p>@Model.Report.From.ToString("MMMM yyyy") – @Model.Report.To.ToString("MMMM yyyy")</p> }
     <p>Generated @DateTime.Now.ToString("MMMM dd, yyyy hh:mm tt")</p>
 </div>
@@ -33,7 +33,7 @@
         <dt class="col-sm-4">Collected by payment date</dt><dd class="col-sm-8">@Model.Report.CollectedTotal.ToString("N2")</dd>
         <dt class="col-sm-4">Penalty collected</dt><dd class="col-sm-8">@Model.Report.PenaltyCollected.ToString("N2")</dd>
     </dl>
-    <h2 class="h4">Billing snapshots</h2>
+    <h2 class="h4">Billing Snapshots</h2>
     <div class="table-responsive"><table class="table table-sm table-striped">
         <thead><tr><th scope="col">Period</th><th scope="col">SIN</th><th scope="col">Owner</th><th scope="col">Base</th><th scope="col">Additional</th><th scope="col">Penalty</th><th scope="col">Total</th><th scope="col">Status</th></tr></thead>
         <tbody>@foreach (var item in Model.Report.Bills)
@@ -41,7 +41,7 @@
             <td>@(item.Bill.BaseRent?.ToString("N2") ?? "Review needed")</td><td>@item.Bill.Additional.ToString("N2")</td>
             <td>@item.Bill.Penalty.ToString("N2")</td><td>@(item.Bill.Total?.ToString("N2") ?? "Review needed")</td><td>@item.Bill.Status</td></tr> }</tbody>
     </table></div>
-    <h2 class="h4">Recorded collections</h2>
+    <h2 class="h4">Recorded Collections</h2>
     <div class="table-responsive"><table class="table table-sm table-striped">
         <thead><tr><th scope="col">SIN</th><th scope="col">Owner</th><th scope="col">Date</th><th scope="col">OR</th><th scope="col">Amount</th><th scope="col">Penalty</th><th scope="col">Recorded by</th><th scope="col">Covered periods</th></tr></thead>
         <tbody>@foreach (var payment in Model.Report.Payments)

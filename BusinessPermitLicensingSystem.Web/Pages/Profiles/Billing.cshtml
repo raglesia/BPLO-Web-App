@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Billing history";
 }
-<div class="page-header"><div><p class="eyebrow">Stall owners / Billing</p><h1>Billing and Payments</h1><p>Review outstanding periods and recorded payments.</p></div><div class="page-actions"><a class="btn btn-outline-secondary" asp-page="/Reports/Billing" asp-route-sin="@RouteData.Values["sin"]">Print Billing Statement</a><a class="btn btn-outline-primary" asp-page="/Reports/RentalPaymentPreview" asp-route-selected="@RouteData.Values["sin"]">Print Rental Payment Report</a></div></div>
+<div class="page-header"><div><p class="eyebrow">Stall owners / Billing</p><h1>Billing and Payments</h1><p>Review outstanding periods and recorded payments.</p></div></div>
 @if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
 @if (Model.Notice is not null) { <p class="text-success" role="status">@Model.Notice</p> }
 @if (Model.Record is not null)
@@ -33,10 +33,10 @@
     </dl></section>
     @if (!Model.Record.Archived && Model.Record.Status != "Unverified" && Model.Record.TotalDue > 0)
     {
-        <section class="section-panel"><h2 class="section-heading">Record full payment</h2>
+        <section class="section-panel"><h2 class="section-heading">Record Full Payment</h2>
         <p>One OR number settles every unpaid billing period through this month. Amount is calculated again when submitted.</p>
         <form method="post" asp-page-handler="Pay" asp-route-sin="@RouteData.Values["sin"]" style="max-width: 28rem">
-            <div class="mb-3"><label class="form-label" asp-for="OrNumber">OR number</label>
+            <div class="mb-3"><label class="form-label" asp-for="OrNumber">OR Number</label>
                 <input class="form-control" asp-for="OrNumber" maxlength="100" required /></div>
             <div class="form-check mb-3"><input class="form-check-input" asp-for="ConfirmPayment" required />
                 <label class="form-check-label" asp-for="ConfirmPayment">Confirm full payment of all outstanding periods</label></div>
@@ -44,30 +44,30 @@
         </form>
         </section>
     }
-    <h2 class="section-heading">Billing periods</h2>
+    <h2 class="section-heading">Billing Periods</h2><p class="form-text">Billing starts the month after occupancy. Payment is due by the 20th; a 25% base-rent penalty applies from the 21st.</p>
     <div class="table-responsive">
         <table class="table table-striped financial-table"><caption class="visually-hidden">Billing periods for @Model.Record.Name</caption>
-            <thead><tr><th scope="col">Period</th><th scope="col">Base rent</th><th scope="col">Additional</th><th scope="col">Penalty</th><th scope="col">Status</th><th scope="col">OR number</th><th scope="col">Date paid</th></tr></thead>
+            <thead><tr><th scope="col">Billing period</th><th scope="col">Due date</th><th scope="col">Base rent</th><th scope="col">Additional</th><th scope="col">Penalty</th><th scope="col">Status</th><th scope="col">OR number</th><th scope="col">Date paid</th></tr></thead>
             <tbody>
             @foreach (var row in Model.Record.Rows)
             {
-                <tr><td>@row.Year-@row.Month.ToString("D2")</td><td class="money">@(row.BaseRent.HasValue ? $"₱{row.BaseRent:N2}" : "Review needed")</td>
+                <tr><td>@(new DateTime(row.Year, row.Month, 1).ToString("MMMM yyyy"))</td><td>@(new DateTime(row.Year, row.Month, 20).ToString("MMMM dd, yyyy"))</td><td class="money">@(row.BaseRent.HasValue ? $"₱{row.BaseRent:N2}" : "Review needed")</td>
                     <td class="money">₱@row.Additional.ToString("N2")</td><td class="money">@(row.CurrentPenalty(Model.AsOf).HasValue ? $"₱{row.CurrentPenalty(Model.AsOf):N2}" : "Review needed")</td>
-                    <td><span class="status-badge @row.Status.ToLowerInvariant()">@row.Status</span></td><td>@row.OrNumber</td><td>@row.DatePaid?.ToString("yyyy-MM-dd")</td></tr>
+                    <td><span class="status-badge @row.Status.ToLowerInvariant()">@row.Status</span></td><td>@row.OrNumber</td><td>@row.DatePaid?.ToString("MMMM dd, yyyy")</td></tr>
             }
             </tbody>
         </table>
     </div>
     @if (Model.Record.Rows.Count == 0) { <p class="empty-state">No billing periods yet.</p> }
-    <h2 class="h4 mt-4">Payment history</h2>
+    <h2 class="h4 mt-4">Payment History</h2>
     <div class="table-responsive"><table class="table table-striped financial-table"><caption class="visually-hidden">Payment history for @Model.Record.Name</caption>
-        <thead><tr><th scope="col">OR number</th><th scope="col">Date</th><th scope="col">Amount</th><th scope="col">Penalty</th><th scope="col">Recorded by</th><th scope="col">Periods</th></tr></thead>
+        <thead><tr><th scope="col">OR number</th><th scope="col">Date</th><th scope="col">Amount</th><th scope="col">Penalty</th><th scope="col">Recorded by</th><th scope="col">Periods</th><th scope="col">Report</th></tr></thead>
         <tbody>
         @foreach (var payment in Model.Record.Payments)
         {
-            <tr><td>@payment.OrNumber</td><td>@payment.DatePaid.ToString("yyyy-MM-dd HH:mm")</td>
+            <tr><td>@payment.OrNumber</td><td>@payment.DatePaid.ToString("MMMM dd, yyyy hh:mm tt")</td>
                 <td class="money">₱@payment.Amount.ToString("N2")</td><td class="money">₱@payment.Penalty.ToString("N2")</td>
-                <td>@payment.RecordedBy</td><td>@payment.Periods</td></tr>
+                <td>@payment.RecordedBy</td><td>@payment.Periods</td><td><a asp-page="/Reports/StallPaymentPreview" asp-route-sin="@RouteData.Values["sin"]" asp-route-orNumber="@payment.OrNumber">Print Payment Report</a></td></tr>
         }
         </tbody>
     </table></div>

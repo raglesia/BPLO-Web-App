@@ -6,7 +6,7 @@
 }
 <div class="page-header"><div><p class="eyebrow">Records</p><h1>Special Vehicle Permits</h1><p>Manage vehicle details, fee drafts, and permit payments.</p></div><div class="page-actions"><a class="btn btn-outline-secondary" asp-page="/Vehicles/Transfer">Import / Export</a><a class="btn btn-primary" asp-page="/Vehicles/Edit">Add Vehicle</a></div></div>
 <form method="get" class="search-panel row g-2 align-items-end mb-3">
-    <div class="col-md-5"><label for="vehicle-search" class="form-label">Search vehicles</label><input id="vehicle-search" class="form-control" name="search" value="@Model.Search" placeholder="VIN, company, driver, or plate number" /></div>
+    <div class="col-md-5"><label for="vehicle-search" class="form-label">Search Vehicles</label><input id="vehicle-search" class="form-control" name="search" value="@Model.Search" placeholder="VIN, company, driver, or plate number" /></div>
     <div class="col-auto"><button class="btn btn-outline-primary" type="submit">Search</button></div>
     @if (!string.IsNullOrWhiteSpace(Model.Search)) { <div class="col-auto"><a class="btn btn-link" asp-page="/Vehicles/Index">Clear Search</a></div> }
 </form>

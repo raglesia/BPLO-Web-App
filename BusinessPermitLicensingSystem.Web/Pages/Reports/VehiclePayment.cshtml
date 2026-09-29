@@ -4,7 +4,7 @@
 <div class="page-header"><div><p class="eyebrow">Reports</p><h1>Special Vehicle Permit Payment</h1><p>Select up to three recorded annual payments for one print job.</p></div></div>
 @if (Model.Error is not null) { <p class="alert alert-danger" role="alert">@Model.Error</p> }
 <section class="section-panel vehicle-report-selector" aria-labelledby="vehicle-selected-heading">
-    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap"><h2 class="section-heading mb-0" id="vehicle-selected-heading">Selected payments</h2><p class="mb-0" role="status" aria-live="polite">@Model.Selected.Count of 3 selected</p></div>
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap"><h2 class="section-heading mb-0" id="vehicle-selected-heading">Selected Payments</h2><p class="mb-0" role="status" aria-live="polite">@Model.Selected.Count of 3 selected</p></div>
     @if (Model.Selected.Count == 0) { <p class="mt-3 mb-0">No annual payments selected yet.</p> }
     else
     {
@@ -27,11 +27,11 @@
     }
 </section>
 <section class="section-panel vehicle-report-selector" aria-labelledby="vehicle-search-heading">
-    <h2 class="section-heading" id="vehicle-search-heading">Find recorded payments</h2>
+    <h2 class="section-heading" id="vehicle-search-heading">Find Recorded Payments</h2>
     <form method="get" asp-page="/Reports/VehiclePayment" class="row g-2 align-items-end">
         @foreach (var payment in Model.Selected) { <input type="hidden" name="selected" value="@payment.Id" /> }
-        <div class="col-md-7"><label for="vehicle-report-search" class="form-label">Company, driver, plate, VIN, or OR number</label><input id="vehicle-report-search" name="search" value="@Model.Search" class="form-control" maxlength="255" /></div>
-        <div class="col-md-2"><label for="vehicle-report-year" class="form-label">Permit year</label><input id="vehicle-report-year" name="year" value="@Model.Year" type="number" min="2000" max="2100" class="form-control" /></div>
+        <div class="col-md-7"><label for="vehicle-report-search" class="form-label">Company, Driver, Plate, VIN, or OR Number</label><input id="vehicle-report-search" name="search" value="@Model.Search" class="form-control" maxlength="255" /></div>
+        <div class="col-md-2"><label for="vehicle-report-year" class="form-label">Permit Year</label><input id="vehicle-report-year" name="year" value="@Model.Year" type="number" min="2000" max="2100" class="form-control" /></div>
         <div class="col-auto"><button type="submit" class="btn btn-outline-primary">Search</button></div>
     </form>
     @if (Model.Error is null)

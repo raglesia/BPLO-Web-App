@@ -1,5 +1,6 @@
 using BusinessPermitLicensingSystem.Web.Billing;
 using BusinessPermitLicensingSystem.Web.Reports;
+using BusinessPermitLicensingSystem.Web.Vehicles;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 
@@ -8,6 +9,109 @@ static void Check(bool condition, string name)
     if (!condition) throw new Exception(name);
     Console.WriteLine($"PASS {name}");
 }
+
+Check(VehicleFeeDraft.OccupationalPermitAmount("0") == 0m, "zero employees: no occupational fee");
+Check(VehicleFeeDraft.OccupationalPermitAmount("1") == 300m, "one employee: 300 pesos");
+Check(VehicleFeeDraft.OccupationalPermitAmount("2") == 600m, "two employees: 600 pesos");
+var rentalPenaltyReport = new ReportBill(2026, 9, 1200m, 1200m, 0m, 0m, "Unpaid", null, null);
+Check(rentalPenaltyReport.CurrentPenalty(new DateTime(2026, 9, 20)) == 0m &&
+      rentalPenaltyReport.CurrentPenalty(new DateTime(2026, 9, 21)) == 300m,
+      "rental print penalty automatically begins on the 21st");
+Check(rentalPenaltyReport.CurrentPenalty(new DateTime(2026, 10, 21)) == 300m,
+      "rental print penalty is fixed and does not compound");
+Check((rentalPenaltyReport with { Status = "Paid", Penalty = 100m }).CurrentPenalty(new DateTime(2026, 10, 21)) == 100m,
+      "rental print preserves recorded paid penalties");
+Check((rentalPenaltyReport with { BaseRent = null }).CurrentPenalty(new DateTime(2026, 9, 29)) is null,
+      "rental print does not invent penalties for unknown rent basis");
+
+var noPreparedBills = new ProfileReport("SIN-DEMO", "Owner", "Business", "Section", "FC4", "0", "Unpaid", false, [], [], 1200m, 0m, "2026-07-29");
+var automaticAssessment = noPreparedBills.AssessmentBills(new DateTime(2026, 9, 29));
+Check(automaticAssessment.Count == 2 && automaticAssessment.Sum(x => x.BaseRent) == 2400m &&
+      automaticAssessment.Sum(x => x.CurrentPenalty(new DateTime(2026, 9, 29))) == 600m,
+      "verified owner with no prepared bills automatically assesses August and September rent and penalties");
+Check(noPreparedBills.Bills.Count == 0, "automatic print assessment does not create stored bills");
+var alreadyPaid = automaticAssessment[0] with { Status = "Paid", Penalty = 300m };
+var partialAssessment = (noPreparedBills with { Bills = [alreadyPaid] }).AssessmentBills(new DateTime(2026, 9, 29));
+Check(partialAssessment.Count == 2 && partialAssessment.Count(x => x.Status == "Unpaid") == 1 && partialAssessment[0] == alreadyPaid,
+      "automatic assessment preserves paid periods and adds only missing periods");
+Check((noPreparedBills with { Status = "Unverified" }).AssessmentBills(new DateTime(2026, 9, 29)).Count == 0 &&
+      (noPreparedBills with { StartDate = "" }).AssessmentBills(new DateTime(2026, 9, 29)).Count == 0,
+      "automatic assessment still requires verified occupancy");
+Check(noPreparedBills.AssessmentBills(new DateTime(2026, 7, 29)).Count == 0,
+      "automatic assessment excludes occupancy month");
+
+var permitDetails = new DraftData { LineOfBusiness = "Transport", Description = "Shuttle",
+    Location = "Masinloc", Employees = "3", Capital = "100000.00", Stickers = "2",
+    Organization = "Sole Proprietorship", Quarter = "3RD QUARTER",
+    SanitaryType = "NON-FOOD", FireType = "ESTAB" };
+var draftAmounts = Enumerable.Repeat(0m, VehicleFeeDraft.FeeNames.Length).ToArray();
+draftAmounts[0] = 125m;
+var (permitJson, permitTotal) = VehicleFeeDraft.Create(draftAmounts, ["", "", "", ""], permitDetails);
+var permitRoundTrip = VehicleFeeDraft.Read(permitJson, permitTotal);
+Check(permitRoundTrip.GrandTotal == 125m && permitRoundTrip.Data.LineOfBusiness == "Transport" &&
+      permitRoundTrip.Data.Description == "Shuttle" && permitRoundTrip.Data.Location == "Masinloc" &&
+      permitRoundTrip.Data.Employees == "3" && permitRoundTrip.Data.Capital == "100000.00" &&
+      permitRoundTrip.Data.Stickers == "2" && permitRoundTrip.Data.Organization == "Sole Proprietorship" &&
+      permitRoundTrip.Data.Quarter == "3RD QUARTER" && permitRoundTrip.Data.SanitaryType == "NON-FOOD" &&
+      permitRoundTrip.Data.FireType == "ESTAB", "vehicle permit details survive fee draft JSON round trip");
+foreach (string organization in new[] { "Individual", "Sole Proprietorship", "Partnership", "Corporation", "Cooperative", "Other" })
+{
+    permitDetails.Organization = organization;
+    Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Count == 0, "valid organization " + organization);
+}
+foreach (string quarter in new[] { "1ST QUARTER", "2ND QUARTER", "3RD QUARTER", "4TH QUARTER" })
+{
+    permitDetails.Quarter = quarter;
+    Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Count == 0, "valid quarter " + quarter);
+}
+foreach (string sanitary in new[] { "OTHER", "FOOD", "NON-FOOD" })
+{
+    permitDetails.SanitaryType = sanitary;
+    Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Count == 0, "valid sanitary type " + sanitary);
+}
+foreach (string fire in new[] { "ESTAB", "OTHER" })
+{
+    permitDetails.FireType = fire;
+    Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Count == 0, "valid fire type " + fire);
+}
+permitDetails.Organization = "unknown";
+Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Any(x => x.Field == "Organization"), "crafted organization rejected");
+permitDetails.Organization = "Other";
+permitDetails.Quarter = "5TH QUARTER";
+Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Any(x => x.Field == "Quarter"), "crafted quarter rejected");
+permitDetails.Quarter = "3RD QUARTER";
+permitDetails.SanitaryType = "UNKNOWN";
+Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Any(x => x.Field == "SanitaryType"), "crafted sanitary type rejected");
+permitDetails.SanitaryType = "FOOD";
+permitDetails.FireType = "UNKNOWN";
+Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Any(x => x.Field == "FireType"), "crafted fire type rejected");
+permitDetails.FireType = "ESTAB";
+permitDetails.Employees = "-1";
+Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Any(x => x.Field == "Employees"), "negative employees rejected");
+permitDetails.Employees = "1.5";
+Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Any(x => x.Field == "Employees"), "fractional employees rejected");
+permitDetails.Employees = "abc";
+Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Any(x => x.Field == "Employees"), "non-numeric employees rejected");
+permitDetails.Employees = "3";
+permitDetails.Stickers = "-1";
+Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Any(x => x.Field == "Stickers"), "negative stickers rejected");
+permitDetails.Stickers = "1.5";
+Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Any(x => x.Field == "Stickers"), "fractional stickers rejected");
+permitDetails.Stickers = "2";
+permitDetails.Capital = "-1";
+Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Any(x => x.Field == "Capital"), "negative capital rejected");
+permitDetails.Capital = "1.001";
+Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Any(x => x.Field == "Capital"), "sub-cent capital rejected");
+permitDetails.Capital = "1,234.56";
+Check(VehicleFeeDraft.NormalizePermitDetails(permitDetails).Capital == "1,234.56" &&
+      VehicleFeeDraft.Total(draftAmounts) == 125m, "Philippine capital formatting leaves fee total unchanged");
+permitDetails.Location = new string('X', 256);
+Check(VehicleFeeDraft.ValidatePermitDetails(permitDetails).Any(x => x.Field == "Location"),
+    "oversized permit text rejected");
+permitDetails.Location = "Masinloc";
+var legacy = new DraftData();
+Check(VehicleFeeDraft.Read(VehicleFeeDraft.Create(draftAmounts, ["", "", "", ""], legacy).Json, 125m).Data.Quarter == "",
+    "older blank permit classifications remain readable");
 
 Check(RentalPaymentSelection.Validate(["A"], true) is null &&
       RentalPaymentSelection.Validate(["B", "A", "C"], true) is null &&

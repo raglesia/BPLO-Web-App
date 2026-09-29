@@ -4,7 +4,7 @@
 <div class="page-header"><div><p class="eyebrow">Archive</p><h1>Archived Profiles</h1><p>Restoring keeps the same SIN and history. Billing is generated only through the billing page.</p></div></div>
 @if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
 @if (Model.Notice is not null) { <p class="text-success" role="status">@Model.Notice</p> }
-<form method="get" class="search-panel mb-3"><label for="Search" class="form-label">Search archived profiles</label>
+<form method="get" class="search-panel mb-3"><label for="Search" class="form-label">Search Archived Profiles</label>
     <input id="Search" name="Search" value="@Model.Search" class="form-control" style="max-width: 24rem" />
     <button class="btn btn-outline-primary mt-2">Search</button>
     @if (!string.IsNullOrWhiteSpace(Model.Search)) { <a class="btn btn-link mt-2" asp-page="/Archive/Profiles">Clear Search</a> }</form>

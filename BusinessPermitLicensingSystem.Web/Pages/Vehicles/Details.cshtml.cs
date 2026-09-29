@@ -13,6 +13,7 @@ public class DetailsModel(VehicleService vehicles, ArchiveService archive, ILogg
     public string? Notice { get; private set; }
     [BindProperty] public List<decimal> FeeAmounts { get; set; } = new();
     [BindProperty] public List<string> OtherDescriptions { get; set; } = new();
+    [BindProperty] public DraftData PermitDetails { get; set; } = new();
     [BindProperty] public string OrNumber { get; set; } = "";
     [BindProperty] public bool ConfirmPayment { get; set; }
     [BindProperty] public bool ConfirmArchive { get; set; }
@@ -38,10 +39,18 @@ public class DetailsModel(VehicleService vehicles, ArchiveService archive, ILogg
     {
         if (ModelState.Any(entry => entry.Key.StartsWith("FeeAmounts[", StringComparison.Ordinal) && entry.Value?.Errors.Count > 0))
         { Error = "Enter valid fee amounts using numbers with at most two decimal places."; return await LoadAsync(vin, false); }
+        var detailErrors = VehicleFeeDraft.ValidatePermitDetails(PermitDetails);
+        if (detailErrors.Count != 0)
+        {
+            foreach (var (field, message) in detailErrors)
+                ModelState.AddModelError($"PermitDetails.{field}", message);
+            Error = "Review the highlighted permit details.";
+            return await LoadAsync(vin, false);
+        }
         try
         {
             var result = await vehicles.SaveDraftAsync(vin, DateTime.Today.Year,
-                FeeAmounts, OtherDescriptions, DateTime.Today, HttpContext.RequestAborted);
+                FeeAmounts, OtherDescriptions, DateTime.Today, HttpContext.RequestAborted, PermitDetails);
             if (!result.Success)
             { Error = result.Error; return await LoadAsync(vin, false); }
             TempData["VehicleNotice"] = $"{DateTime.Today.Year} fee draft saved: ₱{result.Total:N2}. No payment was recorded.";
@@ -84,6 +93,8 @@ public class DetailsModel(VehicleService vehicles, ArchiveService archive, ILogg
             {
                 FeeAmounts = Vehicle.Draft?.Amounts.ToList() ?? Enumerable.Repeat(0m, VehicleFeeDraft.FeeNames.Length).ToList();
                 OtherDescriptions = Vehicle.Draft?.Data.OtherDescriptions.ToList() ?? ["", "", "", ""];
+                PermitDetails = Vehicle.Draft?.Data ?? new DraftData
+                    { Quarter = "1ST QUARTER", SanitaryType = "OTHER", FireType = "ESTAB" };
             }
             else
             {

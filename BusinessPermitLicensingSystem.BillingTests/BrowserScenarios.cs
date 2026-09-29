@@ -229,7 +229,8 @@ internal static class BrowserScenarios
         Page editedAccount = await first.Post("/UserAccounts/Edit/" + accountId, editAccount,
             ("Input.FullName", "Account Test Updated"), ("Input.Username", renamedUsername),
             ("Input.Position", "Supervisor"));
-        Check(editedAccount.Url.AbsolutePath == "/UserAccounts" && Has(editedAccount, renamedUsername),
+        Check(editedAccount.Url.AbsolutePath == "/UserAccounts" &&
+              Has(await first.Get("/UserAccounts?search=" + Uri.EscapeDataString(renamedUsername)), renamedUsername),
             "account full name, username, and position updated");
         using var editedLogin = new Browser(root);
         await Login(editedLogin, new Account(renamedUsername, originalPassword, "Account Test Updated", "edited account"));
@@ -302,7 +303,7 @@ internal static class BrowserScenarios
             string suffix = Unique();
             Page saved = await browser.Post("/Profiles/Create", form,
                 ("Input.FullName", "Phase Twelve " + label), ("Input.BusinessName", tag + " " + label + " " + suffix),
-                ("Input.BusinessSection", sectionName), ("Input.StallNumber", Random.Shared.Next(100000, 999999).ToString()),
+                ("Input.BusinessSection", sectionName), ("Input.StallNumber", "FC" + Random.Shared.Next(100000, 999999) + "-A"),
                 ("Input.StallSize", size), ("Input.PaymentStatus", status), ("Input.StartDate", start ?? ""),
                 ("Input.IncludeAdditionalCharge", additional == "0" ? "false" : "true"),
                 ("Input.AdditionalCharge", additional));
@@ -327,7 +328,8 @@ internal static class BrowserScenarios
         Check(Has(billBefore, "Billing history"), "billing page");
         Page generated = await first.Post($"/Profiles/{sin}/Billing?handler=Generate", billBefore);
         Check(Has(generated, "Generated") && generated.Url.AbsolutePath.EndsWith("/Billing"), "billing generation PRG");
-        Check(Has(await first.Get($"/Profiles/{sin}/Billing"), "2025-02"), "first billable month after occupancy");
+        Check(Has(await first.Get($"/Profiles/{sin}/Billing"), "February 2025") &&
+              Has(await first.Get($"/Profiles/{sin}/Billing"), "February 20, 2025"), "first billable month after occupancy and full due date");
         Page repeated = await first.Post($"/Profiles/{sin}/Billing?handler=Generate", generated);
         Check(Has(repeated, "Generated 0"), "billing generation idempotent");
 
@@ -437,9 +439,25 @@ internal static class BrowserScenarios
         Page staleBill = await second.Get($"/Profiles/{sin}/Billing");
         Page billToPay = await first.Get($"/Profiles/{sin}/Billing");
         Check(Has(billToPay, "Record full payment"), "stall payment action available");
+        int stallAuditBefore = await Count("SELECT COUNT(*) FROM AuditTrail");
+        int stallBillsBefore = await Count("SELECT COUNT(*) FROM MonthlyBilling");
+        Page stallBilling = await first.Get($"/Reports/RentalPaymentPreview?selected={sin}");
+        Check(!Has(billToPay, "Print Billing Report") && Has(billToPay, "Due date") &&
+              Has(stallBilling, "STALL OWNER RENTAL PAYMENT") && Has(stallBilling, "Unpaid") &&
+              Has(stallBilling, "Total Amount Due") && !Has(stallBilling, "OR Number") &&
+              await Count("SELECT COUNT(*) FROM PaymentHistory WHERE SIN=@sin", ("@sin", sin)) == 0 &&
+              await Count("SELECT COUNT(*) FROM AuditTrail") == stallAuditBefore &&
+              await Count("SELECT COUNT(*) FROM MonthlyBilling") == stallBillsBefore,
+            "stall pre-payment billing needs no OR and leaves bills, payment history and audit unchanged");
+        Check(Has(await first.Get($"/Reports/StallPaymentPreview?sin={sin}&orNumber=missing"), "Recorded payment was not found"),
+            "stall payment report requires a recorded payment");
         Page paid = await first.Post($"/Profiles/{sin}/Billing?handler=Pay", billToPay,
             ("OrNumber", orNumber), ("ConfirmPayment", "true"));
         Check(Has(paid, "Payment recorded") && Has(paid, orNumber), "stall payment PRG and history");
+        Page stallPaymentReport = await first.Get($"/Reports/StallPaymentPreview?sin={sin}&orNumber={orNumber}");
+        Check(Has(paid, "Print Payment Report") && Has(stallPaymentReport, "STALL OWNER PAYMENT REPORT") &&
+              Has(stallPaymentReport, orNumber) && Has(stallPaymentReport, "Total Amount Paid") &&
+              Has(stallPaymentReport, primary.FullName), "stall post-payment report uses recorded OR, amount and recorder");
         Check(await Count("SELECT COUNT(*) FROM PaymentHistory WHERE SIN=@sin AND ORNumber=@or",
                 ("@sin", sin), ("@or", orNumber)) == 1 &&
               await Count("SELECT COUNT(*) FROM PaymentHistoryBilling l JOIN PaymentHistory p ON p.Id=l.PaymentHistoryId WHERE p.SIN=@sin AND p.ORNumber=@or",
@@ -478,7 +496,7 @@ internal static class BrowserScenarios
         Check(Has(duplicateOrResult, "OR number already exists") &&
               await Count("SELECT COUNT(*) FROM PaymentHistory WHERE SIN=@sin", ("@sin", duplicateOrSin)) == 0,
             "duplicate stall OR rejected without payment");
-        Check(Has(await first.Get($"/Reports/Billing?sin={sin}"), orNumber), "printable rental report includes payment");
+        Check(Has(await first.Get($"/Reports/StallPaymentPreview?sin={sin}&orNumber={Uri.EscapeDataString(orNumber)}"), orNumber), "retained printable payment report includes payment");
         Page rentalSearch = await first.Get("/Reports/RentalPayment?search=" + Uri.EscapeDataString("Phase Twelve Updated"));
         Check(Has(rentalSearch, "rental-result") && Has(rentalSearch, "Phase Twelve Updated"), "rental selector searches owner name");
         Check(Has(await first.Get("/Reports/RentalPayment?search=" + Uri.EscapeDataString(tag + " Updated")), sin), "rental selector searches business name");
@@ -519,12 +537,43 @@ internal static class BrowserScenarios
         Check(Has(await first.Get("/Reports/Monthly?" + currentMonth), orNumber), "monthly report includes collection");
 
         Page draftForm = await first.Get("/Vehicles/Details/" + vin);
+        Check(Has(await first.Get($"/Reports/VehicleBillingPreview?vin={vin}"), "Save a valid current-year") &&
+              !Has(draftForm, "href=\"/Reports/VehicleBillingPreview"), "billing requires a saved valid current-year draft");
+        Check(Has(draftForm, "Vehicle Identity") && Has(draftForm, vin) && Has(draftForm, plate) &&
+              Has(draftForm, tag + " Transport Updated") && Has(draftForm, "Phase Driver") &&
+              Has(draftForm, "No. of Employees") && Has(draftForm, "No. of Stickers") &&
+              Has(draftForm, "Sanitary Fee classification") && Has(draftForm, "Fire Inspection Fee classification") &&
+              !Has(draftForm, ">Sanitary type<") && !Has(draftForm, ">Fire type<"),
+            "vehicle identity and permit-detail fields render");
         var draftFields = Enumerable.Range(0, 19).Select(i => ($"FeeAmounts[{i}]", i == 0 ? "123.45" : "0"))
-            .Concat(Enumerable.Range(0, 4).Select(i => ($"OtherDescriptions[{i}]", ""))).ToArray();
+            .Concat(Enumerable.Range(0, 4).Select(i => ($"OtherDescriptions[{i}]", "")))
+            .Concat(new (string, string)[] {
+                ("PermitDetails.LineOfBusiness", "Transport services"),
+                ("PermitDetails.Description", "Annual shuttle permit"),
+                ("PermitDetails.Location", "Masinloc terminal"),
+                ("PermitDetails.Employees", "3"), ("PermitDetails.Capital", "1,234.56"),
+                ("PermitDetails.Stickers", "2"), ("PermitDetails.Organization", "Partnership"),
+                ("PermitDetails.Quarter", "2ND QUARTER"),
+                ("PermitDetails.SanitaryType", "FOOD"), ("PermitDetails.FireType", "OTHER") }).ToArray();
         Page draftSaved = await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", draftForm, draftFields);
         Check(Has(draftSaved, "Fee draft saved") && Has(draftSaved, "123.45"), "vehicle draft persists through PRG");
         Page draftReloaded = await first.Get("/Vehicles/Details/" + vin);
-        Check(Has(draftReloaded, "Saved total:") && Has(draftReloaded, "₱123.45"), "vehicle draft survives reload");
+        Check(Has(draftReloaded, "Saved total:") && Has(draftReloaded, "₱123.45") &&
+              Has(draftReloaded, "Transport services") && Has(draftReloaded, "Annual shuttle permit") &&
+              Has(draftReloaded, "Masinloc terminal") && Has(draftReloaded, "1,234.56") &&
+              Has(draftReloaded, "value=\"3\"") && Has(draftReloaded, "value=\"2\"") &&
+              Has(draftReloaded, "selected=\"selected\">Partnership") &&
+              Has(draftReloaded, "selected=\"selected\">2ND QUARTER") &&
+              Has(draftReloaded, "selected=\"selected\">FOOD") &&
+              Has(draftReloaded, "selected=\"selected\">OTHER"),
+            "vehicle draft and all permit details survive reload");
+        var invalidDetails = draftFields.Select(field => field.Item1 == "PermitDetails.Employees"
+            ? (field.Item1, "-2") : field).ToArray();
+        Page rejectedDetails = await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", draftReloaded, invalidDetails);
+        Check(Has(rejectedDetails, "whole number of employees") && Has(rejectedDetails, "Transport services") &&
+              Has(rejectedDetails, "value=\"-2\"") && Has(rejectedDetails, "Annual shuttle permit") &&
+              Has(await first.Get("/Vehicles/Details/" + vin), "value=\"3\""),
+            "invalid permit details retain submitted fields and saved draft");
         var namedOtherFee = draftFields.Select(field => field.Item1 switch
         {
             "OtherDescriptions[0]" => (field.Item1, "Special inspection"),
@@ -536,6 +585,20 @@ internal static class BrowserScenarios
         Page namedReloaded = await first.Get("/Vehicles/Details/" + vin);
         Check(Has(namedReloaded, "Special inspection") && Has(namedReloaded, "₱148.45"),
             "other-fee name, amount, and computed total survive reload");
+        int billingAudits = await Count("SELECT COUNT(*) FROM AuditTrail");
+        int billingDrafts = await Count("SELECT COUNT(*) FROM VehiclePermitFeeDrafts");
+        Page billing = await first.Get($"/Reports/VehicleBillingPreview?vin={vin}&year={DateTime.Today.Year - 1}");
+        Check(Has(namedReloaded, "Print Billing Report") && Has(billing, "SPECIAL VEHICLE PERMIT BILLING REPORT") &&
+              Has(billing, "₱148.45") && Has(billing, "Special inspection") && Has(billing, "FOOD") &&
+              Has(billing, "OTHER") && Has(billing, "Transport services") && Has(billing, DateTime.Today.Year.ToString()) &&
+              Has(billing, "For Payment") && Has(billing, "Unpaid") && !Has(billing, "OR Number"),
+            "unpaid billing uses saved current-year details, classifications and total without OR");
+        await first.Get($"/Reports/VehicleBillingPreview?vin={vin}");
+        Check(await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin", ("@vin", vin)) == 0 &&
+              await Count("SELECT COUNT(*) FROM VehiclePermits WHERE VIN=@vin AND PermitStatus='Unpaid'", ("@vin", vin)) == 1 &&
+              await Count("SELECT COUNT(*) FROM AuditTrail") == billingAudits &&
+              await Count("SELECT COUNT(*) FROM VehiclePermitFeeDrafts") == billingDrafts,
+            "repeated billing preview leaves payment history, status, drafts and audit unchanged");
         var invalidDraft = draftFields.Select(field => field.Item1 == "FeeAmounts[0]"
             ? (field.Item1, "invalid") : field).ToArray();
         Page rejectedDraft = await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", namedReloaded, invalidDraft);
@@ -676,8 +739,6 @@ internal static class BrowserScenarios
         Check(Has(forcedLegacyPay, "need review") &&
               await Count("SELECT COUNT(*) FROM PaymentHistory WHERE SIN=@sin", ("@sin", legacySin)) == 0,
             "forged legacy payment refused");
-        Check(Has(await first.Get($"/Reports/Billing?sin={legacySin}"), "Review needed"),
-            "legacy bill report remains viewable");
         Page legacyRentalPreview = await first.Get($"/Reports/RentalPaymentPreview?selected={legacySin}");
         Check(Has(legacyRentalPreview, "Review Needed") && Has(legacyRentalPreview, "unknown rent basis") &&
               !Has(legacyRentalPreview, "₱125.00"), "rental payment preview preserves ambiguous legacy amount");
@@ -714,6 +775,8 @@ internal static class BrowserScenarios
         Check(!Has(await first.Get("/Vehicles/Index?search=" + vin), "/Vehicles/Details/" + vin), "archived vehicle excluded from active list");
         Check(Has(await first.Get($"/Reports/VehiclePaymentPreview?selected={vehiclePaymentId}"), orNumber),
             "archived vehicle retains printable historical payment");
+        Check(Has(await first.Get($"/Reports/VehicleBillingPreview?vin={vin}"), "unavailable for archived"),
+            "archived vehicle cannot print current-year payable billing");
         Page restoredVehicle = await first.Post($"/Archive/Vehicles?handler=Restore&vin={vin}", archivedVehicle,
             ("ConfirmRestore", "true"));
         Check(Has(restoredVehicle, "restored") && Has(await first.Get("/Vehicles/Index?search=" + vin), vin),

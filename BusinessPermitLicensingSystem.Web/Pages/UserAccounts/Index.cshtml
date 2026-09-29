@@ -5,7 +5,7 @@
 <div class="page-header"><div><p class="eyebrow">Management</p><h1>User Accounts</h1><p>Staff accounts for this BPLO workspace.</p></div><div class="page-actions"><a class="btn btn-primary" asp-page="/UserAccounts/Create">Create Account</a></div></div>
 @if (Model.Notice is not null) { <p class="text-success" role="status">@Model.Notice</p> }
 @if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
-<form method="get" class="search-panel mb-3"><label for="account-search" class="form-label">Search name, username, or position</label>
+<form method="get" class="search-panel mb-3"><label for="account-search" class="form-label">Search Name, Username, or Position</label>
     <div class="account-search-actions"><input id="account-search" name="search" value="@Model.Search" class="form-control" maxlength="100" /><button class="btn btn-outline-primary" type="submit">Search</button>
         @if (!string.IsNullOrEmpty(Model.Search)) { <a class="btn btn-outline-secondary" asp-page="/UserAccounts/Index">Clear</a> }</div></form>
 @if (Model.Error is null && Model.Result.Accounts.Count > 0)
