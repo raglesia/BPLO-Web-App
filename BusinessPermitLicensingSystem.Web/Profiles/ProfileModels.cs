@@ -5,7 +5,10 @@ namespace BusinessPermitLicensingSystem.Web.Profiles;
 public sealed record ProfileRecord(
     string Sin, string FullName, string BusinessName, string BusinessSection,
     string StallNumber, string StallSize, decimal MonthlyRental, string PaymentStatus,
-    string StartDate, decimal Penalty, decimal AdditionalCharge);
+    string StartDate, decimal Penalty, decimal AdditionalCharge)
+{
+    public bool IsLegacyBaseline { get; init; }
+}
 
 public sealed record RentalRate(string Section, decimal RatePerSqm, decimal FlatRate, string RateType);
 

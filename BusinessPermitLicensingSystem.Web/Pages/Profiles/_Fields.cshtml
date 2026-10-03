@@ -20,10 +20,10 @@
     <div class="col-md-3"><label asp-for="StallSize" class="form-label"></label><input asp-for="StallSize" class="form-control" aria-describedby="stall-size-hint" required /><span asp-validation-for="StallSize" class="text-danger"></span><div id="stall-size-hint" class="form-text">Flat-rate sections use size 0.</div></div>
     <div class="col-md-6">
         <label asp-for="PaymentStatus" class="form-label"></label>
-        @if (ViewData["IsPaidRecord"] as bool? == true)
+        @if (ViewData["IsPaidRecord"] as bool? == true || ViewData["IsLegacyBaseline"] as bool? == true)
         {
             <input type="hidden" asp-for="PaymentStatus" />
-            <input class="form-control" value="Paid" aria-label="Verification status: Paid" disabled />
+            <input class="form-control" value="@Model.PaymentStatus" aria-label="Verification status: @Model.PaymentStatus" disabled />
         }
         else
         {
@@ -34,7 +34,7 @@
         }
         <span asp-validation-for="PaymentStatus" class="text-danger"></span>
     </div>
-    <div class="col-md-6"><label asp-for="StartDate" class="form-label">Date of Occupancy</label><input asp-for="StartDate" type="date" class="form-control" aria-describedby="occupancy-hint" /><span asp-validation-for="StartDate" class="text-danger"></span><div id="occupancy-hint" class="form-text">Required for Unpaid or existing Paid records.</div></div>
+    <div class="col-md-6"><label asp-for="StartDate" class="form-label">Date of Occupancy</label><input asp-for="StartDate" type="date" class="form-control" aria-describedby="occupancy-hint" readonly="@(ViewData["IsLegacyBaseline"] as bool? == true)" /><span asp-validation-for="StartDate" class="text-danger"></span><div id="occupancy-hint" class="form-text">@(ViewData["IsLegacyBaseline"] as bool? == true ? "Computerized tracking baseline; historical occupancy may be earlier." : "Required for Unpaid or existing Paid records.")</div></div>
     <div class="col-12"><div class="form-check"><input asp-for="IncludeAdditionalCharge" class="form-check-input" /><label asp-for="IncludeAdditionalCharge" class="form-check-label"></label></div></div>
     <div class="col-md-6"><label asp-for="AdditionalCharge" class="form-label">Additional Charge (₱)</label><input asp-for="AdditionalCharge" type="number" min="0" step="0.01" class="form-control" /><span asp-validation-for="AdditionalCharge" class="text-danger"></span></div>
 </div></fieldset>

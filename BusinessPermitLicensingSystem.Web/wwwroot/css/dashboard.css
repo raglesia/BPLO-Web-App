@@ -1,0 +1,176 @@
+/* Administrative workspace reference. Dashboard only; other pages keep their current shell. */
+@media screen {
+.dashboard-workspace {
+    --desk-navy:#203f52; --desk-ink:#21333d; --desk-muted:#60717a;
+    --desk-rule:#d8e0e3; --desk-canvas:#f4f6f5; --desk-tint:#eaf0f3;
+    --primary:#203f52; --primary-subtle:#eaf0f3;
+    color:var(--desk-ink); background:var(--desk-canvas);
+}
+.dashboard-workspace .app-shell { grid-template-columns:248px minmax(0,1fr); }
+.dashboard-workspace .app-main { padding:30px 36px 36px; max-width:1560px; width:100%; margin-inline:auto; }
+/* The municipal identity, navigation and employee area form one continuous rail. */
+.dashboard-workspace .app-sidebar { background:var(--desk-navy); border:0; padding:20px 14px 12px; color:#fff; }
+.dashboard-workspace .sidebar-brand.brand { flex-direction:row; gap:12px; text-align:left; align-items:center; padding:4px 6px 22px; border-bottom:1px solid #496272; margin-bottom:6px; }
+.dashboard-workspace .sidebar-brand .sidebar-seal { width:60px; height:60px; background:#fff; padding:2px; }
+.dashboard-workspace .sidebar-brand .sidebar-office-brand { width:auto; min-width:0; }
+.dashboard-workspace .sidebar-brand .sidebar-office-name { font-size:14px; line-height:1.45; font-weight:650; color:#fff; margin:0; }
+.dashboard-workspace .sidebar-group { margin:24px 10px 8px; font-size:10px; letter-spacing:.13em; font-weight:650; color:#b8c8d2; }
+.dashboard-workspace .sidebar-group:first-child { margin-top:18px; }
+.dashboard-workspace .sidebar-link { font-size:13px; min-height:42px; padding:10px; gap:11px; border-radius:2px; color:#e1e9ee; font-weight:500; }
+.dashboard-workspace .nav-icon { width:18px; height:18px; flex-shrink:0; color:inherit; }
+.dashboard-workspace .sidebar-link:hover,.dashboard-workspace .sidebar-link:focus-visible { background:#304f63; color:#fff; }
+.dashboard-workspace .sidebar-link.active { background:#eaf0f3; color:var(--desk-navy); font-weight:700; }
+.dashboard-workspace .sidebar-link.active::before { background:#fff; border-radius:0; width:3px; }
+.dashboard-workspace .sidebar-link.active .nav-icon { color:var(--desk-navy); }
+.dashboard-workspace .sidebar-sublink { color:#dae6ed; font-size:13px; }
+.dashboard-workspace .sidebar-sublink:hover,.dashboard-workspace .sidebar-sublink:focus-visible { color:#fff; background:#304f63; }
+.dashboard-workspace .sidebar-user { border-color:#496272; padding:16px 6px 12px; gap:10px; }
+.dashboard-workspace .user-avatar { background:#3c5c6e; color:#fff; border-radius:3px; width:34px; height:34px; }
+.dashboard-workspace .sidebar-user .user-label { font-size:13px; color:#fff; }
+.dashboard-workspace .sidebar-user .user-label strong { color:#fff; }
+.dashboard-workspace .sidebar-user .user-label small { color:#bfced7; font-size:11px; }
+.dashboard-workspace .sidebar-logout { padding:0 6px 0; }
+.dashboard-workspace .sidebar-logout .btn { background:transparent; color:#e4edf2; border-color:#76909f; min-height:34px; font-size:12px; }
+.dashboard-workspace .sidebar-logout .btn:hover { background:#304f63; color:#fff; }
+.dashboard-workspace .app-topbar { background:#fff; color:var(--desk-navy); border-bottom:1px solid var(--desk-rule); height:52px; min-height:52px; padding-inline:36px; gap:16px; }
+.dashboard-workspace .topbar-office { color:var(--desk-navy); font-size:12px; letter-spacing:.01em; font-weight:600; }
+.dashboard-workspace .topbar-clock { font-size:12px; color:var(--desk-muted); font-variant-numeric:tabular-nums; }
+.dashboard-workspace .sidebar-toggle { background:#fff; color:var(--desk-navy); border-color:#b9c9d2; }
+.dashboard-workspace .topbar-context { color:var(--desk-muted); }
+.dashboard-workspace .app-footer { border-color:var(--desk-rule); color:var(--desk-muted); font-size:11px; background:transparent; padding:12px 36px; }
+/* A compact masthead and an asymmetric working area replace stacked dashboard cards. */
+.dashboard-workspace .desk-header { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:30px; }
+.dashboard-workspace .desk-kicker { color:var(--desk-muted); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.13em; margin:0 0 8px; line-height:1.4; }
+.dashboard-workspace .desk-header h1 { font-size:30px; line-height:1.2; letter-spacing:-.035em; color:var(--desk-navy); font-weight:650; margin:0 0 10px; }
+.dashboard-workspace .desk-description { font-size:13px; line-height:1.65; color:var(--desk-muted); max-width:66ch; margin:0; }
+.dashboard-workspace .desk-actions { display:flex; flex-shrink:0; gap:8px; }
+.dashboard-workspace .btn { border-radius:3px; min-height:40px; font-size:13px; padding:9px 14px; font-weight:600; box-shadow:none; }
+.dashboard-workspace .btn-primary { background:var(--desk-navy); border-color:var(--desk-navy); color:#fff; }
+.dashboard-workspace .btn-primary:hover,.dashboard-workspace .btn-primary:focus,.dashboard-workspace .btn-primary:active { background:#142f40; border-color:#142f40; color:#fff; }
+.dashboard-workspace .btn-outline-primary { background:transparent; border-color:#9fb2bf; color:var(--desk-navy); }
+.dashboard-workspace .btn-outline-primary:hover { background:var(--desk-tint); color:var(--desk-navy); border-color:var(--desk-navy); }
+.dashboard-workspace .desk-composition { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:24px 28px; align-items:start; grid-template-areas:"records queue" "finance queue" "finance tools"; grid-template-rows:auto auto 1fr; }
+.dashboard-workspace .desk-records-column,.dashboard-workspace .desk-operations-column { min-width:0; }
+.dashboard-workspace .desk-heading { font-size:16px; font-weight:650; line-height:1.35; letter-spacing:-.015em; color:var(--desk-navy); margin:0; }
+.dashboard-workspace .desk-icon { width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; flex-shrink:0; }
+/* Ordinary record counts sit on the canvas; work requiring attention owns the right rail. */
+.dashboard-workspace .desk-register { grid-area:records; padding:0 0 24px; margin-bottom:0; border-bottom:1px solid var(--desk-rule); }
+.dashboard-workspace .desk-register>.desk-heading { margin-bottom:18px; }
+.dashboard-workspace .desk-register-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+.dashboard-workspace .desk-record { display:flex; align-items:flex-start; gap:14px; }
+.dashboard-workspace .desk-record + .desk-record { border-left:1px solid var(--desk-rule); padding-left:24px; }
+.dashboard-workspace .desk-record>.desk-icon { margin-top:9px; color:var(--desk-muted); width:22px; height:22px; }
+.dashboard-workspace .desk-record-value { font-size:36px; font-weight:600; letter-spacing:-.035em; font-variant-numeric:tabular-nums; line-height:1.1; margin-bottom:8px; }
+.dashboard-workspace .desk-record h3 { font-size:13px; font-weight:600; line-height:1.4; margin:0 0 3px; color:var(--desk-ink); }
+.dashboard-workspace .desk-record p { color:var(--desk-muted); font-size:11px; line-height:1.4; margin:0; }
+.dashboard-workspace .desk-finance { grid-area:finance; min-width:0; background:#fff; border:1px solid var(--desk-rule); border-radius:4px; padding:24px; }
+.dashboard-workspace .desk-finance-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px; }
+.dashboard-workspace .desk-period { font-size:11px; color:var(--desk-muted); }
+.dashboard-workspace .desk-ledger { display:grid; grid-template-columns:1fr 1fr; gap:24px; padding-bottom:22px; border-bottom:1px solid var(--desk-rule); }
+.dashboard-workspace .desk-collection + .desk-collection { border-left:1px solid var(--desk-rule); padding-left:24px; }
+.dashboard-workspace .desk-collection-label { display:flex; align-items:flex-start; gap:8px; color:var(--desk-muted); min-height:36px; }
+.dashboard-workspace .desk-collection-label h3 { font-size:12px; font-weight:600; line-height:1.4; margin:0; }
+.dashboard-workspace .desk-collection-label .desk-icon { width:16px; height:16px; }
+.dashboard-workspace .desk-money { color:var(--desk-navy); font-size:29px; line-height:1.2; letter-spacing:-.025em; font-weight:600; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; margin:8px 0 4px; }
+.dashboard-workspace .desk-collection p { font-size:11px; color:var(--desk-muted); margin:0; }
+/* Summary and historical context share one ledger surface. No invented trend statistics. */
+.dashboard-workspace .desk-trend { margin-top:22px; }
+.dashboard-workspace .desk-trend-heading { display:flex; flex-direction:column; gap:14px; margin-bottom:22px; }
+.dashboard-workspace .desk-trend .desk-heading { font-size:14px; margin-bottom:4px; }
+.dashboard-workspace .desk-trend-heading p { font-size:12px; color:var(--desk-muted); margin:0; line-height:1.5; }
+.dashboard-workspace .chart-legend { gap:18px; font-size:11px; color:var(--desk-muted); flex-wrap:wrap; }
+.dashboard-workspace .legend-swatch { width:9px; height:9px; border-radius:0; }
+.dashboard-workspace .legend-swatch.rent,.dashboard-workspace .chart-bar.rent { background:var(--desk-navy); }
+.dashboard-workspace .legend-swatch.vehicle,.dashboard-workspace .chart-bar.vehicle { background:#7594a5; }
+.dashboard-workspace .desk-plot { display:grid; grid-template-columns:68px minmax(0,1fr); gap:8px; }
+.dashboard-workspace .desk-scale { display:flex; flex-direction:column; justify-content:space-between; padding:0 0 27px; color:var(--desk-muted); font-size:10px; font-variant-numeric:tabular-nums; }
+.dashboard-workspace .collection-chart { padding:0; height:206px; gap:14px; }
+.dashboard-workspace .chart-bars { height:178px; border-bottom:1px solid var(--desk-rule); }
+.dashboard-workspace .chart-bar { width:20px; max-width:35%; min-height:0; border-radius:1px 1px 0 0; }
+.dashboard-workspace .chart-month>span { font-size:11px; color:var(--desk-muted); }
+.dashboard-workspace .dashboard-data { margin-top:16px; border-top:1px solid var(--desk-rule); padding-top:10px; }
+.dashboard-workspace .dashboard-data summary { font-size:12px; font-weight:500; color:var(--desk-navy); padding:8px 0; cursor:pointer; width:fit-content; }
+.dashboard-workspace .dashboard-data .table-responsive { margin-top:10px; border-radius:0; }
+.dashboard-workspace .dashboard-data caption { font-size:11px; }
+/* Explicit workflow links, rather than equal-weight statistic cards. */
+.dashboard-workspace .desk-queue { grid-area:queue; min-width:0; background:#edf1f2; padding:22px; border-radius:4px; border-top:3px solid var(--desk-navy); }
+.dashboard-workspace .desk-queue-heading { margin-bottom:22px; }
+.dashboard-workspace .desk-queue-heading h2 { font-size:21px; font-weight:650; letter-spacing:-.02em; margin:0 0 6px; color:var(--desk-navy); }
+.dashboard-workspace .desk-queue-heading>p:last-child { font-size:12px; color:var(--desk-muted); line-height:1.5; margin:0; }
+.dashboard-workspace .desk-task { display:block; color:var(--desk-ink); text-decoration:none; padding:0 0 20px; }
+.dashboard-workspace .desk-task + .desk-task { padding-top:20px; border-top:1px solid #ccd7dc; }
+.dashboard-workspace .desk-task-label { display:flex; align-items:center; gap:8px; }
+.dashboard-workspace .desk-task h3 { font-size:13px; font-weight:600; margin:0; line-height:1.45; color:var(--desk-ink); }
+.dashboard-workspace .desk-task-verification .desk-icon { color:#916415; }
+.dashboard-workspace .desk-task-billing .desk-icon { color:#a94135; }
+.dashboard-workspace .desk-task-count { font-size:40px; line-height:1.1; font-weight:600; letter-spacing:-.04em; font-variant-numeric:tabular-nums; margin:12px 0 4px; overflow-wrap:anywhere; }
+.dashboard-workspace .desk-task-status { margin:0 0 16px; font-size:11px; color:var(--desk-muted); }
+.dashboard-workspace .desk-task-verification .desk-task-status { color:#7c5619; }
+.dashboard-workspace .desk-task-billing .desk-task-status { color:#973b31; }
+.dashboard-workspace .desk-task-action { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; font-weight:600; color:var(--desk-navy); }
+.dashboard-workspace .desk-task:hover .desk-task-action { text-decoration:underline; text-underline-offset:3px; }
+.dashboard-workspace .desk-queue-note { border-top:1px solid #ccd7dc; padding-top:12px; font-size:10px; line-height:1.6; color:var(--desk-muted); margin:0; }
+.dashboard-workspace .desk-older-review { display:flex; align-items:center; justify-content:space-between; gap:8px; border-top:1px solid #ccd7dc; padding:12px 0; color:var(--desk-navy); font-size:12px; }
+.dashboard-workspace .desk-tools { grid-area:tools; min-width:0; margin-top:0; }
+.dashboard-workspace .desk-tools>.desk-heading { margin-bottom:12px; }
+.dashboard-workspace .quick-actions { display:flex; flex-direction:column; gap:0; }
+.dashboard-workspace .quick-actions a { min-height:42px; border:0; border-bottom:1px solid var(--desk-rule); background:transparent; border-radius:0; padding:12px 0; color:var(--desk-navy); font-size:12px; line-height:1.4; font-weight:550; }
+.dashboard-workspace .quick-actions a:hover { background:var(--desk-tint); }
+.dashboard-workspace .status-badge { border-radius:3px; }
+.dashboard-workspace :is(a,button,summary):focus-visible { outline:2px solid var(--desk-navy)!important; outline-offset:4px; box-shadow:none; }
+.dashboard-workspace .app-sidebar :is(a,button,summary):focus-visible { outline-color:#fff!important; outline-offset:-2px; }
+.dashboard-workspace .app-sidebar .sidebar-link.active:focus-visible { outline-color:var(--desk-navy)!important; outline-offset:-3px; }
+@media (max-width:1279px) {
+    .dashboard-workspace .app-main { padding:26px; }
+    .dashboard-workspace .desk-header { align-items:flex-start; flex-direction:column; gap:16px; }
+    .dashboard-workspace .desk-composition { grid-template-columns:minmax(0,1fr) 270px; gap:22px; }
+    .dashboard-workspace .desk-finance { padding:20px; }
+    .dashboard-workspace .desk-ledger { gap:18px; }
+    .dashboard-workspace .desk-collection + .desk-collection { padding-left:18px; }
+    .dashboard-workspace .desk-money { font-size:26px; }
+}
+@media (max-width:1100px) {
+    .dashboard-workspace .desk-composition { grid-template-columns:1fr; grid-template-areas:"records" "queue" "finance" "tools"; grid-template-rows:auto; }
+    .dashboard-workspace .desk-queue { display:grid; grid-template-columns:1fr 1fr; gap:0 24px; }
+    .dashboard-workspace .desk-queue-heading,.dashboard-workspace .desk-queue-note,.dashboard-workspace .desk-older-review { grid-column:1 / -1; }
+    .dashboard-workspace .desk-task + .desk-task { padding-top:0; border-top:0; border-left:1px solid #ccd7dc; padding-left:24px; }
+    .dashboard-workspace .desk-tools .quick-actions { display:grid; grid-template-columns:1fr 1fr; gap:0 24px; }
+}
+@media (max-width:991px) {
+    .dashboard-workspace .app-shell { display:block; }
+    .dashboard-workspace .app-sidebar { width:248px; }
+    .dashboard-workspace.sidebar-open .app-sidebar { padding-top:56px; }
+    .dashboard-workspace.sidebar-open .sidebar-toggle { left:198px; }
+}
+@media (max-width:767px) {
+    .dashboard-workspace .app-main { padding:24px 18px; }
+    .dashboard-workspace .app-topbar { padding-inline:18px; height:auto; }
+    .dashboard-workspace .desk-header { margin-bottom:24px; }
+    .dashboard-workspace .desk-header h1 { font-size:26px; }
+    .dashboard-workspace .desk-queue { display:block; }
+    .dashboard-workspace .desk-task + .desk-task { border-left:0; padding-left:0; border-top:1px solid #ccd7dc; padding-top:20px; }
+    .dashboard-workspace .desk-tools .quick-actions { display:flex; }
+    .dashboard-workspace .desk-register-grid { gap:16px; }
+    .dashboard-workspace .desk-record + .desk-record { padding-left:16px; }
+    .dashboard-workspace .desk-record { gap:8px; }
+    .dashboard-workspace .desk-record>.desk-icon { display:none; }
+    .dashboard-workspace .desk-register h3 { font-size:12px; }
+    .dashboard-workspace .desk-register p { font-size:11px; }
+    .dashboard-workspace .desk-finance { padding:18px; }
+    .dashboard-workspace .desk-money { font-size:25px; }
+    .dashboard-workspace .desk-ledger { gap:16px; }
+    .dashboard-workspace .desk-collection + .desk-collection { padding-left:16px; }
+    .dashboard-workspace .desk-collection-label { min-height:52px; }
+    .dashboard-workspace .desk-collection-label .desk-icon { display:none; }
+    .dashboard-workspace .desk-plot { grid-template-columns:54px minmax(0,1fr); gap:6px; }
+    .dashboard-workspace .collection-chart { gap:8px; }
+    .dashboard-workspace .chart-bar { width:16px; }
+    .dashboard-workspace .desk-actions { flex-wrap:wrap; }
+    .dashboard-workspace .app-footer { padding-inline:18px; }
+}
+@media (max-width:400px) {
+    .dashboard-workspace .desk-money { font-size:22px; }
+    .dashboard-workspace .desk-header h1 { font-size:25px; }
+    .dashboard-workspace .chart-legend { gap:10px; }
+}
+}

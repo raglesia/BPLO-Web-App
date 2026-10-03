@@ -9,7 +9,7 @@ public sealed class ProfileService(IConfiguration configuration)
 {
     public const int PageSize = 25;
     private const decimal MaximumMoney = 9999999999999999.99m;
-    private const string Columns = "SIN, FullName, BusinessName, BusinessSection, StallNumber, StallSize, MonthlyRental, PaymentStatus, StartDate, Penalty, AdditionalCharge";
+    private const string Columns = "SIN, FullName, BusinessName, BusinessSection, StallNumber, StallSize, MonthlyRental, PaymentStatus, StartDate, Penalty, AdditionalCharge, IsLegacyBaseline";
 
     public async Task<ProfileListResult> ListAsync(string? search, int page, CancellationToken cancellationToken)
     {
@@ -94,10 +94,10 @@ public sealed class ProfileService(IConfiguration configuration)
             await using var insert = new SqlCommand("""
                 INSERT INTO Profiling
                     (SIN, FullName, BusinessName, BusinessSection, StallNumber, StallSize,
-                     MonthlyRental, PaymentStatus, StartDate, AdditionalCharge)
+                     MonthlyRental, PaymentStatus, StartDate, AdditionalCharge, IsLegacyBaseline)
                 VALUES
                     (@sin, @name, @business, @section, @stall, @size,
-                     @rental, @status, @start, @additional)
+                     @rental, @status, @start, @additional, 0)
                 """, connection, transaction);
             AddProfileParameters(insert, sin, data!);
             await insert.ExecuteNonQueryAsync(cancellationToken);
@@ -127,7 +127,9 @@ public sealed class ProfileService(IConfiguration configuration)
                 UPDATE Profiling SET
                     FullName = @name, BusinessName = @business, BusinessSection = @section,
                     StallNumber = @stall, StallSize = @size, MonthlyRental = @rental,
-                    PaymentStatus = @status, StartDate = @start, AdditionalCharge = @additional,
+                    PaymentStatus = @status,
+                    StartDate = CASE WHEN IsLegacyBaseline=1 THEN StartDate ELSE @start END,
+                    AdditionalCharge = @additional,
                     Penalty = CASE WHEN @status = 'Unverified' THEN 0 ELSE Penalty END
                 WHERE SIN = @sin AND IsArchived = 0
                 """, connection, transaction);
@@ -163,6 +165,10 @@ public sealed class ProfileService(IConfiguration configuration)
         bool existingPaid = existing?.PaymentStatus == "Paid";
         if (existingPaid ? input.PaymentStatus != "Paid" : input.PaymentStatus is not ("Unverified" or "Unpaid"))
             return (null, new(null, "Paid status is handled in the payment phase.", "Input.PaymentStatus"));
+        if (existing?.IsLegacyBaseline == true &&
+            (input.PaymentStatus != existing.PaymentStatus ||
+             input.StartDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) != existing.StartDate))
+            return (null, new(null, "Legacy baseline date and status cannot be changed in profile editing.", "Input.StartDate"));
         if (input.PaymentStatus != "Unverified" && !input.StartDate.HasValue)
             return (null, new(null, "Verify the Date of Occupancy before marking this owner Paid or Unpaid.", "Input.StartDate"));
 
@@ -250,7 +256,8 @@ public sealed class ProfileService(IConfiguration configuration)
         reader.GetString(4), reader.GetString(5), reader.GetDecimal(6), reader.GetString(7),
         reader.IsDBNull(8) ? "" : reader.GetString(8),
         reader.IsDBNull(9) ? 0 : reader.GetDecimal(9),
-        reader.IsDBNull(10) ? 0 : reader.GetDecimal(10));
+        reader.IsDBNull(10) ? 0 : reader.GetDecimal(10))
+        { IsLegacyBaseline = reader.GetBoolean(11) };
 
     private static void AddProfileParameters(SqlCommand command, string sin, ValidatedProfile data)
     {

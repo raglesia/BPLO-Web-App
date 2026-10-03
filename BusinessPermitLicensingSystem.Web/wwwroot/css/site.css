@@ -1094,6 +1094,15 @@ strong,dt {
     width:38mm;
 }
 
+.rental-obligation-table th:not(:first-child),.rental-obligation-table td:not(:first-child) {
+    text-align:right;
+    white-space:nowrap;
+}
+
+.rental-obligation-table th:last-child,.rental-obligation-table td:last-child {
+    width:auto;
+}
+
 .rental-total {
     font-weight:700;
 }
@@ -1160,6 +1169,13 @@ strong,dt {
         border-color:#111;
         break-inside:avoid!important;
         page-break-inside:avoid!important;
+    }
+    .rental-arrears-report {
+        break-inside:auto!important;
+        page-break-inside:auto!important;
+    }
+    .rental-arrears-report .rental-obligation-table thead {
+        display:table-header-group;
     }
     .rental-document-heading,.rental-document-footer {
         break-inside:avoid;

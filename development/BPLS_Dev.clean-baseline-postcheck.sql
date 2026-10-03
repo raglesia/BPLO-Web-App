@@ -1,0 +1,32 @@
+:ON ERROR EXIT
+SET NOCOUNT ON;
+IF DB_NAME()<>'BPLS_Dev' THROW 50000,'Use only BPLS_Dev',1;
+SELECT SIN,FullName INTO #Official FROM dbo.Profiling WHERE SIN BETWEEN 'SIN-2026-0001' AND 'SIN-2026-0538';
+IF (SELECT COUNT(*) FROM #Official)<>538 THROW 50001,'Official count mismatch',1;
+SELECT COUNT(*) Profiles,MIN(SIN) MinimumSIN,MAX(SIN) MaximumSIN FROM #Official;
+SELECT COUNT(*) CorrectBaselineProfiles FROM dbo.Profiling WHERE SIN IN(SELECT SIN FROM #Official)
+    AND StartDate='2026-12-01' AND IsLegacyBaseline=1 AND PaymentStatus='Unpaid' AND COALESCE(Penalty,0)=0 AND NULLIF(DatePaid,'') IS NULL;
+SELECT COUNT(*) DecemberBills FROM dbo.MonthlyBilling WHERE SIN IN(SELECT SIN FROM #Official) AND BillingYear=2026 AND BillingMonth=12 AND PaymentStatus='Unpaid';
+SELECT COUNT(*) PreDecemberBills FROM dbo.MonthlyBilling WHERE SIN IN(SELECT SIN FROM #Official) AND (BillingYear<2026 OR BillingYear=2026 AND BillingMonth<12);
+SELECT COUNT(*) PaidBills FROM dbo.MonthlyBilling WHERE SIN IN(SELECT SIN FROM #Official) AND PaymentStatus='Paid';
+SELECT COUNT(*) StaleBillFields FROM dbo.MonthlyBilling WHERE SIN IN(SELECT SIN FROM #Official) AND (NULLIF(ORNumber,'') IS NOT NULL OR DatePaid IS NOT NULL OR RecordedBy IS NOT NULL OR Penalty<>0);
+SELECT COUNT(*) ArrearsRows FROM dbo.StallOwnerArrears WHERE SIN IN(SELECT SIN FROM #Official);
+SELECT COUNT(*) Payments FROM dbo.PaymentHistory WHERE SIN IN(SELECT SIN FROM #Official);
+SELECT COUNT(*) BillingLinks FROM dbo.PaymentHistoryBilling l JOIN dbo.MonthlyBilling b ON b.Id=l.MonthlyBillingId WHERE b.SIN IN(SELECT SIN FROM #Official);
+SELECT COUNT(*) ArrearsLinks FROM dbo.PaymentHistoryArrears l JOIN dbo.StallOwnerArrears a ON a.Id=l.StallOwnerArrearsId WHERE a.SIN IN(SELECT SIN FROM #Official);
+SELECT COUNT(*) OldProfiles FROM dbo.Profiling WHERE SIN BETWEEN 'SIN-2026-0663' AND 'SIN-2026-1200';
+SELECT COUNT(*) OldStructuredAuditReferences FROM dbo.AuditTrail WHERE SIN BETWEEN 'SIN-2026-0663' AND 'SIN-2026-1200';
+SELECT COUNT(*) DuplicateBillingPeriods FROM(SELECT SIN,BillingYear,BillingMonth FROM dbo.MonthlyBilling GROUP BY SIN,BillingYear,BillingMonth HAVING COUNT(*)>1)d;
+SELECT COUNT(*) OrphanBills FROM dbo.MonthlyBilling b LEFT JOIN dbo.Profiling p ON p.SIN=b.SIN WHERE p.SIN IS NULL;
+SELECT COUNT(*) OrphanArrears FROM dbo.StallOwnerArrears a LEFT JOIN dbo.Profiling p ON p.SIN=a.SIN WHERE p.SIN IS NULL;
+SELECT COUNT(*) BrokenBillingLinks FROM dbo.PaymentHistoryBilling l LEFT JOIN dbo.MonthlyBilling b ON b.Id=l.MonthlyBillingId LEFT JOIN dbo.PaymentHistory p ON p.Id=l.PaymentHistoryId WHERE b.Id IS NULL OR p.Id IS NULL;
+SELECT COUNT(*) BrokenArrearsLinks FROM dbo.PaymentHistoryArrears l LEFT JOIN dbo.StallOwnerArrears a ON a.Id=l.StallOwnerArrearsId LEFT JOIN dbo.PaymentHistory p ON p.Id=l.PaymentHistoryId WHERE a.Id IS NULL OR p.Id IS NULL;
+SELECT COUNT(*) UntrustedConstraints FROM sys.foreign_keys WHERE is_disabled=1 OR is_not_trusted=1;
+SELECT COALESCE(MAX(TRY_CONVERT(int,RIGHT(SIN,4))),0)+1 NextSafe2026Sequence FROM dbo.Profiling WHERE SIN LIKE 'SIN-2026-[0-9][0-9][0-9][0-9]' AND LEN(SIN)=13;
+SELECT SIN,FullName INTO #Ordered FROM #Official;
+IF EXISTS(SELECT 1 FROM(SELECT SIN,ROW_NUMBER() OVER(ORDER BY FullName,SIN) n FROM #Ordered)d WHERE SIN<>'SIN-2026-'+RIGHT('0000'+CAST(n AS varchar(4)),4)) THROW 50002,'Alphabetical order or numbering mismatch',1;
+IF (SELECT COUNT(*) FROM dbo.Profiling WHERE SIN IN(SELECT SIN FROM #Official) AND StartDate='2026-12-01' AND IsLegacyBaseline=1 AND PaymentStatus='Unpaid' AND COALESCE(Penalty,0)=0 AND NULLIF(DatePaid,'') IS NULL)<>538 THROW 50003,'Baseline profile state mismatch',1;
+IF (SELECT COUNT(*) FROM dbo.MonthlyBilling WHERE SIN IN(SELECT SIN FROM #Official))<>538 OR EXISTS(SELECT 1 FROM dbo.MonthlyBilling WHERE SIN IN(SELECT SIN FROM #Official) AND (BillingYear<>2026 OR BillingMonth<>12 OR PaymentStatus<>'Unpaid' OR NULLIF(ORNumber,'') IS NOT NULL OR DatePaid IS NOT NULL OR RecordedBy IS NOT NULL OR Penalty<>0)) THROW 50004,'Official bill state mismatch',1;
+IF EXISTS(SELECT SIN FROM dbo.MonthlyBilling WHERE SIN IN(SELECT SIN FROM #Official) GROUP BY SIN HAVING COUNT(*)<>1) THROW 50005,'Missing or duplicated December bill',1;
+IF EXISTS(SELECT 1 FROM dbo.PaymentHistory WHERE SIN IN(SELECT SIN FROM #Official)) OR EXISTS(SELECT 1 FROM dbo.StallOwnerArrears WHERE SIN IN(SELECT SIN FROM #Official)) THROW 50006,'Official payment or arrears remnants',1;
+PRINT 'PASS: official 538 population remains clean after regression.';

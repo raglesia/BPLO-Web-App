@@ -313,6 +313,8 @@ internal static class BrowserScenarios
         }
 
         var (sin, details) = await CreateProfile(first, "Alpha", section, "2", additional: "10.25");
+        Check(await Count("SELECT COUNT(*) FROM Profiling WHERE SIN=@sin AND IsLegacyBaseline=0", ("@sin", sin)) == 1,
+            "new profile defaults to genuine occupancy, not legacy baseline");
         Check(Has(details, "210.25"), "profile rent and additional charge");
         Check(Has(await first.Get("/Profiles/Index?search=" + Uri.EscapeDataString(tag)), sin), "profile search");
         Page edit = await first.Get("/Profiles/Edit/" + sin);
@@ -444,7 +446,7 @@ internal static class BrowserScenarios
         Page stallBilling = await first.Get($"/Reports/RentalPaymentPreview?selected={sin}");
         Check(!Has(billToPay, "Print Billing Report") && Has(billToPay, "Due date") &&
               Has(stallBilling, "STALL OWNER RENTAL PAYMENT") && Has(stallBilling, "Unpaid") &&
-              Has(stallBilling, "Total Amount Due") && !Has(stallBilling, "OR Number") &&
+              Has(stallBilling, "Grand Total Due") && !Has(stallBilling, "OR Number") &&
               await Count("SELECT COUNT(*) FROM PaymentHistory WHERE SIN=@sin", ("@sin", sin)) == 0 &&
               await Count("SELECT COUNT(*) FROM AuditTrail") == stallAuditBefore &&
               await Count("SELECT COUNT(*) FROM MonthlyBilling") == stallBillsBefore,
@@ -516,14 +518,17 @@ internal static class BrowserScenarios
         int rentalPaymentsBefore = await Count("SELECT COUNT(*) FROM PaymentHistory");
         int rentalAuditsBefore = await Count("SELECT COUNT(*) FROM AuditTrail");
         Page rentalPreview = await first.Get("/Reports/RentalPaymentPreview?" + selectedQuery);
-        Check(Regex.Matches(rentalPreview.Html, "class=\"rental-payment-block\"").Count == 3 &&
+        Check(!Has(rentalPreview, ".ToString(") &&
+              Regex.IsMatch(WebUtility.HtmlDecode(rentalPreview.Html), @"Additional Charges</th><td>₱[\d,]+\.\d{2}</td>"),
+              "rental Additional Charges renders currency without literal Razor method text");
+        Check(Regex.Matches(rentalPreview.Html, "class=\"rental-payment-block[^\"]*\"").Count == 3 &&
               Regex.Matches(rentalPreview.Html, "masinloc-logo.jpg").Count == 3 &&
               rentalPreview.Html.IndexOf(sin, StringComparison.Ordinal) < rentalPreview.Html.IndexOf(newSin, StringComparison.Ordinal) &&
               rentalPreview.Html.IndexOf(newSin, StringComparison.Ordinal) < rentalPreview.Html.IndexOf(flatSin, StringComparison.Ordinal),
               "rental preview renders three ordered self-contained blocks and logos");
         Check(Has(rentalPreview, primary.FullName) && Has(rentalPreview, "Date Processed") &&
-              Has(rentalPreview, "Date Printed") && Has(rentalPreview, "Monthly Stall Rental Fee") &&
-              Has(rentalPreview, "Total Amount Due") && !Has(rentalPreview, @"C:\Users\"),
+              Has(rentalPreview, "Date Printed") && Has(rentalPreview, "Current Rental Period and Regular Unpaid Bills") &&
+              Has(rentalPreview, "Grand Total Due") && !Has(rentalPreview, @"C:\Users\"),
               "rental preview shows staff, dates, billing fields, and web-relative logo");
         Check(Has(await first.Get($"/Reports/RentalPaymentPreview?{selectedQuery}&selected={unverifiedSin}"),
               "You can print up to 3 billing reports at a time.") &&
@@ -556,9 +561,9 @@ internal static class BrowserScenarios
                 ("PermitDetails.Quarter", "2ND QUARTER"),
                 ("PermitDetails.SanitaryType", "FOOD"), ("PermitDetails.FireType", "OTHER") }).ToArray();
         Page draftSaved = await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", draftForm, draftFields);
-        Check(Has(draftSaved, "Fee draft saved") && Has(draftSaved, "123.45"), "vehicle draft persists through PRG");
+        Check(Has(draftSaved, "Fee draft saved") && Has(draftSaved, "1,023.45"), "vehicle draft persists through PRG");
         Page draftReloaded = await first.Get("/Vehicles/Details/" + vin);
-        Check(Has(draftReloaded, "Saved total:") && Has(draftReloaded, "₱123.45") &&
+        Check(Has(draftReloaded, "Saved total:") && Has(draftReloaded, "₱1,023.45") &&
               Has(draftReloaded, "Transport services") && Has(draftReloaded, "Annual shuttle permit") &&
               Has(draftReloaded, "Masinloc terminal") && Has(draftReloaded, "1,234.56") &&
               Has(draftReloaded, "value=\"3\"") && Has(draftReloaded, "value=\"2\"") &&
@@ -583,14 +588,14 @@ internal static class BrowserScenarios
         Page namedDraft = await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", draftReloaded, namedOtherFee);
         Check(Has(namedDraft, "Fee draft saved"), "named other-fee draft saves");
         Page namedReloaded = await first.Get("/Vehicles/Details/" + vin);
-        Check(Has(namedReloaded, "Special inspection") && Has(namedReloaded, "₱148.45"),
+        Check(Has(namedReloaded, "Special inspection") && Has(namedReloaded, "₱1,048.45"),
             "other-fee name, amount, and computed total survive reload");
         int billingAudits = await Count("SELECT COUNT(*) FROM AuditTrail");
         int billingDrafts = await Count("SELECT COUNT(*) FROM VehiclePermitFeeDrafts");
         Page billing = await first.Get($"/Reports/VehicleBillingPreview?vin={vin}&year={DateTime.Today.Year - 1}");
         Check(Has(namedReloaded, "Print Billing Report") && Has(billing, "SPECIAL VEHICLE PERMIT BILLING REPORT") &&
-              Has(billing, "₱148.45") && Has(billing, "Special inspection") && Has(billing, "FOOD") &&
-              Has(billing, "OTHER") && Has(billing, "Transport services") && Has(billing, DateTime.Today.Year.ToString()) &&
+              Has(billing, "₱1,048.45") && Has(billing, "Special inspection") &&
+              Has(billing, "Transport services") && Has(billing, DateTime.Today.Year.ToString()) &&
               Has(billing, "For Payment") && Has(billing, "Unpaid") && !Has(billing, "OR Number"),
             "unpaid billing uses saved current-year details, classifications and total without OR");
         await first.Get($"/Reports/VehicleBillingPreview?vin={vin}");
@@ -603,7 +608,7 @@ internal static class BrowserScenarios
             ? (field.Item1, "invalid") : field).ToArray();
         Page rejectedDraft = await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", namedReloaded, invalidDraft);
         Check(Has(rejectedDraft, "Enter valid fee amounts") &&
-              Has(await first.Get("/Vehicles/Details/" + vin), "₱148.45"),
+              Has(await first.Get("/Vehicles/Details/" + vin), "₱1,048.45"),
             "invalid fee input is rejected without changing saved draft");
         await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", namedReloaded, draftFields);
         string competingVin = Extract(VinPattern, concurrentVehicles[0]);
@@ -617,9 +622,9 @@ internal static class BrowserScenarios
             ("OrNumber", orNumber), ("ConfirmPayment", "true"), ("Amount", "0.01"),
             ("PermitYear", (DateTime.Today.Year + 1).ToString()), ("RecordedBy", "-1"),
             ("vin", competingVin));
-        Check(Has(vehiclePaid, "Vehicle payment recorded") && Has(vehiclePaid, "123.45"),
+        Check(Has(vehiclePaid, "Vehicle payment recorded") && Has(vehiclePaid, "1,023.45"),
             "vehicle payment uses route VIN and stored year/draft despite tampered form fields");
-        Check(await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin AND ORNumber=@or AND AmountPaid=123.45",
+        Check(await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin AND ORNumber=@or AND AmountPaid=1023.45",
             ("@vin", vin), ("@or", orNumber)) == 1 &&
               await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin AND ORNumber=@or AND PermitYear=@year AND RecordedBy=(SELECT Id FROM Users WHERE Username=@user)",
                   ("@vin", vin), ("@or", orNumber), ("@year", DateTime.Today.Year), ("@user", primary.Username)) == 1 &&
@@ -634,7 +639,7 @@ internal static class BrowserScenarios
         int vehicleAuditBeforeReport = await Count("SELECT COUNT(*) FROM AuditTrail");
         Page vehicleReport = await first.Get($"/Reports/VehiclePaymentPreview?selected={vehiclePaymentId}");
         Check(Has(vehicleReport, "SPECIAL VEHICLE PERMIT PAYMENT") && Has(vehicleReport, vin) &&
-              Has(vehicleReport, plate) && Has(vehicleReport, orNumber) && Has(vehicleReport, "₱123.45") &&
+              Has(vehicleReport, plate) && Has(vehicleReport, orNumber) && Has(vehicleReport, "₱1,023.45") &&
               Has(vehicleReport, primary.FullName) && Has(vehicleReport, "Date Printed") &&
               Has(vehicleReport, "Permit Fee") && Has(vehicleReport, "masinloc-logo.jpg"),
               "vehicle report uses history amount, recorder, exact year assessment, and municipality logo");
@@ -716,8 +721,8 @@ internal static class BrowserScenarios
         Check(Has(changedDraft, "124.45"), "synthetic paid-year draft update creates mismatch for report test");
         Page mismatchReport = await first.Get($"/Reports/VehiclePaymentPreview?selected={vehiclePaymentId}");
         Check(Has(mismatchReport, "₱124.45") && Has(mismatchReport, "differs from recorded amount paid") &&
-              Has(mismatchReport, "Total Amount Paid") && Has(mismatchReport, "₱123.45") &&
-              await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE Id=@id AND AmountPaid=123.45",
+              Has(mismatchReport, "Total Amount Paid") && Has(mismatchReport, "₱1,023.45") &&
+              await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE Id=@id AND AmountPaid=1023.45",
                   ("@id", vehiclePaymentId)) == 1,
             "draft mismatch is flagged; historical payment amount stays authoritative");
 
@@ -911,6 +916,48 @@ internal static class BrowserScenarios
         Check(Has(auditPageOne, "Audit trail") && Has(auditPageOne, "Next"), "audit first page and pagination");
         Page auditPageTwo = await first.Get("/AuditTrail?Category=activity&PageNumber=2");
         Check(auditPageTwo.Status == HttpStatusCode.OK && Has(auditPageTwo, "Previous"), "audit second page");
+
+        var (legacyHttpSin, _) = await CreateProfile(first, "LegacyArrearsHttp", section, "1", start: "2026-12-01");
+        await using (var markLegacy = new SqlCommand("""
+            UPDATE Profiling SET IsLegacyBaseline=1 WHERE SIN=@sin;
+            INSERT INTO MonthlyBilling (SIN, BillingYear, BillingMonth, MonthlyRental,
+                AdditionalCharge, Penalty, PaymentStatus, WebRentBasis)
+            SELECT SIN, 2026, 12, MonthlyRental-AdditionalCharge,
+                AdditionalCharge, 0, 'Unpaid', 'BaseOnly' FROM Profiling WHERE SIN=@sin;
+            """, sql))
+        { markLegacy.Parameters.AddWithValue("@sin", legacyHttpSin); await markLegacy.ExecuteNonQueryAsync(); }
+        Page initialLegacyReport = await first.Get($"/Reports/RentalPaymentPreview?selected={legacyHttpSin}");
+        Check(Has(initialLegacyReport, "December 2026") && Has(initialLegacyReport, "Unpaid") &&
+              await Count("SELECT COUNT(*) FROM PaymentHistory WHERE SIN=@sin", ("@sin", legacyHttpSin)) == 0,
+            "legacy HTTP rental report precedes arrears and OR");
+        Page legacyHttpBilling = await first.Get($"/Profiles/{legacyHttpSin}/Billing");
+        Check(Has(legacyHttpBilling, "Add Verified Arrears") && Has(legacyHttpBilling, "December 1, 2026"),
+            "legacy HTTP billing exposes baseline and Treasury action");
+        Page savedArrears = await first.Post($"/Profiles/{legacyHttpSin}/Billing?handler=SaveArrears", legacyHttpBilling,
+            ("ArrearsYear", "2026"), ("ArrearsMonth", "8"), ("ArrearsBaseRent", "1000"),
+            ("ArrearsAdditional", "100"), ("TreasuryReference", "Physical logbook"));
+        Check(Has(savedArrears, "No payment was recorded") && Has(savedArrears, "August 2026") &&
+              await Count("SELECT COUNT(*) FROM StallOwnerArrears WHERE SIN=@sin", ("@sin", legacyHttpSin)) == 1 &&
+              await Count("SELECT COUNT(*) FROM PaymentHistory WHERE SIN=@sin", ("@sin", legacyHttpSin)) == 0,
+            "Treasury HTTP entry stores arrears without payment");
+        Page updatedLegacyReport = await first.Get($"/Reports/RentalPaymentPreview?selected={legacyHttpSin}");
+        Check(Has(updatedLegacyReport, "Treasury-Verified Arrears") && Has(updatedLegacyReport, "August 2026") &&
+              Has(updatedLegacyReport, "Grand Total Due"),
+            "legacy HTTP report reprint includes saved arrears");
+        Page duplicateArrears = await first.Post($"/Profiles/{legacyHttpSin}/Billing?handler=SaveArrears", savedArrears,
+            ("ArrearsYear", "2026"), ("ArrearsMonth", "8"), ("ArrearsBaseRent", "1000"),
+            ("ArrearsAdditional", "100"), ("TreasuryReference", "Duplicate"));
+        Check(Has(duplicateArrears, "already exists") &&
+              await Count("SELECT COUNT(*) FROM StallOwnerArrears WHERE SIN=@sin", ("@sin", legacyHttpSin)) == 1,
+            "duplicate Treasury HTTP arrears rejected");
+        string legacyHttpOr = "P12-ARREARS-" + Unique();
+        Page legacyHttpPaid = await first.Post($"/Profiles/{legacyHttpSin}/Billing?handler=Pay", savedArrears,
+            ("OrNumber", legacyHttpOr), ("ConfirmPayment", "true"));
+        Check(Has(legacyHttpPaid, "Payment recorded") && Has(legacyHttpPaid, legacyHttpOr) &&
+              await Count("SELECT COUNT(*) FROM PaymentHistory WHERE SIN=@sin", ("@sin", legacyHttpSin)) == 1 &&
+              await Count("SELECT COUNT(*) FROM StallOwnerArrears WHERE SIN=@sin AND IsPaid=1", ("@sin", legacyHttpSin)) == 1 &&
+              Has(await first.Get($"/Reports/StallPaymentPreview?sin={legacyHttpSin}&orNumber={legacyHttpOr}"), legacyHttpOr),
+            "legacy HTTP OR settles regular bill and arrears, then enables payment report");
 
         int[] readOnlyBefore = [await Count("SELECT COUNT(*) FROM MonthlyBilling"),
             await Count("SELECT COUNT(*) FROM PaymentHistory"),

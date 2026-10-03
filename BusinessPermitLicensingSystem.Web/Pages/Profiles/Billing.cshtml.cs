@@ -13,6 +13,12 @@ public class BillingModel(BillingService billing, ILogger<BillingModel> logger) 
     public DateTime AsOf { get; private set; }
     [BindProperty] public string OrNumber { get; set; } = "";
     [BindProperty] public bool ConfirmPayment { get; set; }
+    [BindProperty] public int? ArrearsId { get; set; }
+    [BindProperty] public int ArrearsYear { get; set; }
+    [BindProperty] public int ArrearsMonth { get; set; }
+    [BindProperty] public decimal ArrearsBaseRent { get; set; }
+    [BindProperty] public decimal ArrearsAdditional { get; set; }
+    [BindProperty] public string TreasuryReference { get; set; } = "";
 
     public async Task<IActionResult> OnGetAsync(string sin) => await LoadAsync(sin);
 
@@ -66,6 +72,29 @@ public class BillingModel(BillingService billing, ILogger<BillingModel> logger) 
         {
             logger.LogError(exception, "Payment failed for {Sin}", sin);
             Error = "Payment was not recorded. Refresh and try again.";
+            return await LoadAsync(sin);
+        }
+    }
+
+    public async Task<IActionResult> OnPostSaveArrearsAsync(string sin)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId))
+        { Error = "Sign in again before verifying arrears."; return await LoadAsync(sin); }
+        try
+        {
+            var result = await billing.SaveVerifiedArrearsAsync(sin, ArrearsId,
+                ArrearsYear, ArrearsMonth, ArrearsBaseRent, ArrearsAdditional,
+                TreasuryReference, userId, DateTime.Now, HttpContext.RequestAborted);
+            if (!result.Success) { Error = result.Error; return await LoadAsync(sin); }
+            TempData["BillingNotice"] = ArrearsId is null ?
+                "Verified prior unpaid rent added. No payment was recorded." :
+                "Verified prior unpaid rent corrected. No payment was recorded.";
+            return RedirectToPage(new { sin });
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Arrears save failed for {Sin}", sin);
+            Error = "Verified arrears were not saved. Refresh and try again.";
             return await LoadAsync(sin);
         }
     }

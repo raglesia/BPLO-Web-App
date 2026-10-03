@@ -23,8 +23,9 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/BusinessPermitLicensingSystem.Web.styles.css" asp-append-version="true" />
+    @if (home) { <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" /> }
 </head>
-<body class="@(User.Identity?.IsAuthenticated == true ? "authenticated" : "")">
+<body class="@(User.Identity?.IsAuthenticated == true ? "authenticated" : "") @(home ? "dashboard-workspace" : "")">
     <a class="skip-link" href="#main-content">Skip to main content</a>
     @if (User.Identity?.IsAuthenticated == true)
     {

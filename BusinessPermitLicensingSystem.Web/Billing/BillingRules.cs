@@ -3,11 +3,11 @@ namespace BusinessPermitLicensingSystem.Web.Billing;
 public static class BillingRules
 {
     public static IReadOnlyList<(int Year, int Month)> MissingPeriods(DateTime occupancy, DateTime asOf,
-        IEnumerable<(int Year, int Month)> existing)
+        IEnumerable<(int Year, int Month)> existing, bool isLegacyBaseline = false)
     {
         var known = existing.ToHashSet();
         var result = new List<(int, int)>();
-        for (var month = new DateTime(occupancy.Year, occupancy.Month, 1).AddMonths(1);
+        for (var month = new DateTime(occupancy.Year, occupancy.Month, 1).AddMonths(isLegacyBaseline ? 0 : 1);
              month <= new DateTime(asOf.Year, asOf.Month, 1); month = month.AddMonths(1))
             if (!known.Contains((month.Year, month.Month))) result.Add((month.Year, month.Month));
         return result;

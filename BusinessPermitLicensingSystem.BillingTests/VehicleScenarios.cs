@@ -49,7 +49,7 @@ internal static class VehicleScenarios
                 Organization = "Partnership", Quarter = "2ND QUARTER",
                 SanitaryType = "FOOD", FireType = "OTHER" } : null;
             var save = await service.SaveDraftAsync(vin, 2026, amounts, ["one", "", "", ""], PaidAt, default, details);
-            Check(save.Success && save.Total == 110m && await CountHistory(connection, vin) == 0,
+            Check(save.Success && save.Total == (vin == first ? 1010m : 110m) && await CountHistory(connection, vin) == 0,
                 "saving draft does not create payment for " + vin);
         }
         var savedDetails = (await service.GetAsync(first, PaidAt, default))!.Draft!.Data;
@@ -59,20 +59,20 @@ internal static class VehicleScenarios
               savedDetails.Organization == "Partnership" && savedDetails.Quarter == "2ND QUARTER" &&
               savedDetails.SanitaryType == "FOOD" && savedDetails.FireType == "OTHER",
             "annual permit details save and reload with fee draft");
-        Check((await service.GetAsync(first, PaidAt, default)) is { Eligible: true, SelectedYearStatus: "Unpaid", Draft.GrandTotal: 110m },
+        Check((await service.GetAsync(first, PaidAt, default)) is { Eligible: true, SelectedYearStatus: "Unpaid", Draft.GrandTotal: 1010m },
             "current year eligibility and stored draft display");
         string orFirst = $"DEV-VEH-{run}-1";
         amounts[0] = 999m; // Browser-side amount changes after draft save cannot affect payment.
         var payment = await service.PayAsync(first, orFirst, 2026, users[0], PaidAt, default);
-        Check(payment.Success && payment.Amount == 110m && payment.Year == 2026,
+        Check(payment.Success && payment.Amount == 1010m && payment.Year == 2026,
             "payment re-reads saved draft amount, ignores changed client amount");
         Check(await CountHistory(connection, first) == 1 && await VehicleStatus(connection, first) == ("Paid", 2026) &&
-              await Recorder(connection, orFirst) == users[0] && await HistoryAmount(connection, orFirst) == 110m,
+              await Recorder(connection, orFirst) == users[0] && await HistoryAmount(connection, orFirst) == 1010m,
             "history, vehicle status/year, and first recorder stored atomically");
         Check(await CountAudit(connection, first) == 0, "desktop vehicle payment creates no audit row");
         amounts[0] = 200m;
         Check((await service.SaveDraftAsync(first, 2026, amounts, ["changed", "", "", ""], PaidAt, default)).Success &&
-              await HistoryAmount(connection, orFirst) == 110m,
+              await HistoryAmount(connection, orFirst) == 1010m,
             "later draft edit does not rewrite historical payment amount");
         amounts[0] = 100m;
 

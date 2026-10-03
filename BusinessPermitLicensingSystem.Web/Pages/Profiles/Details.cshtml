@@ -27,6 +27,7 @@ else if (Model.Profile is not null)
         <dt class="col-sm-3">Stall number</dt><dd class="col-sm-9">@Model.Profile.StallNumber</dd>
         <dt class="col-sm-3">Stall size</dt><dd class="col-sm-9">@Model.Profile.StallSize</dd>
         <dt class="col-sm-3">Date of occupancy</dt><dd class="col-sm-9">@(string.IsNullOrEmpty(Model.Profile.StartDate) ? "Unverified" : Model.Profile.StartDate)</dd>
+        @if (Model.Profile.IsLegacyBaseline) { <dt class="col-sm-3">Date source</dt><dd class="col-sm-9">Computerized tracking baseline; historical occupancy date not verified</dd> }
         <dt class="col-sm-3">Monthly rental</dt><dd class="col-sm-9 money">₱@Model.Profile.MonthlyRental.ToString("N2")</dd>
         <dt class="col-sm-3">Additional charge</dt><dd class="col-sm-9 money">₱@Model.Profile.AdditionalCharge.ToString("N2")</dd>
         <dt class="col-sm-3">Payment status</dt><dd class="col-sm-9"><span class="status-badge @Model.Profile.PaymentStatus.ToLowerInvariant()">@Model.Profile.PaymentStatus</span></dd>

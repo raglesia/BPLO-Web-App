@@ -23,3 +23,9 @@
 **/secrets.json
 **/appsettings.Local.json
 /Masinloc Logo.jpg
+
+# Local database evidence contains official names, SIN mappings and financial data.
+/development/clean-baseline-*.txt
+/development/clean-baseline-*.csv
+/development/CLEAN_BASELINE_RESET_REPORT.md
+/development/CLEAN_BASELINE_RESET_COMPLETED.md

@@ -9,6 +9,8 @@
 @if (Model.Record is not null)
 {
     <p><strong>@Model.Record.Name</strong> · <span class="status-badge @Model.Record.Status.ToLowerInvariant()">@Model.Record.Status</span></p>
+    <p><a class="btn btn-outline-primary" asp-page="/Reports/RentalPaymentPreview" asp-route-selected="@RouteData.Values["sin"]">Print Rental Report</a></p>
+    @if (Model.Record.IsLegacyBaseline) { <p class="form-text">December 1, 2026 is this legacy profile's computerized tracking baseline, not its verified historical occupancy date. December rent is immediately billable.</p> }
     @if (Model.Record.Archived) { <p>Archived profile. Billing generation is unavailable.</p> }
     else if (Model.Record.Status == "Unverified") { <p>Unverified profile. Billing generation is unavailable.</p> }
     else
@@ -59,6 +61,44 @@
         </table>
     </div>
     @if (Model.Record.Rows.Count == 0) { <p class="empty-state">No billing periods yet.</p> }
+    @if (Model.Record.IsLegacyBaseline)
+    {
+        <section class="section-panel mt-4" id="verified-arrears">
+            <h2 class="section-heading">Treasury-Verified Arrears</h2>
+            <p>Enter prior unpaid rent from the Treasury logbook. Saving arrears does not record payment. Only an issued OR records payment.</p>
+            @if (!Model.Record.Archived && Model.Record.Status != "Unverified")
+            {
+                <form method="post" asp-page-handler="SaveArrears" asp-route-sin="@RouteData.Values["sin"]" class="row g-3 align-items-end mb-4">
+                    <div class="col-sm-2"><label class="form-label" for="arrears-year">Year</label><input class="form-control" id="arrears-year" name="ArrearsYear" type="number" min="2000" max="2100" required /></div>
+                    <div class="col-sm-2"><label class="form-label" for="arrears-month">Month</label><select class="form-select" id="arrears-month" name="ArrearsMonth" required><option value="">Choose</option>@for (int month = 1; month <= 12; month++) { <option value="@month">@(new DateTime(2000, month, 1).ToString("MMMM"))</option> }</select></div>
+                    <div class="col-sm-2"><label class="form-label" for="arrears-rent">Base Rent</label><input class="form-control" id="arrears-rent" name="ArrearsBaseRent" type="number" min="0.01" step="0.01" required /></div>
+                    <div class="col-sm-2"><label class="form-label" for="arrears-additional">Additional Charge</label><input class="form-control" id="arrears-additional" name="ArrearsAdditional" type="number" min="0" step="0.01" value="0" required /></div>
+                    <div class="col-sm-4"><label class="form-label" for="treasury-reference">Treasury Reference / Notes</label><input class="form-control" id="treasury-reference" name="TreasuryReference" maxlength="500" /></div>
+                    <div class="col-12"><button class="btn btn-outline-primary" type="submit">Add Verified Arrears</button></div>
+                </form>
+            }
+            <div class="table-responsive"><table class="table financial-table"><caption class="visually-hidden">Treasury-verified arrears</caption><thead><tr><th scope="col">Period</th><th scope="col">Base Rent</th><th scope="col">Additional</th><th scope="col">Penalty</th><th scope="col">Total</th><th scope="col">Status</th><th scope="col">Treasury Reference</th><th scope="col">Correction</th></tr></thead><tbody>
+                @foreach (var item in Model.Record.Arrears)
+                {
+                    <tr><td>@(new DateTime(item.Year, item.Month, 1).ToString("MMMM yyyy"))</td><td class="money">₱@item.BaseRent.ToString("N2")</td><td class="money">₱@item.Additional.ToString("N2")</td><td class="money">₱@item.CurrentPenalty(Model.AsOf).ToString("N2")</td><td class="money">₱@item.Total(Model.AsOf).ToString("N2")</td><td>@(item.IsPaid ? "Paid" : "Unpaid")</td><td>@item.TreasuryReference</td><td>
+                        @if (!item.IsPaid && !Model.Record.Archived)
+                        {
+                            <details><summary>Correct</summary><form method="post" asp-page-handler="SaveArrears" asp-route-sin="@RouteData.Values["sin"]" class="d-grid gap-2 mt-2" style="min-width: 12rem">
+                                <input type="hidden" name="ArrearsId" value="@item.Id" />
+                                <label>Year<input class="form-control" name="ArrearsYear" type="number" min="2000" max="2100" value="@item.Year" required /></label>
+                                <label>Month<select class="form-select" name="ArrearsMonth" required>@for (int month = 1; month <= 12; month++) { <option value="@month" selected="@(month == item.Month)">@(new DateTime(2000, month, 1).ToString("MMMM"))</option> }</select></label>
+                                <label>Base Rent<input class="form-control" name="ArrearsBaseRent" type="number" min="0.01" step="0.01" value="@item.BaseRent.ToString(System.Globalization.CultureInfo.InvariantCulture)" required /></label>
+                                <label>Additional Charge<input class="form-control" name="ArrearsAdditional" type="number" min="0" step="0.01" value="@item.Additional.ToString(System.Globalization.CultureInfo.InvariantCulture)" required /></label>
+                                <label>Treasury Reference<input class="form-control" name="TreasuryReference" maxlength="500" value="@item.TreasuryReference" /></label>
+                                <button class="btn btn-outline-primary" type="submit">Save Correction</button>
+                            </form></details>
+                        }
+                    </td></tr>
+                }
+            </tbody></table></div>
+            @if (Model.Record.Arrears.Count == 0) { <p class="empty-state">No Treasury-verified arrears recorded.</p> }
+        </section>
+    }
     <h2 class="h4 mt-4">Payment History</h2>
     <div class="table-responsive"><table class="table table-striped financial-table"><caption class="visually-hidden">Payment history for @Model.Record.Name</caption>
         <thead><tr><th scope="col">OR number</th><th scope="col">Date</th><th scope="col">Amount</th><th scope="col">Penalty</th><th scope="col">Recorded by</th><th scope="col">Periods</th><th scope="col">Report</th></tr></thead>

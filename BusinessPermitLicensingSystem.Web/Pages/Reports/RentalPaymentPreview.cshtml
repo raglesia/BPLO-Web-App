@@ -11,8 +11,10 @@
     @foreach (var report in Model.Reports)
     {
         var assessmentBills = report.AssessmentBills(Model.PrintedAt);
+        var cutoff = report.RentalCutoff(Model.PrintedAt);
         var dueBills = assessmentBills.Where(x => x.Status.Equals("Unpaid", StringComparison.OrdinalIgnoreCase) &&
-            (x.Year < Model.PrintedAt.Year || x.Year == Model.PrintedAt.Year && x.Month <= Model.PrintedAt.Month)).ToList();
+            (x.Year < cutoff.Year || x.Year == cutoff.Year && x.Month <= cutoff.Month)).ToList();
+        var dueArrears = report.Arrears.Where(x => !x.IsPaid).ToList();
         bool unverified = report.Status == "Unverified";
         bool noBills = assessmentBills.Count == 0;
         bool review = dueBills.Any(x => x.ReviewNeeded);
@@ -20,9 +22,12 @@
         decimal? rent = !assessed ? report.MonthlyRental - report.AdditionalCharge : review ? null : dueBills.Sum(x => x.BaseRent ?? 0);
         decimal? penalty = !assessed || review ? null : dueBills.Sum(x => x.CurrentPenalty(Model.PrintedAt) ?? 0);
         decimal? additional = !assessed ? report.AdditionalCharge : dueBills.Sum(x => x.Additional);
-        decimal? total = assessed && !review ? rent + additional + penalty : null;
-        string status = unverified ? "Unverified" : review ? "Review Needed" : dueBills.Count > 0 ? "Unpaid" : !assessed ? "Not assessed" : "Paid";
-        <article class="rental-payment-block" aria-label="Rental payment report for @report.Owner, @report.Sin">
+        decimal arrearsBase = dueArrears.Sum(x => x.BaseRent);
+        decimal arrearsAdditional = dueArrears.Sum(x => x.Additional);
+        decimal arrearsPenalty = dueArrears.Sum(x => x.CurrentPenalty(Model.PrintedAt));
+        decimal? total = assessed && !review ? rent + additional + penalty + arrearsBase + arrearsAdditional + arrearsPenalty : null;
+        string status = unverified ? "Unverified" : review ? "Review Needed" : dueBills.Count + dueArrears.Count > 0 ? "Unpaid" : !assessed ? "Not assessed" : "Paid";
+        <article class="rental-payment-block @(dueArrears.Count > 0 ? "rental-arrears-report" : "")" aria-label="Rental payment report for @report.Owner, @report.Sin">
             <div class="rental-document-heading">
                 <img src="@Url.Content("~/images/masinloc-logo.jpg")" alt="Municipality of Masinloc seal" width="70" height="70" />
                 <div><strong>Municipality of Masinloc</strong><span>Province of Zambales</span><span>Business Permit and Licensing Office</span><h2>STALL OWNER RENTAL PAYMENT</h2></div>
@@ -33,11 +38,27 @@
                 <div><dt>Business Section</dt><dd>@report.Section</dd></div><div><dt>Payment Status</dt><dd>@status</dd></div>
                 <div class="rental-info-wide"><dt>Date Processed</dt><dd>@Model.PrintedAt.ToString("MMMM dd, yyyy hh:mm tt")</dd></div>
             </dl>
-            <table class="rental-charge-table"><thead><tr><th scope="col">Tax Description</th><th scope="col">Amount</th></tr></thead><tbody>
-                <tr><td>@(!assessed ? "Monthly Stall Rental Fee (rate)" : "Monthly Stall Rental Fee")</td><td>@(rent?.ToString("₱#,##0.00") ?? "Review Needed")</td></tr>
-                <tr><td>Penalty</td><td>@(penalty.HasValue ? "\u20b1" + penalty.Value.ToString("N2") : review ? "Review Needed" : "Not assessed")</td></tr>
-                <tr><td>Additional Charge</td><td>@("\u20b1" + additional.GetValueOrDefault().ToString("N2"))</td></tr>
-                <tr class="rental-total"><th scope="row">Total Amount Due</th><td>@(total.HasValue ? "\u20b1" + total.Value.ToString("N2") : review ? "Review Needed" : "Not assessed")</td></tr>
+            <h3 class="h6 mt-3">Current Rental Period and Regular Unpaid Bills</h3>
+            <table class="rental-charge-table rental-obligation-table"><thead><tr><th scope="col">Rental Period</th><th scope="col">Base Rent</th><th scope="col">Additional</th><th scope="col">Penalty</th></tr></thead><tbody>
+                @if (!assessed) { <tr><td>Monthly Rental Rate (occupancy unverified)</td><td>@(rent?.ToString("₱#,##0.00") ?? "Review Needed")</td><td>₱@additional.GetValueOrDefault().ToString("N2")</td><td>Not assessed</td></tr> }
+                @foreach (var bill in dueBills.OrderBy(x => x.Year).ThenBy(x => x.Month))
+                { <tr><td>@(new DateTime(bill.Year, bill.Month, 1).ToString("MMMM yyyy"))</td><td>@(bill.BaseRent.HasValue ? $"₱{bill.BaseRent:N2}" : "Review Needed")</td><td>₱@bill.Additional.ToString("N2")</td><td>@(bill.CurrentPenalty(Model.PrintedAt).HasValue ? $"₱{bill.CurrentPenalty(Model.PrintedAt):N2}" : "Review Needed")</td></tr> }
+            </tbody></table>
+            @if (dueArrears.Count > 0)
+            {
+                <h3 class="h6 mt-3">Treasury-Verified Arrears</h3>
+                <table class="rental-charge-table rental-obligation-table"><thead><tr><th scope="col">Prior Unpaid Period</th><th scope="col">Base Rent</th><th scope="col">Additional</th><th scope="col">Penalty</th></tr></thead><tbody>
+                    @foreach (var arrear in dueArrears.OrderBy(x => x.Year).ThenBy(x => x.Month))
+                    { <tr><td>@(new DateTime(arrear.Year, arrear.Month, 1).ToString("MMMM yyyy"))</td><td>₱@arrear.BaseRent.ToString("N2")</td><td>₱@arrear.Additional.ToString("N2")</td><td>₱@arrear.CurrentPenalty(Model.PrintedAt).ToString("N2")</td></tr> }
+                </tbody></table>
+            }
+            <table class="rental-charge-table mt-3"><tbody>
+                <tr><th scope="row">Current and Regular Base Rent</th><td>@(rent?.ToString("₱#,##0.00") ?? "Review Needed")</td></tr>
+                <tr><th scope="row">Arrears Principal</th><td>₱@arrearsBase.ToString("N2")</td></tr>
+                <tr><th scope="row">Additional Charges</th><td>₱@(((additional ?? 0) + arrearsAdditional).ToString("N2"))</td></tr>
+                <tr><th scope="row">Current and Regular Penalty</th><td>@(penalty.HasValue ? $"₱{penalty:N2}" : "Not assessed")</td></tr>
+                <tr><th scope="row">Arrears Penalty</th><td>₱@arrearsPenalty.ToString("N2")</td></tr>
+                <tr class="rental-total"><th scope="row">Grand Total Due</th><td>@(total.HasValue ? $"₱{total:N2}" : review ? "Review Needed" : "Not assessed")</td></tr>
             </tbody></table>
             @if (review) { <p class="rental-review-note">Review Needed: an unpaid historical bill has an unknown rent basis. No authoritative total is shown.</p> }
             <div class="rental-document-footer"><div><span>Processed By:</span><strong class="rental-signature-name">@Model.ProcessedBy</strong><span>@Model.Position</span></div><p>Date Printed: @Model.PrintedAt.ToString("MMMM dd, yyyy hh:mm tt")</p></div>

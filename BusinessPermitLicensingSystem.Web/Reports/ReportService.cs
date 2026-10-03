@@ -18,16 +18,22 @@ public sealed record ReportPayment(string Sin, string Owner, string OrNumber, Da
 public sealed record ProfileReport(string Sin, string Owner, string Business, string Section, string Stall,
     string StallSize, string Status, bool Archived, IReadOnlyList<ReportBill> Bills, IReadOnlyList<ReportPayment> Payments, decimal MonthlyRental = 0, decimal AdditionalCharge = 0, string StartDate = "")
 {
+    public bool IsLegacyBaseline { get; init; }
+    public IReadOnlyList<ArrearsRow> Arrears { get; init; } = [];
+    public DateTime RentalCutoff(DateTime asOf) => IsLegacyBaseline &&
+        DateTime.TryParse(StartDate, out var baseline) && asOf < baseline ? baseline : asOf;
     public bool CanAssess(DateTime asOf) => Status != "Unverified" && !Archived &&
         DateTime.TryParse(StartDate, System.Globalization.CultureInfo.InvariantCulture,
-            System.Globalization.DateTimeStyles.None, out var occupancy) && occupancy.Date <= asOf.Date;
+            System.Globalization.DateTimeStyles.None, out var occupancy) &&
+        (occupancy.Date <= asOf.Date || IsLegacyBaseline);
 
     public IReadOnlyList<ReportBill> AssessmentBills(DateTime asOf)
     {
         if (!CanAssess(asOf)) return Bills;
         var occupancy = DateTime.Parse(StartDate, System.Globalization.CultureInfo.InvariantCulture);
         var result = Bills.ToList();
-        var missing = BillingRules.MissingPeriods(occupancy, asOf, Bills.Select(x => (x.Year, x.Month)));
+        var missing = BillingRules.MissingPeriods(occupancy, RentalCutoff(asOf),
+            Bills.Select(x => (x.Year, x.Month)), IsLegacyBaseline);
         if (missing.Count > 0)
         {
             decimal baseRent = BillingRules.BaseFromCombinedProfile(MonthlyRental, AdditionalCharge);
@@ -71,11 +77,11 @@ public sealed class ReportService(IConfiguration configuration)
         if (string.IsNullOrWhiteSpace(sin) || sin.Length > 100) return null;
         await using var connection = await OpenAsync(token);
         await using var profile = new SqlCommand("""
-            SELECT SIN, FullName, BusinessName, BusinessSection, StallNumber, StallSize, PaymentStatus, IsArchived, MonthlyRental, AdditionalCharge, StartDate
+            SELECT SIN, FullName, BusinessName, BusinessSection, StallNumber, StallSize, PaymentStatus, IsArchived, MonthlyRental, AdditionalCharge, StartDate, IsLegacyBaseline
             FROM Profiling WHERE SIN=@sin
             """, connection);
         profile.Parameters.Add("@sin", SqlDbType.NVarChar, 100).Value = sin;
-        string id, owner, business, section, stall, size, status, startDate; bool archived; decimal monthlyRental, additionalCharge;
+        string id, owner, business, section, stall, size, status, startDate; bool archived, legacy; decimal monthlyRental, additionalCharge;
         await using (var reader = await profile.ExecuteReaderAsync(token))
         {
             if (!await reader.ReadAsync(token)) return null;
@@ -84,10 +90,25 @@ public sealed class ReportService(IConfiguration configuration)
             status = reader.GetString(6); archived = !reader.IsDBNull(7) && reader.GetInt32(7) != 0;
             monthlyRental = reader.GetDecimal(8); additionalCharge = reader.GetDecimal(9);
             startDate = reader.IsDBNull(10) ? "" : reader.GetString(10);
+            legacy = reader.GetBoolean(11);
         }
         var bills = await ReadBillsAsync(connection, "WHERE mb.SIN=@sin", ("@sin", SqlDbType.NVarChar, sin), token);
         var payments = await ReadPaymentsAsync(connection, "WHERE ph.SIN=@sin", ("@sin", SqlDbType.NVarChar, sin), token);
-        return new(id, owner, business, section, stall, size, status, archived, bills.Select(x => x.Bill).ToList(), payments, monthlyRental, additionalCharge, startDate);
+        var arrears = new List<ArrearsRow>();
+        await using var arrearsCommand = new SqlCommand("""
+            SELECT Id, BillingYear, BillingMonth, BaseRent, AdditionalCharge, PenaltyAmount,
+                   IsPaid, PaidAt, TreasuryReference
+            FROM StallOwnerArrears WHERE SIN=@sin ORDER BY BillingYear, BillingMonth
+            """, connection);
+        arrearsCommand.Parameters.Add("@sin", SqlDbType.NVarChar, 100).Value = sin;
+        await using (var reader = await arrearsCommand.ExecuteReaderAsync(token))
+            while (await reader.ReadAsync(token))
+                arrears.Add(new(reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2),
+                    reader.GetDecimal(3), reader.GetDecimal(4), reader.GetDecimal(5), reader.GetBoolean(6),
+                    reader.IsDBNull(7) ? null : reader.GetDateTime(7), reader.GetString(8)));
+        return new ProfileReport(id, owner, business, section, stall, size, status, archived,
+            bills.Select(x => x.Bill).ToList(), payments, monthlyRental, additionalCharge, startDate)
+        { IsLegacyBaseline = legacy, Arrears = arrears };
     }
 
     public async Task<MonthlyReport> MonthlyAsync(int fromYear, int fromMonth, int toYear, int toMonth, CancellationToken token)
@@ -203,16 +224,26 @@ public sealed class ReportService(IConfiguration configuration)
         await using var command = new SqlCommand($"""
             SELECT ph.SIN, COALESCE(p.FullName, ''), ph.ORNumber, ph.DatePaid, ph.AmountPaid, ph.Penalty,
                    COALESCE(u.FullName, CONCAT('User ', ph.RecordedBy)),
-                   COALESCE(STRING_AGG(CONVERT(nvarchar(max),
-                       CASE WHEN mb.Id IS NULL THEN NULL ELSE CONCAT(mb.BillingYear, '-', RIGHT(CONCAT('0', mb.BillingMonth), 2)) END), ', ')
-                       WITHIN GROUP (ORDER BY mb.BillingYear, mb.BillingMonth), '')
+                   COALESCE(periods.Covered, '')
             FROM PaymentHistory ph
             LEFT JOIN Profiling p ON p.SIN=ph.SIN
             LEFT JOIN Users u ON u.Id=ph.RecordedBy
-            LEFT JOIN PaymentHistoryBilling link ON link.PaymentHistoryId=ph.Id
-            LEFT JOIN MonthlyBilling mb ON mb.Id=link.MonthlyBillingId
+            OUTER APPLY (
+                SELECT STRING_AGG(CONVERT(nvarchar(max), x.Period), ', ')
+                       WITHIN GROUP (ORDER BY x.SortYear, x.SortMonth) AS Covered
+                FROM (
+                    SELECT mb.BillingYear SortYear, mb.BillingMonth SortMonth,
+                           CONCAT(mb.BillingYear, '-', RIGHT(CONCAT('0', mb.BillingMonth), 2)) Period
+                    FROM PaymentHistoryBilling link JOIN MonthlyBilling mb ON mb.Id=link.MonthlyBillingId
+                    WHERE link.PaymentHistoryId=ph.Id
+                    UNION ALL
+                    SELECT a.BillingYear, a.BillingMonth,
+                           CONCAT(a.BillingYear, '-', RIGHT(CONCAT('0', a.BillingMonth), 2), ' (arrears)')
+                    FROM PaymentHistoryArrears link JOIN StallOwnerArrears a ON a.Id=link.StallOwnerArrearsId
+                    WHERE link.PaymentHistoryId=ph.Id
+                ) x
+            ) periods
             {where}
-            GROUP BY ph.Id, ph.SIN, p.FullName, ph.ORNumber, ph.DatePaid, ph.AmountPaid, ph.Penalty, u.FullName, ph.RecordedBy
             ORDER BY ph.DatePaid, ph.Id
             """, connection);
         command.Parameters.Add(first.Name, first.Type).Value = first.Value;

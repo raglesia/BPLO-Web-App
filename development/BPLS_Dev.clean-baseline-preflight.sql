@@ -1,0 +1,28 @@
+:ON ERROR EXIT
+SET NOCOUNT ON;
+IF DB_NAME()<>'BPLS_Dev' THROW 50000,'Run only in BPLS_Dev',1;
+SELECT SIN,FullName INTO #Target FROM dbo.Profiling WHERE SIN BETWEEN 'SIN-2026-0663' AND 'SIN-2026-1200';
+SELECT COUNT(*) TargetCount,MIN(SIN) MinimumSIN,MAX(SIN) MaximumSIN FROM #Target;
+SELECT SUM(CASE WHEN StartDate='2026-12-01' THEN 1 ELSE 0 END) BaselineDateCount,SUM(CASE WHEN IsLegacyBaseline=1 THEN 1 ELSE 0 END) LegacyMarkerCount FROM dbo.Profiling WHERE SIN IN(SELECT SIN FROM #Target);
+SELECT PaymentStatus,COUNT(*) Profiles FROM dbo.Profiling WHERE SIN IN(SELECT SIN FROM #Target) GROUP BY PaymentStatus;
+SELECT COUNT(*) BillingRows,SUM(CASE WHEN BillingYear=2026 AND BillingMonth=12 THEN 1 ELSE 0 END) DecemberRows,SUM(CASE WHEN BillingYear<2026 OR BillingYear=2026 AND BillingMonth<12 THEN 1 ELSE 0 END) PreDecemberRows,SUM(CASE WHEN PaymentStatus='Paid' THEN 1 ELSE 0 END) PaidRows,SUM(Penalty) StoredBillPenalty FROM dbo.MonthlyBilling WHERE SIN IN(SELECT SIN FROM #Target);
+SELECT COUNT(*) PaymentRows,COALESCE(SUM(AmountPaid),0) TargetCollections FROM dbo.PaymentHistory WHERE SIN IN(SELECT SIN FROM #Target);
+SELECT COUNT(*) BillingLinks FROM dbo.PaymentHistoryBilling l WHERE EXISTS(SELECT 1 FROM dbo.PaymentHistory p WHERE p.Id=l.PaymentHistoryId AND p.SIN IN(SELECT SIN FROM #Target)) OR EXISTS(SELECT 1 FROM dbo.MonthlyBilling b WHERE b.Id=l.MonthlyBillingId AND b.SIN IN(SELECT SIN FROM #Target));
+SELECT COUNT(*) ArrearsLinks FROM dbo.PaymentHistoryArrears l WHERE EXISTS(SELECT 1 FROM dbo.PaymentHistory p WHERE p.Id=l.PaymentHistoryId AND p.SIN IN(SELECT SIN FROM #Target)) OR EXISTS(SELECT 1 FROM dbo.StallOwnerArrears a WHERE a.Id=l.StallOwnerArrearsId AND a.SIN IN(SELECT SIN FROM #Target));
+SELECT COUNT(*) ArrearsRows,COALESCE(SUM(PenaltyAmount),0) ArrearsPenalty FROM dbo.StallOwnerArrears WHERE SIN IN(SELECT SIN FROM #Target);
+SELECT 'MonthlyBilling' Source,ORNumber FROM dbo.MonthlyBilling WHERE SIN IN(SELECT SIN FROM #Target) AND NULLIF(ORNumber,'') IS NOT NULL UNION ALL SELECT 'PaymentHistory',ORNumber FROM dbo.PaymentHistory WHERE SIN IN(SELECT SIN FROM #Target) AND NULLIF(ORNumber,'') IS NOT NULL;
+SELECT COUNT(*) PaymentHistoryRows,COALESCE(SUM(AmountPaid),0) CollectionSourceTotal FROM dbo.PaymentHistory;
+SELECT COUNT(*) DuplicateNameGroups,COALESCE(SUM(n-1),0) ExtraDuplicateNameRows FROM(SELECT COUNT(*) n FROM #Target GROUP BY FullName HAVING COUNT(*)>1)d;
+SELECT SIN,FullName FROM dbo.Profiling WHERE SIN BETWEEN 'SIN-2026-0001' AND 'SIN-2026-0538' AND SIN NOT IN(SELECT SIN FROM #Target);
+SELECT s.name SchemaName,t.name TableName,c.name ColumnName,TYPE_NAME(c.user_type_id) DataType,c.max_length,c.is_nullable FROM sys.tables t JOIN sys.schemas s ON s.schema_id=t.schema_id JOIN sys.columns c ON c.object_id=t.object_id WHERE c.name LIKE '%SIN%' ORDER BY s.name,t.name,c.column_id;
+SELECT fk.name ForeignKey,OBJECT_SCHEMA_NAME(fkc.parent_object_id)+'.'+OBJECT_NAME(fkc.parent_object_id) ChildTable,pc.name ChildColumn,OBJECT_SCHEMA_NAME(fkc.referenced_object_id)+'.'+OBJECT_NAME(fkc.referenced_object_id) ParentTable,rc.name ParentColumn,fk.update_referential_action_desc UpdateAction,fk.delete_referential_action_desc DeleteAction FROM sys.foreign_key_columns fkc JOIN sys.foreign_keys fk ON fk.object_id=fkc.constraint_object_id JOIN sys.columns pc ON pc.object_id=fkc.parent_object_id AND pc.column_id=fkc.parent_column_id JOIN sys.columns rc ON rc.object_id=fkc.referenced_object_id AND rc.column_id=fkc.referenced_column_id ORDER BY ChildTable,ForeignKey;
+DECLARE @sql nvarchar(max)='';
+SELECT @sql=@sql+'SELECT '+QUOTENAME(s.name+'.'+t.name+'.'+c.name,'''')+' Reference,COUNT(*) TargetRows FROM '+QUOTENAME(s.name)+'.'+QUOTENAME(t.name)+' WHERE '+QUOTENAME(c.name)+' IN(SELECT SIN FROM #Target);' FROM sys.tables t JOIN sys.schemas s ON s.schema_id=t.schema_id JOIN sys.columns c ON c.object_id=t.object_id WHERE c.name='SIN';
+EXEC sp_executesql @sql;
+SELECT ROW_NUMBER() OVER(ORDER BY FullName,SIN) SortNumber,SIN OldSIN,CAST('SIN-2026-'+RIGHT('0000'+CAST(ROW_NUMBER() OVER(ORDER BY FullName,SIN) AS varchar(4)),4) AS nvarchar(50)) NewSIN,FullName INTO #Map FROM #Target;
+SELECT * FROM #Map WHERE SortNumber<=10 OR SortNumber>528 ORDER BY SortNumber;
+SELECT MAX(TRY_CONVERT(int,RIGHT(SIN,4))) HighestOther2026Sequence FROM dbo.Profiling WHERE SIN LIKE 'SIN-2026-[0-9][0-9][0-9][0-9]' AND LEN(SIN)=13 AND SIN NOT IN(SELECT SIN FROM #Target);
+SELECT s.name SchemaName,t.name TableName,c.name ColumnName,TYPE_NAME(c.user_type_id) DataType FROM sys.tables t JOIN sys.schemas s ON s.schema_id=t.schema_id JOIN sys.columns c ON c.object_id=t.object_id WHERE t.name IN('Profiling','StallOwnerArrears','AuditTrail','PaymentHistory','MonthlyBilling') ORDER BY t.name,c.column_id;
+SELECT OBJECT_SCHEMA_NAME(object_id) SchemaName,name,is_disabled FROM sys.triggers WHERE parent_class=1;
+IF (SELECT COUNT(*) FROM #Target)<>538 THROW 50001,'Target count must equal 538',1;
+IF EXISTS(SELECT 1 FROM dbo.Profiling WHERE SIN BETWEEN 'SIN-2026-0001' AND 'SIN-2026-0538' AND SIN NOT IN(SELECT SIN FROM #Target)) THROW 50002,'Final SIN range collides with non-target profiles',1;

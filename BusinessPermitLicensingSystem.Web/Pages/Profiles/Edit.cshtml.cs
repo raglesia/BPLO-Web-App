@@ -12,6 +12,7 @@ public class ProfileEditModel(ProfileService profiles, ILogger<ProfileEditModel>
 
     public string Sin { get; private set; } = "";
     public bool IsPaidRecord { get; private set; }
+    public bool IsLegacyBaseline { get; private set; }
     public IReadOnlyList<RentalRate> Rates { get; private set; } = [];
 
     public async Task<IActionResult> OnGetAsync(string sin)
@@ -27,6 +28,7 @@ public class ProfileEditModel(ProfileService profiles, ILogger<ProfileEditModel>
             }
             Input = ProfileInput.FromRecord(record);
             IsPaidRecord = record.PaymentStatus == "Paid";
+            IsLegacyBaseline = record.IsLegacyBaseline;
             Rates = await profiles.GetRatesAsync(HttpContext.RequestAborted);
             return Page();
         }
@@ -71,6 +73,7 @@ public class ProfileEditModel(ProfileService profiles, ILogger<ProfileEditModel>
                 return RedirectToPage("/Archive/Profiles");
             }
             IsPaidRecord = record.PaymentStatus == "Paid";
+            IsLegacyBaseline = record.IsLegacyBaseline;
             Rates = await profiles.GetRatesAsync(HttpContext.RequestAborted);
             return Page();
         }

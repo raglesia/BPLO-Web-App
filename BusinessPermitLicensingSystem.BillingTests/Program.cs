@@ -192,8 +192,8 @@ if (args.Contains("--database"))
     int legacyCount;
     decimal legacyRent, legacyExtra, legacyPenalty;
     await using (var reader = await legacyBefore.ExecuteReaderAsync())
-    { await reader.ReadAsync(); legacyCount = reader.GetInt32(0); legacyRent = reader.GetDecimal(1);
-      legacyExtra = reader.GetDecimal(2); legacyPenalty = reader.GetDecimal(3); }
+    { await reader.ReadAsync(); legacyCount = reader.GetInt32(0); legacyRent = reader.IsDBNull(1) ? 0 : reader.GetDecimal(1);
+      legacyExtra = reader.IsDBNull(2) ? 0 : reader.GetDecimal(2); legacyPenalty = reader.IsDBNull(3) ? 0 : reader.GetDecimal(3); }
     foreach (var (sin, status, start, rent, extra, isArchived) in new[]
     {
         (normal, "Unpaid", "2026-01-15", 110m, 10m, 0),
@@ -252,8 +252,9 @@ if (args.Contains("--database"))
         """, connection);
     await using (var reader = await legacyAfter.ExecuteReaderAsync())
     { await reader.ReadAsync();
-      Check(reader.GetInt32(0) == legacyCount && reader.GetDecimal(1) == legacyRent &&
-            reader.GetDecimal(2) == legacyExtra && reader.GetDecimal(3) == legacyPenalty,
+      Check(reader.GetInt32(0) == legacyCount && (reader.IsDBNull(1) ? 0 : reader.GetDecimal(1)) == legacyRent &&
+            (reader.IsDBNull(2) ? 0 : reader.GetDecimal(2)) == legacyExtra &&
+            (reader.IsDBNull(3) ? 0 : reader.GetDecimal(3)) == legacyPenalty,
             "legacy Phase 5 billing snapshots unchanged"); }
     Check(await Count(connection, "PaymentHistory") == payments &&
           await Count(connection, "PaymentHistoryBilling") == links,
@@ -262,6 +263,7 @@ if (args.Contains("--database"))
 }
 
 if (args.Contains("--payments")) await PaymentScenarios.RunAsync();
+if (args.Contains("--arrears")) await LegacyArrearsScenarios.RunAsync();
 if (args.Contains("--vehicles")) await VehicleScenarios.RunAsync();
 if (args.Contains("--archive")) await ArchiveScenarios.RunAsync();
 if (args.Contains("--transfer")) await TransferScenarios.RunAsync();
@@ -269,3 +271,5 @@ if (args.Contains("--reports")) await ReportScenarios.RunAsync();
 if (args.Contains("--admin")) await AdminScenarios.RunAsync();
 string? browserArg = args.FirstOrDefault(x => x.StartsWith("--browser=", StringComparison.Ordinal));
 if (browserArg is not null) await BrowserScenarios.RunAsync(browserArg[10..]);
+string? cleanBaselineArg = args.FirstOrDefault(x => x.StartsWith("--clean-baseline=", StringComparison.Ordinal));
+if (cleanBaselineArg is not null) await CleanBaselineScenarios.RunAsync(cleanBaselineArg[17..]);
