@@ -1,0 +1,142 @@
+/* Approved Dashboard vocabulary. Screen-only: formal print documents retain their own styles. */
+@media screen {
+.bplo-system:not(.dashboard-workspace) {
+    --bplo-navy:#123047; --bplo-teal:#0F5C5E; --bplo-teal-hover:#0B4A4C;
+    --bplo-canvas:#F4F7F9; --bplo-surface:#FFFFFF; --bplo-border:#DCE3E8;
+    --bplo-text:#172B3A; --bplo-secondary:#5F7180; --bplo-muted:#657784;
+    --bplo-tint:#E7F2F1; --bplo-radius:8px; --bplo-control-height:40px;
+    --desk-navy:#203f52; --desk-muted:#60717a; --desk-rule:#d8e0e3;
+    --primary:var(--bplo-teal); --primary-hover:var(--bplo-teal-hover); --primary-subtle:var(--bplo-tint);
+    --navy:var(--bplo-navy); --ink:var(--bplo-text); --text-primary:var(--bplo-text);
+    --muted:var(--bplo-secondary); --text-secondary:var(--bplo-secondary); --text-muted:var(--bplo-muted);
+    --teal:var(--bplo-teal); --blue:var(--bplo-teal); --blue-dark:var(--bplo-teal-hover);
+    --canvas:var(--bplo-canvas); --surface:var(--bplo-surface); --surface-alt:#F8FAFB; --soft:var(--bplo-tint);
+    --border:var(--bplo-border); --line:var(--bplo-border); --border-strong:#BCCAD3;
+    --radius:var(--bplo-radius); --shadow:none; --text-inverse:#fff;
+    background:var(--bplo-canvas); color:var(--bplo-text); font-size:14px; line-height:1.5;
+}
+.bplo-system:not(.dashboard-workspace) .app-shell { grid-template-columns:248px minmax(0,1fr); }
+.bplo-system:not(.dashboard-workspace) .app-main { max-width:none; width:100%; padding:20px clamp(24px,2vw,52px) 24px; }
+.bplo-system:not(.dashboard-workspace) .page-header { margin-bottom:20px; gap:20px; align-items:center; }
+.bplo-system:not(.dashboard-workspace) .page-header h1 { font-size:28px; line-height:1.2; font-weight:700; color:var(--bplo-navy); margin-bottom:8px; }
+.bplo-system:not(.dashboard-workspace) .page-header p:not(.eyebrow) { font-size:13px; line-height:1.6; color:var(--bplo-secondary); }
+.bplo-system:not(.dashboard-workspace) .eyebrow { font-size:12px; color:var(--bplo-teal); letter-spacing:.1em; font-weight:650; margin-bottom:6px; }
+.bplo-system:not(.dashboard-workspace) :is(.section-heading,.assessment-heading,.section-panel>h2,.form-panel>h2) { color:var(--bplo-navy); font-size:19px; line-height:1.35; font-weight:650; }
+.bplo-system:not(.dashboard-workspace) :is(.surface,.form-panel,.section-panel,.search-panel,.card) { background:#fff; border-color:var(--bplo-border); border-radius:8px; box-shadow:none; padding:20px; }
+.bplo-system:not(.dashboard-workspace) .section-panel { margin-bottom:20px; }
+.bplo-system:not(.dashboard-workspace) .search-panel { padding:16px; }
+.bplo-system:not(.dashboard-workspace) .form-actions { gap:10px; margin-top:20px; padding-top:16px; border-color:var(--bplo-border); }
+.bplo-system:not(.dashboard-workspace) .btn { min-height:40px; padding:9px 14px; border-radius:6px; font-size:13px; line-height:20px; font-weight:600; box-shadow:none; }
+.bplo-system:not(.dashboard-workspace) .btn-sm { min-height:32px; padding:5px 10px; font-size:12px; }
+.bplo-system:not(.dashboard-workspace) :is(.btn-primary,.login-submit) { color:#fff; background:var(--bplo-teal); border-color:var(--bplo-teal); }
+.bplo-system:not(.dashboard-workspace) :is(.btn-primary,.login-submit):is(:hover,:focus,:active) { color:#fff; background:var(--bplo-teal-hover); border-color:var(--bplo-teal-hover); }
+.bplo-system:not(.dashboard-workspace) :is(.btn-outline-primary,.btn-outline-secondary,.btn-secondary) { color:var(--bplo-navy); background:#fff; border-color:#BCCAD3; }
+.bplo-system:not(.dashboard-workspace) :is(.btn-outline-primary,.btn-outline-secondary,.btn-secondary):hover { color:var(--bplo-teal); background:var(--bplo-tint); border-color:var(--bplo-teal); }
+.bplo-system:not(.dashboard-workspace) .btn-outline-danger { color:#A8343D; border-color:#DEB5B9; background:#fff; }
+.bplo-system:not(.dashboard-workspace) .btn-outline-danger:hover { background:#FBECEE; border-color:#A8343D; }
+.bplo-system:not(.dashboard-workspace) .btn:disabled { opacity:.55; }
+.bplo-system:not(.dashboard-workspace) :is(a,.btn-link) { color:var(--bplo-teal); text-underline-offset:3px; }
+.bplo-system:not(.dashboard-workspace) :is(.form-control,.form-select) { min-height:40px; border:1px solid #BCCAD3; border-radius:6px; background-color:#fff; color:var(--bplo-text); font-size:14px; padding:8px 12px; }
+.bplo-system:not(.dashboard-workspace) textarea.form-control { min-height:96px; }
+.bplo-system:not(.dashboard-workspace) .form-control[type=file] { padding:6px 10px; }
+.bplo-system:not(.dashboard-workspace) :is(.form-control,.form-select):focus { border-color:var(--bplo-teal); box-shadow:0 0 0 3px #E7F2F1; }
+.bplo-system:not(.dashboard-workspace) :is(.form-control,.form-select):disabled,.bplo-system:not(.dashboard-workspace) .form-control[readonly] { background:#F4F7F9; color:#5F7180; }
+.bplo-system:not(.dashboard-workspace) .form-label { font-size:13px; font-weight:600; color:var(--bplo-text); margin-bottom:6px; }
+.bplo-system:not(.dashboard-workspace) :is(.form-text,.text-muted,.record-count) { font-size:12px; line-height:1.5; color:var(--bplo-muted)!important; }
+.bplo-system:not(.dashboard-workspace) .form-check-input { border-color:#9EB0BC; accent-color:var(--bplo-teal); }
+.bplo-system:not(.dashboard-workspace) .form-check-input:checked { background-color:var(--bplo-teal); border-color:var(--bplo-teal); }
+.bplo-system:not(.dashboard-workspace) .form-check-input:focus { border-color:var(--bplo-teal); box-shadow:0 0 0 3px #E7F2F1; }
+.bplo-system:not(.dashboard-workspace) :is(a,button,summary):focus-visible { outline:2px solid #0F5C5E; outline-offset:3px; }
+.bplo-system:not(.dashboard-workspace) .table-responsive { border:1px solid var(--bplo-border); border-radius:8px; box-shadow:none; }
+.bplo-system:not(.dashboard-workspace) .table { --bs-table-bg:#fff; --bs-table-color:#172B3A; --bs-table-striped-bg:#F8FAFB; --bs-table-hover-bg:#E7F2F1; font-size:13px; margin-bottom:0; }
+.bplo-system:not(.dashboard-workspace) .table :is(th,td) { padding:11px 14px; border-color:var(--bplo-border); vertical-align:middle; }
+.bplo-system:not(.dashboard-workspace) .table thead th { background:#F4F7F9; color:var(--bplo-secondary); font-size:12px; font-weight:650; letter-spacing:.04em; }
+.bplo-system:not(.dashboard-workspace) .table tbody tr:hover>* { background:#F1F7F6; }
+.bplo-system:not(.dashboard-workspace) .status-badge { font-size:12px; line-height:18px; padding:4px 8px; border-radius:4px; font-weight:600; }
+.bplo-system:not(.dashboard-workspace) .status-badge:is(.paid,.active) { color:#356A48; background:#EDF6EF; }
+.bplo-system:not(.dashboard-workspace) .status-badge.unpaid { color:#A8343D; background:#FBECEE; }
+.bplo-system:not(.dashboard-workspace) .status-badge:is(.unverified,.review) { color:#856523; background:#FBF4E5; }
+.bplo-system:not(.dashboard-workspace) .status-badge.archived { color:#5F7180; background:#EDF1F4; }
+.bplo-system:not(.dashboard-workspace) :is(.alert,.note) { border-radius:6px; padding:12px 16px; font-size:13px; box-shadow:none; }
+.bplo-system:not(.dashboard-workspace) .alert-danger { color:#A8343D; background:#FBECEE; border-color:#EBCDD1; }
+.bplo-system:not(.dashboard-workspace) .alert-warning { color:#856523; background:#FBF4E5; border-color:#E6DCC8; }
+.bplo-system:not(.dashboard-workspace) .alert-success { color:#356A48; background:#EDF6EF; border-color:#CCDFD1; }
+.bplo-system:not(.dashboard-workspace) .empty-state { background:#fff; border:1px dashed var(--bplo-border); padding:24px; color:var(--bplo-secondary); font-size:13px; border-radius:8px; }
+.bplo-system:not(.dashboard-workspace) .detail-list :is(dt,dd) { font-size:14px; padding-block:9px; border-color:var(--bplo-border); }
+.bplo-system:not(.dashboard-workspace) .money { font-variant-numeric:tabular-nums; }
+.bplo-system:not(.dashboard-workspace) .vehicle-assessment :is(.form-control,.form-select) { height:40px; }
+.bplo-system:not(.dashboard-workspace) .rental-paper { color:#000; }
+.bplo-system .app-sidebar { background:var(--desk-navy); border:0; padding:20px 14px 12px; color:#fff; }
+.bplo-system .sidebar-brand.brand { flex-direction:row; gap:12px; text-align:left; align-items:center; padding:4px 6px 22px; border-bottom:1px solid #496272; margin-bottom:6px; }
+.bplo-system .sidebar-brand .sidebar-seal { width:60px; height:60px; background:#fff; padding:2px; }
+.bplo-system .sidebar-brand .sidebar-office-brand { width:auto; min-width:0; }
+.bplo-system .sidebar-brand .sidebar-office-name { font-size:14px; line-height:1.45; font-weight:650; color:#fff; margin:0; }
+.bplo-system .sidebar-group { margin:24px 10px 8px; font-size:10px; letter-spacing:.13em; font-weight:650; color:#b8c8d2; }
+.bplo-system .sidebar-group:first-child { margin-top:18px; }
+.bplo-system .sidebar-link { font-size:13px; min-height:42px; padding:10px; gap:11px; border-radius:2px; color:#e1e9ee; font-weight:500; }
+.bplo-system .nav-icon { width:18px; height:18px; flex-shrink:0; color:inherit; }
+.bplo-system .sidebar-link:hover,.bplo-system .sidebar-link:focus-visible { background:#304f63; color:#fff; }
+.bplo-system .sidebar-link.active { background:#eaf0f3; color:var(--desk-navy); font-weight:700; }
+.bplo-system .sidebar-link.active::before { background:#fff; border-radius:0; width:3px; }
+.bplo-system .sidebar-link.active .nav-icon { color:var(--desk-navy); }
+.bplo-system .sidebar-sublink { color:#dae6ed; font-size:13px; }
+.bplo-system .sidebar-sublink:hover,.bplo-system .sidebar-sublink:focus-visible { color:#fff; background:#304f63; }
+.bplo-system .sidebar-user { border-color:#496272; padding:16px 6px 12px; gap:10px; }
+.bplo-system .user-avatar { background:#3c5c6e; color:#fff; border-radius:3px; width:34px; height:34px; }
+.bplo-system .sidebar-user .user-label { font-size:13px; color:#fff; }
+.bplo-system .sidebar-user .user-label strong { color:#fff; }
+.bplo-system .sidebar-user .user-label small { color:#bfced7; font-size:11px; }
+.bplo-system .sidebar-logout { padding:0 6px 0; }
+.bplo-system .sidebar-logout .btn { background:transparent; color:#e4edf2; border-color:#76909f; min-height:34px; font-size:12px; }
+.bplo-system .sidebar-logout .btn:hover { background:#304f63; color:#fff; }
+.bplo-system .app-topbar { background:#fff; color:var(--desk-navy); border-bottom:1px solid var(--desk-rule); height:52px; min-height:52px; padding-inline:36px; gap:16px; }
+.bplo-system .topbar-office { color:var(--desk-navy); font-size:12px; letter-spacing:.01em; font-weight:600; }
+.bplo-system .topbar-clock { font-size:12px; color:var(--desk-muted); font-variant-numeric:tabular-nums; }
+.bplo-system .sidebar-toggle { background:#fff; color:var(--desk-navy); border-color:#b9c9d2; }
+.bplo-system .topbar-context { color:var(--desk-muted); }
+.bplo-system .app-footer { border-color:var(--desk-rule); color:var(--desk-muted); font-size:11px; background:transparent; padding:12px 36px; }
+.bplo-system .sidebar-brand .sidebar-office-name { font-size:14px; line-height:1.45; font-weight:650; color:#fff; margin:0; }
+.bplo-system .sidebar-group:first-child { margin-top:18px; }
+.bplo-system .sidebar-link { font-size:13px; min-height:42px; padding:10px; gap:11px; border-radius:2px; color:#e1e9ee; font-weight:500; }
+.bplo-system .sidebar-user .user-label { font-size:13px; color:#fff; }
+.bplo-system .sidebar-brand.brand { padding-bottom:18px; gap:10px; }
+.bplo-system .sidebar-brand .sidebar-seal { width:54px; height:54px; }
+.bplo-system .sidebar-brand .sidebar-office-name { font-size:13px; line-height:1.5; }
+.bplo-system .sidebar-group { margin-top:20px; font-size:11px; letter-spacing:.08em; }
+.bplo-system .sidebar-link { min-height:40px; padding-block:9px; }
+.bplo-system .sidebar-link.active { background:#E7F2F1; color:#0F5C5E; }
+.bplo-system .sidebar-link.active .nav-icon { color:#0F5C5E; }
+.bplo-system .sidebar-user { padding-top:14px; }
+.bplo-system:not(.dashboard-workspace) .app-sidebar .sidebar-link { color:#e1e9ee; }
+.bplo-system:not(.dashboard-workspace) .app-sidebar .sidebar-sublink { color:#dae6ed; }
+.bplo-system:not(.dashboard-workspace) .app-sidebar .sidebar-link:hover { color:#fff; }
+.bplo-system:not(.dashboard-workspace) a.btn-primary { color:#fff; }
+.bplo-system:not(.dashboard-workspace) .app-sidebar .sidebar-link.active,.bplo-system:not(.dashboard-workspace) .app-sidebar .sidebar-sublink.active { color:#0F5C5E; background:#E7F2F1; }
+.bplo-system .sidebar-link.active::before { background:#0F5C5E; }
+.bplo-system .sidebar-link.active .nav-icon { color:inherit; }
+.bplo-system .app-sidebar :is(a,button,summary):focus-visible { outline:2px solid #fff; outline-offset:-2px; }
+.bplo-system .sidebar-logout .btn { background:transparent; color:#e4edf2; border-color:#76909f; min-height:34px; font-size:12px; }
+/* Standalone authentication uses the same panels and controls, not the application rail. */
+.bplo-system:has(.login-shell) { background:#F4F7F9; }
+.bplo-system:has(.login-shell):not(.authenticated) .app-main { max-width:none; min-height:100dvh; padding:24px; display:flex; align-items:center; justify-content:center; }
+.bplo-system .login-shell { width:460px; max-width:100%; margin:24px auto; transform:none; }
+.bplo-system .login-shell .surface { padding:28px 32px; border:1px solid #DCE3E8; border-top:3px solid #0F5C5E; border-radius:8px; background:#fff; box-shadow:none; }
+.bplo-system .login-shell .login-brand { margin-bottom:20px; }
+.bplo-system .login-shell .login-logo { width:80px; height:80px; margin-bottom:12px; }
+.bplo-system .login-shell :is(.login-office-name,.login-account-heading) { color:#123047; }
+.bplo-system .login-shell .login-office-name { font-size:16px; font-weight:650; }
+.bplo-system .login-shell .login-lgu-name { color:#5F7180; font-size:13px; }
+.bplo-system .login-shell .login-account-heading { font-size:19px; margin-top:16px; }
+.bplo-system .login-shell .form-control { height:40px; border-radius:6px; }
+.bplo-system .login-password-field .form-control { padding-right:48px; }
+.bplo-system .login-password-toggle { color:#5F7180; border-radius:6px; }
+.bplo-system .login-password-toggle:hover { color:#0F5C5E; background:#E7F2F1; }
+.bplo-system .login-password-toggle:focus-visible { outline-color:#0F5C5E; }
+.bplo-system .login-shell .login-submit { height:40px; border-radius:6px; }
+.bplo-system .login-shell .login-signup a { color:#0F5C5E; }
+@media(max-width:991px) {
+    .bplo-system:not(.dashboard-workspace) .app-shell { grid-template-columns:minmax(0,1fr); }
+    .bplo-system:not(.dashboard-workspace) .app-main { padding:20px 18px; }
+    .bplo-system .app-sidebar { width:248px; }
+}
+}

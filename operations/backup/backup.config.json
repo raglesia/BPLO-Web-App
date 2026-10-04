@@ -1,0 +1,9 @@
+{
+  "Server": ".\\SQLEXPRESS",
+  "Database": "BPLS_Dev",
+  "BackupFolder": "C:\\BPLO_DB_Backup",
+  "BackupDay": "Friday",
+  "BackupTime": "16:30",
+  "TaskName": "BPLO Development Weekly Database Backup",
+  "SqlServiceAccount": "NT Service\\MSSQL$SQLEXPRESS"
+}

@@ -1,11 +1,14 @@
 @page
 @model BusinessPermitLicensingSystem.Web.Pages.Account.CreateModel
 @{ ViewData["Title"] = "Create Account"; }
-<div class="login-shell"><div class="surface">
-    <span class="brand-mark" aria-hidden="true">B</span>
-    <p class="eyebrow">BPLO access</p>
-    <h1>Create Account</h1>
-    <p>Create a BPLO account, then sign in.</p>
+<div class="login-shell bplo-login"><div class="surface">
+    <div class="login-brand">
+        <img class="login-logo" src="~/images/masinloc-login-logo.jpg" asp-append-version="true" alt="Municipality of Masinloc logo" width="80" height="80" />
+        <p class="login-office-name">Business Permit and Licensing Office</p>
+        <p class="login-lgu-name">LGU Masinloc</p>
+        <h1 class="login-account-heading">Create Account</h1>
+        <p class="form-text mt-2">Create a BPLO account, then sign in.</p>
+    </div>
     @if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
         <form method="post" class="mt-4">
             <div asp-validation-summary="All" class="text-danger" role="alert"></div>

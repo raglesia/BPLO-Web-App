@@ -2,59 +2,48 @@
 @model IndexModel
 @{ ViewData["Title"] = "Dashboard"; }
 <header class="desk-header" aria-labelledby="dashboard-title">
-    <div class="desk-intro"><p class="desk-kicker">Municipal Administration</p>
+    <div class="desk-intro">
+        <p class="desk-kicker">Dashboard</p>
         <h1 id="dashboard-title">Administrative Dashboard</h1>
-        <p class="desk-description">Overview of Stall Owners Profile, Special Vehicle Permits, Billing, and Municipal Collections.</p>
+        <p class="desk-description">Overview of stall owners, billing, permits, and municipal collections.</p>
     </div>
-    <div class="desk-actions"><a class="btn btn-primary" asp-page="/Profiles/Create">Add Stall Owner</a><a class="btn btn-outline-primary" asp-page="/Vehicles/Edit">Add Vehicle</a></div>
+    <div class="desk-actions">
+        <a class="btn btn-primary" asp-page="/Profiles/Create">Add Stall Owner</a>
+        <a class="btn btn-outline-primary" asp-page="/Vehicles/Edit">Add Vehicle</a>
+    </div>
 </header>
 <div class="desk-composition">
-        <section class="desk-register" aria-labelledby="summary-title">
-            <h2 id="summary-title" class="desk-heading">Records Overview</h2>
-            @if (Model.ActiveProfiles.HasValue)
-            {
-                <div class="desk-register-grid">
-                    <div class="desk-record"><svg class="desk-icon" aria-hidden="true"><use href="#i-profiles" /></svg><div><div class="desk-record-value">@Model.ActiveProfiles</div><h3>Active Stall Owners</h3><p>Active Profiles</p></div></div>
-                    <div class="desk-record"><svg class="desk-icon" aria-hidden="true"><use href="#i-vehicles" /></svg><div><div class="desk-record-value">@Model.ActiveVehicles</div><h3>Active Special Vehicle Permits</h3><p>Active Permits</p></div></div>
-                </div>
-            }
-            else
-            {
-                <p class="note" role="status">Record counts are unavailable. You can still open all work areas below.</p>
-            }
-        </section>
-        <section class="desk-queue" aria-labelledby="attention-title">
-            <div class="desk-queue-heading"><p class="desk-kicker">Office Work Queue</p><h2 id="attention-title">Needs Attention</h2><p>Profiles and billing periods for review.</p></div>
-            <a class="desk-task desk-task-verification" asp-page="/Profiles/Index" asp-route-search="Unverified">
-                <div class="desk-task-label"><svg class="desk-icon" aria-hidden="true"><use href="#i-alert" /></svg><h3>Unverified Profiles</h3></div>
-                <div class="desk-task-count">@(Model.UnverifiedProfiles?.ToString() ?? "Unavailable")</div><p class="desk-task-status">Pending Verification</p>
-                <span class="desk-task-action">Review unverified profiles <span aria-hidden="true">→</span></span>
+    <section class="desk-register" aria-labelledby="summary-title">
+        <h2 id="summary-title" class="desk-heading">Records Overview</h2>
+        <div class="desk-register-grid">
+            <div class="desk-record">
+                <span class="desk-icon-box desk-active"><svg class="desk-icon" aria-hidden="true"><use href="#i-profiles" /></svg></span>
+                <div class="desk-metric-body"><h3>Active Stall Owners</h3><div class="desk-record-value">@(Model.ActiveProfiles?.ToString() ?? "Unavailable")</div><p>Currently active profiles</p></div>
+            </div>
+            <a class="desk-record desk-record-link" asp-page="/Profiles/Index" asp-route-search="Unverified">
+                <span class="desk-icon-box desk-verification"><svg class="desk-icon" aria-hidden="true"><use href="#i-alert" /></svg></span>
+                <div class="desk-metric-body"><h3>Unverified Profiles</h3><div class="desk-record-value">@(Model.UnverifiedProfiles?.ToString() ?? "Unavailable")</div><p>Awaiting occupancy verification</p></div>
             </a>
-            <a class="desk-task desk-task-billing" asp-page="/Profiles/Index" asp-route-search="Unpaid">
-                <div class="desk-task-label"><svg class="desk-icon" aria-hidden="true"><use href="#i-receipt" /></svg><h3>Unpaid Billing Periods</h3></div>
-                <div class="desk-task-count">@(Model.UnpaidPeriods?.ToString() ?? "Unavailable")</div><p class="desk-task-status">Outstanding Periods</p>
-                <span class="desk-task-action">Open unpaid billing periods <span aria-hidden="true">→</span></span>
+            <a class="desk-record desk-record-link" asp-page="/Profiles/Index" asp-route-search="Unpaid">
+                <span class="desk-icon-box desk-unpaid"><svg class="desk-icon" aria-hidden="true"><use href="#i-receipt" /></svg></span>
+                <div class="desk-metric-body"><h3>Unpaid Billing Periods</h3><div class="desk-record-value">@(Model.UnpaidPeriods?.ToString() ?? "Unavailable")</div><p>Outstanding billing periods</p></div>
             </a>
-            @if (Model.ReviewNeededSin is not null)
-            {
-                <a class="desk-older-review" asp-page="/Profiles/Billing" asp-route-sin="@Model.ReviewNeededSin"><span>Check older bills requiring review</span><span class="status-badge review">@Model.ReviewNeededPeriods</span></a>
-            }
-            <p class="desk-queue-note">Counts are read-only and do not change billing or payment status.</p>
-        </section>
-        <section class="desk-finance" aria-labelledby="municipal-collections-title">
-            <div class="desk-finance-heading"><h2 id="municipal-collections-title" class="desk-heading">Municipal Collections</h2><span class="desk-period">Current Month</span></div>
-            @if (Model.ActiveProfiles.HasValue)
-            {
-                <div class="desk-ledger">
-                    <div class="desk-collection"><div class="desk-collection-label"><svg class="desk-icon" aria-hidden="true"><use href="#i-wallet" /></svg><h3>Stall Rent Collections</h3></div><div class="desk-money">@Model.RentCollectedThisMonth?.ToString("₱#,##0.00")</div><p>Collected this month</p></div>
-                    <div class="desk-collection"><div class="desk-collection-label"><svg class="desk-icon" aria-hidden="true"><use href="#i-receipt" /></svg><h3>Special Vehicle Permit Collections</h3></div><div class="desk-money">@Model.VehicleCollectedThisMonth?.ToString("₱#,##0.00")</div><p>Collected this month</p></div>
-                </div>
-            }
+            <div class="desk-record">
+                <span class="desk-icon-box desk-vehicle"><svg class="desk-icon" aria-hidden="true"><use href="#i-vehicles" /></svg></span>
+                <div class="desk-metric-body"><h3>Active Special Vehicle Permits</h3><div class="desk-record-value">@(Model.ActiveVehicles?.ToString() ?? "Unavailable")</div><p>Current active vehicle records</p></div>
+            </div>
+        </div>
+        @if (!Model.ActiveProfiles.HasValue)
+        {
+            <p class="note" role="status">Record counts are unavailable. You can still open all work areas.</p>
+        }
+    </section>
+    <div class="desk-main-grid">
 @if (Model.Collections.Count == 6)
 {
     var maximum = Math.Max(1m, Model.Collections.Max(month => Math.Max(month.Rent, month.Vehicles)));
     <section class="desk-trend" aria-labelledby="collections-title">
-        <div class="desk-trend-heading"><div><h3 id="collections-title" class="desk-heading">Monthly Collection Trend</h3><p>Recorded municipal collections for the previous six months.</p></div><div class="chart-legend"><span><i class="legend-swatch rent"></i> Stall Rent</span><span><i class="legend-swatch vehicle"></i> Special Vehicle Permits</span></div></div>
+        <div class="desk-trend-heading"><div><h2 id="collections-title" class="desk-heading">Monthly Collection Trend</h2><p>Recorded municipal collections for the previous six months.</p></div><div class="chart-legend"><span><i class="legend-swatch rent"></i> Stall Rent</span><span><i class="legend-swatch vehicle"></i> Special Vehicle Permits</span></div></div>
         <div class="desk-plot"><div class="desk-scale" aria-hidden="true"><span>@maximum.ToString("₱#,##0.00")</span><span>₱0</span></div><div class="collection-chart" aria-hidden="true">
             @foreach (var month in Model.Collections)
             {
@@ -65,13 +54,36 @@
     </section>
 }
 
-        </section>
-        <section class="desk-tools" aria-labelledby="quick-actions-title"><h2 id="quick-actions-title" class="desk-heading">Quick Actions</h2>
-<div class="quick-actions">
-        <a asp-page="/Profiles/Create">Add Stall Owner Profile <span aria-hidden="true">→</span></a>
-        <a asp-page="/Vehicles/Edit">Add Vehicle <span aria-hidden="true">→</span></a>
-        <a asp-page="/Profiles/Index">Find a Profile <span aria-hidden="true">→</span></a>
-        <a asp-page="/Reports/Index">Open Reports <span aria-hidden="true">→</span></a>
+        <div class="desk-side-grid">
+    <section class="desk-finance" aria-labelledby="municipal-collections-title">
+        <h2 id="municipal-collections-title" class="desk-heading">Municipal Collections</h2>
+        @if (Model.ActiveProfiles.HasValue)
+        {
+            <div class="desk-ledger">
+                <div class="desk-collection">
+                    <span class="desk-icon-box desk-collection-icon"><svg class="desk-icon" aria-hidden="true"><use href="#i-wallet" /></svg></span>
+                    <div class="desk-metric-body"><h3>Stall Rent Collections</h3><div class="desk-money">@Model.RentCollectedThisMonth?.ToString("₱#,##0.00")</div><p>Payments recorded this month</p></div>
+                </div>
+                <div class="desk-collection">
+                    <span class="desk-icon-box desk-collection-icon"><svg class="desk-icon" aria-hidden="true"><use href="#i-receipt" /></svg></span>
+                    <div class="desk-metric-body"><h3>Special Vehicle Permit Collections</h3><div class="desk-money">@Model.VehicleCollectedThisMonth?.ToString("₱#,##0.00")</div><p>Permit payments recorded this month</p></div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <p class="note" role="status">Collection figures are unavailable.</p>
+        }
+    </section>
+            @if (Model.ReviewNeededSin is not null)
+            {
+                <section class="desk-review" aria-labelledby="review-title">
+                    <span class="desk-icon-box desk-verification"><svg class="desk-icon" aria-hidden="true"><use href="#i-alert" /></svg></span>
+                    <div><h2 id="review-title">Requires Review</h2><p><strong>@Model.ReviewNeededPeriods</strong> older billing records</p>
+                        <a asp-page="/Profiles/Billing" asp-route-sin="@Model.ReviewNeededSin">Check Older Bills <span aria-hidden="true">→</span></a>
+                    </div>
+                </section>
+            }
+        </div>
     </div>
-        </section>
 </div>
