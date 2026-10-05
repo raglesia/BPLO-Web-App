@@ -25,6 +25,7 @@
     <link rel="stylesheet" href="~/BusinessPermitLicensingSystem.Web.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/bplo-system.css" asp-append-version="true" />
     @if (home) { <link rel="stylesheet" href="~/css/dashboard.css" asp-append-version="true" /> }
+    <link rel="stylesheet" href="~/css/bplo-surfaces.css" asp-append-version="true" />
 </head>
 <body class="bplo-system @(User.Identity?.IsAuthenticated == true ? "authenticated" : "") @(home ? "dashboard-workspace" : "")">
     <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -60,7 +61,6 @@
                     <details class="sidebar-disclosure" @(transfer ? "open" : "")><summary class="sidebar-link @(transfer ? "active" : "")"><svg class="nav-icon" aria-hidden="true"><use href="#i-transfer" /></svg>Import / Export<span class="disclosure-chevron" aria-hidden="true">⌄</span></summary><a class="sidebar-sublink @(transfer && !vehicleTransfer ? "active" : "")" aria-current="@(transfer && !vehicleTransfer ? "page" : null)" asp-page="/Profiles/Transfer">Stall Owners</a><a class="sidebar-sublink @(vehicleTransfer ? "active" : "")" aria-current="@(vehicleTransfer ? "page" : null)" asp-page="/Vehicles/Transfer">Special Vehicle Permits</a></details>
                     <a class="sidebar-link @(reports ? "active" : "")" aria-current="@(reports ? "page" : null)" asp-page="/Reports/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-reports" /></svg>Reports</a>
                     <a class="sidebar-link @(accounts ? "active" : "")" aria-current="@(accounts ? "page" : null)" asp-page="/UserAccounts/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-profiles" /></svg>User Accounts</a>
-                    <a class="sidebar-link @(health ? "active" : "")" aria-current="@(health ? "page" : null)" asp-page="/DatabaseHealth"><svg class="nav-icon" aria-hidden="true"><use href="#i-health" /></svg>Database Check</a>
                 </nav>
                 <div class="sidebar-user"><span class="user-avatar" aria-hidden="true">@((User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "U").Substring(0, 1).ToUpperInvariant())</span><span class="user-label"><strong>@(User.FindFirst("FullName")?.Value ?? User.Identity?.Name)</strong><small>@User.FindFirst("Position")?.Value</small></span></div>
                 <form class="sidebar-logout" method="post" asp-page="/Account/Logout"><button type="submit" class="btn btn-outline-secondary btn-sm">Sign Out</button></form>
@@ -68,7 +68,7 @@
             <div class="app-workspace">
                 <header class="app-topbar"><button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-label="Open navigation" aria-controls="app-sidebar" aria-expanded="false"><span class="toggle-icon" aria-hidden="true">☰</span><span class="toggle-label" aria-hidden="true">Menu</span></button><span class="topbar-office">Business Permit and Licensing Office</span><time id="philippine-clock" class="topbar-clock" aria-label="Current Philippine date and time"></time><span class="topbar-context visually-hidden">@pageSection</span></header>
                 <main id="main-content" class="app-main" tabindex="-1">@RenderBody()</main>
-                <footer class="app-footer">BPLO · Business Permit and Licensing Office</footer>
+                <footer class="app-footer"><span>BPLO · Business Permit and Licensing Office</span><span class="footer-credit">Developed by Raglesia · © 2026. All rights reserved.</span></footer>
             </div>
         </div>
         <div class="sidebar-backdrop" aria-hidden="true"></div>

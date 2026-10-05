@@ -1075,11 +1075,13 @@ namespace BusinessPermitLicensingSystem
             try
             {
                 using var cmd = new SqlCommand(@"
+                    DECLARE @created TABLE (Id int);
                     INSERT INTO PaymentHistory
                         (SIN, ORNumber, AmountPaid, Penalty, DatePaid, RecordedBy)
-                    OUTPUT INSERTED.Id
+                    OUTPUT INSERTED.Id INTO @created
                     VALUES
-                        (@sin, @or, @amount, @penalty, @date, @recordedBy)",
+                        (@sin, @or, @amount, @penalty, @date, @recordedBy);
+                    SELECT Id FROM @created;",
                     con,
                     tran);
 

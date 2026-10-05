@@ -263,6 +263,7 @@ if (args.Contains("--database"))
 }
 
 if (args.Contains("--payments")) await PaymentScenarios.RunAsync();
+if (args.Contains("--global-receipts")) await GlobalReceiptScenarios.RunAsync();
 if (args.Contains("--arrears")) await LegacyArrearsScenarios.RunAsync();
 if (args.Contains("--vehicles")) await VehicleScenarios.RunAsync();
 if (args.Contains("--archive")) await ArchiveScenarios.RunAsync();

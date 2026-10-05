@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using BusinessPermitLicensingSystem.Web.Authentication;
+using BusinessPermitLicensingSystem.Web.Administration;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -8,7 +9,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace BusinessPermitLicensingSystem.Web.Pages.Account;
 
-public class LoginModel(UserAuthenticationService users, ILogger<LoginModel> logger) : PageModel
+public class LoginModel(UserAuthenticationService users, AuditTrailService audit, ILogger<LoginModel> logger) : PageModel
 {
     [BindProperty]
     public LoginInput Input { get; set; } = new();
@@ -63,6 +64,9 @@ public class LoginModel(UserAuthenticationService users, ILogger<LoginModel> log
                 IsPersistent = Input.RememberMe,
                 ExpiresUtc = Input.RememberMe ? DateTimeOffset.UtcNow.AddDays(14) : null
             });
+
+        try { await audit.RecordSessionAsync(user.Id, "Login", CancellationToken.None); }
+        catch (Exception exception) { logger.LogError(exception, "Failed to record Login audit for user {UserId}.", user.Id); }
 
         return !string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl)
             ? LocalRedirect(ReturnUrl)

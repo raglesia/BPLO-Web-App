@@ -1,0 +1,108 @@
+/* Surface-only polish. Geometry, workflows and formal report sheets stay unchanged. */
+@media screen {
+body.bplo-system .app-footer { display:flex; justify-content:space-between; align-items:center; gap:8px 24px; flex-wrap:wrap; }
+body.bplo-system .footer-credit { margin-left:auto; text-align:right; font:inherit; }
+body.bplo-system.bplo-system.bplo-system {
+    --polish-surface:linear-gradient(180deg,#fff 0%,#fbfcfd 100%);
+    --polish-primary:linear-gradient(180deg,#176c6e 0%,#0f5c5e 100%);
+    --polish-secondary:linear-gradient(180deg,#fff 0%,#f5f8fa 100%);
+    --polish-shadow-xs:inset 0 1px 0 rgb(255 255 255 / .7),0 1px 2px rgb(18 48 71 / .04);
+    --polish-shadow-sm:inset 0 1px 0 rgb(255 255 255 / .7),0 1px 2px rgb(18 48 71 / .03),0 6px 18px rgb(18 48 71 / .045);
+    --polish-shadow-md:inset 0 1px 0 rgb(255 255 255 / .8),0 2px 6px rgb(18 48 71 / .05),0 16px 40px rgb(18 48 71 / .08);
+    --polish-focus:0 0 0 3px rgb(15 92 94 / .16);
+}
+body.bplo-system.bplo-system.bplo-system :is(.surface,.form-panel,.section-panel,.search-panel,.card,.desk-record,.desk-finance,.desk-trend) {
+    background:var(--polish-surface); border-color:#d8e1e7; box-shadow:var(--polish-shadow-sm);
+}
+body.bplo-system.bplo-system.bplo-system .desk-header {
+    background:linear-gradient(135deg,#f0f8f7,#e7f2f1); box-shadow:var(--polish-shadow-xs);
+}
+body.bplo-system.bplo-system.bplo-system .btn {
+    transition:background-color 150ms,border-color 150ms,box-shadow 150ms,color 150ms;
+}
+body.bplo-system.bplo-system.bplo-system :is(.btn-primary,.login-submit) {
+    background:var(--polish-primary); color:#fff; border-color:#0f5c5e;
+    box-shadow:inset 0 1px 0 rgb(255 255 255 / .15),0 2px 5px rgb(15 92 94 / .16);
+}
+body.bplo-system.bplo-system.bplo-system :is(.btn-primary,.login-submit):hover {
+    background:linear-gradient(180deg,#146366,#0b4a4c); color:#fff; border-color:#0b4a4c;
+    box-shadow:inset 0 1px 0 rgb(255 255 255 / .12),0 3px 7px rgb(15 92 94 / .2);
+}
+body.bplo-system.bplo-system.bplo-system :is(.btn-secondary,.btn-outline-secondary,.btn-outline-primary) {
+    background:var(--polish-secondary); box-shadow:var(--polish-shadow-xs); border-color:#b8c8d2;
+}
+body.bplo-system.bplo-system.bplo-system :is(.btn-secondary,.btn-outline-secondary,.btn-outline-primary):hover {
+    background:linear-gradient(180deg,#f5faf9,#e7f2f1); border-color:#708f99; color:#0f5c5e;
+}
+body.bplo-system.bplo-system.bplo-system :is(.btn-danger,.btn-outline-danger) {
+    background:linear-gradient(180deg,#fff,#fbeef0); color:#98313a; border-color:#d6a9ae; box-shadow:var(--polish-shadow-xs);
+}
+body.bplo-system.bplo-system.bplo-system :is(.btn-danger,.btn-outline-danger):hover {
+    background:linear-gradient(180deg,#faecee,#f3dce0); border-color:#a8343d; color:#872831;
+}
+body.bplo-system.bplo-system.bplo-system .btn:active:not(:disabled) { box-shadow:inset 0 1px 3px rgb(18 48 71 / .16); }
+body.bplo-system.bplo-system.bplo-system .btn:is(:disabled,.disabled) { box-shadow:none; opacity:.55; }
+body.bplo-system.bplo-system.bplo-system :is(a,button,summary,input,select,textarea):focus-visible { outline:2px solid #0f5c5e; outline-offset:3px; }
+body.bplo-system.bplo-system.bplo-system :is(.form-control,.form-select) {
+    background-color:#fff; background-image:linear-gradient(180deg,#fff,#fcfdfe);
+    box-shadow:inset 0 1px 2px rgb(18 48 71 / .035); transition:border-color 150ms,box-shadow 150ms;
+}
+/* Keep Bootstrap's native select arrow alongside the surface layer. */
+body.bplo-system.bplo-system.bplo-system .form-select { background-image:var(--bs-form-select-bg-img),linear-gradient(180deg,#fff,#fcfdfe); background-size:16px 12px,100% 100%; background-position:right .75rem center,center; background-repeat:no-repeat,no-repeat; }
+body.bplo-system.bplo-system.bplo-system :is(.form-control,.form-select,.form-check-input):focus { border-color:#0f5c5e; box-shadow:var(--polish-focus); }
+body.bplo-system.bplo-system.bplo-system :is(.form-control,.form-select):disabled,body.bplo-system.bplo-system.bplo-system .form-control[readonly] { background-image:none; background-color:#f2f5f7; }
+body.bplo-system.bplo-system.bplo-system .form-check-input { accent-color:#0f5c5e; }
+body.bplo-system.bplo-system.bplo-system .table thead th { background:linear-gradient(180deg,#f6f9fa,#edf3f5); }
+body.bplo-system.bplo-system.bplo-system .table tbody tr:hover > * { background-color:#f0f7f6; }
+body.bplo-system.bplo-system.bplo-system .status-badge { border:1px solid rgb(18 48 71 / .08); box-shadow:inset 0 1px 0 rgb(255 255 255 / .5); }
+body.bplo-system.bplo-system.bplo-system .status-badge:is(.paid,.active) { background:linear-gradient(180deg,#f1f8f2,#e8f3eb); }
+body.bplo-system.bplo-system.bplo-system .status-badge.unpaid { background:linear-gradient(180deg,#fcf1f2,#f8e7e9); }
+body.bplo-system.bplo-system.bplo-system .status-badge:is(.unverified,.review) { background:linear-gradient(180deg,#fff9ed,#f8efd9); }
+body.bplo-system.bplo-system.bplo-system .status-badge.archived { background:linear-gradient(180deg,#f4f6f8,#eaf0f3); }
+body.bplo-system.bplo-system.bplo-system .desk-icon-box { background-image:linear-gradient(180deg,rgb(255 255 255 / .35),rgb(255 255 255 / 0)); box-shadow:inset 0 1px 0 rgb(255 255 255 / .6); border:1px solid rgb(18 48 71 / .04); }
+body.bplo-system.bplo-system.bplo-system .desk-record:is(a):hover { border-color:#9cbab9; box-shadow:var(--polish-shadow-sm),0 2px 6px rgb(15 92 94 / .06); }
+body.bplo-system.bplo-system.bplo-system .app-sidebar { background:linear-gradient(180deg,#234457,#1c394b); box-shadow:inset -1px 0 0 rgb(255 255 255 / .07); }
+body.bplo-system.bplo-system.bplo-system .app-sidebar .sidebar-link.active { background:linear-gradient(180deg,#edf7f5,#e0efed); color:#0f5c5e; box-shadow:inset 0 1px 0 rgb(255 255 255 / .55); }
+body.bplo-system.bplo-system.bplo-system .app-sidebar :is(a,button,summary):focus-visible { outline-color:#fff; outline-offset:-2px; }
+body.bplo-system.bplo-system.bplo-system .sidebar-logout .btn { background:linear-gradient(180deg,rgb(255 255 255 / .04),transparent); color:#e4edf2; box-shadow:inset 0 1px 0 rgb(255 255 255 / .08); }
+body.bplo-system.bplo-system.bplo-system .sidebar-logout .btn:hover { background:#304f63; color:#fff; }
+body.bplo-system.bplo-system.bplo-system .app-topbar { background:linear-gradient(180deg,#fff,#fafcfd); box-shadow:0 1px 3px rgb(18 48 71 / .035); }
+body.bplo-system.bplo-system.bplo-system .alert-success { background:linear-gradient(180deg,#f0f8f2,#eaf4ed); }
+body.bplo-system.bplo-system.bplo-system .alert-warning,body.bplo-system.bplo-system.bplo-system .desk-review { background:linear-gradient(180deg,#fffcf5,#faf4e8); }
+body.bplo-system.bplo-system.bplo-system .alert-danger { background:linear-gradient(180deg,#fcf1f2,#fae9ec); }
+body.bplo-system.bplo-system.bplo-system .alert-info { background:linear-gradient(180deg,#f1f7fb,#eaf3f8); }
+body.bplo-system.bplo-system.bplo-system .modal-content { background:var(--polish-surface); border-color:#d8e1e7; box-shadow:var(--polish-shadow-md); }
+body.bplo-system.bplo-system.bplo-system:has(.login-shell) { background:linear-gradient(160deg,#f8fafb,#eff5f6); }
+body.bplo-system.bplo-system.bplo-system .login-shell .surface { background:var(--polish-surface); box-shadow:var(--polish-shadow-md); }
+body.bplo-system.bplo-system.bplo-system .app-main a:not(.btn):not(.desk-record):hover { text-decoration-color:#0f5c5e; text-underline-offset:3px; }
+/* Sidebar-only refinement: keep the fixed shell and existing navigation geometry. */
+body.bplo-system.bplo-system.bplo-system .app-sidebar .sidebar-link {
+    border-radius:12px; padding:10px 12px; gap:11px;
+    transition:background-color 150ms,color 150ms,box-shadow 150ms;
+}
+body.bplo-system.bplo-system.bplo-system .app-sidebar .sidebar-link.active {
+    box-shadow:inset 0 1px 0 rgb(255 255 255 / .55),inset 0 0 0 1px rgb(15 92 94 / .1);
+}
+body.bplo-system.bplo-system.bplo-system .app-sidebar .sidebar-link.active::before {
+    top:10px; bottom:10px; left:0; border-radius:0 3px 3px 0;
+}
+body.bplo-system.bplo-system.bplo-system .app-sidebar .sidebar-link:hover:not(.active) {
+    background:#304f63; color:#fff; box-shadow:inset 0 1px 0 rgb(255 255 255 / .035);
+}
+body.bplo-system.bplo-system.bplo-system .app-sidebar .nav-icon { width:18px; height:18px; flex:0 0 18px; }
+body.bplo-system.bplo-system.bplo-system .app-sidebar .sidebar-group { margin:22px 12px 6px; }
+body.bplo-system.bplo-system.bplo-system .app-sidebar .sidebar-group:first-child { margin-top:18px; }
+body.bplo-system.bplo-system.bplo-system .app-sidebar .sidebar-brand { border-bottom-color:rgb(184 200 210 / .22); }
+body.bplo-system.bplo-system.bplo-system .app-sidebar .sidebar-user {
+    border-radius:12px; padding:12px 10px; background:rgb(255 255 255 / .035);
+    border-color:rgb(184 200 210 / .22); box-shadow:inset 0 1px 0 rgb(255 255 255 / .035);
+}
+body.bplo-system.bplo-system.bplo-system .app-sidebar .user-avatar { border-radius:8px; }
+body.bplo-system.bplo-system.bplo-system .app-sidebar .sidebar-logout .btn { border-radius:12px; border-color:#76909f; }
+body.bplo-system.bplo-system.bplo-system .app-sidebar .sidebar-sublink {
+    border-radius:9px; padding-block:8px; transition:background-color 150ms,color 150ms;
+}
+@media(prefers-reduced-motion:reduce) { body.bplo-system.bplo-system.bplo-system :is(.btn,.form-control,.form-select,.sidebar-link,.sidebar-sublink) { transition:none; } }
+}
+
+

@@ -194,7 +194,7 @@ public sealed class VehicleService(IConfiguration configuration)
     public async Task<VehiclePaymentResult> PayAsync(string vin, string orNumber, int year,
         int userId, DateTime paidAt, CancellationToken cancellationToken)
     {
-        orNumber = orNumber.Trim();
+        orNumber = Receipts.ReceiptRegistry.NormalizeOR(orNumber);
         if (string.IsNullOrWhiteSpace(vin)) return new(false, "Vehicle is required.");
         if (orNumber.Length is 0 or > 100) return new(false, "Enter a vehicle OR number up to 100 characters.");
         if (year != paidAt.Year) return new(false, "Only the current permit year can be paid.");
@@ -257,12 +257,8 @@ public sealed class VehicleService(IConfiguration configuration)
             if (amount <= 0)
             { await transaction.RollbackAsync(cancellationToken); return new(false, "Fee draft total must be greater than zero."); }
 
-            await using var duplicate = new SqlCommand("""
-                SELECT 1 FROM VehiclePermitHistory WITH (UPDLOCK, HOLDLOCK) WHERE ORNumber=@or
-                """, connection, transaction);
-            duplicate.Parameters.Add("@or", SqlDbType.NVarChar, 100).Value = orNumber;
-            if (await duplicate.ExecuteScalarAsync(cancellationToken) is not null)
-            { await transaction.RollbackAsync(cancellationToken); return new(false, "Vehicle OR number already exists."); }
+            await Receipts.ReceiptRegistry.ReserveAsync(connection, transaction, orNumber,
+                "VehiclePermit", userId, paidAt, cancellationToken);
 
             await using var history = new SqlCommand("""
                 INSERT INTO VehiclePermitHistory (VIN, ORNumber, AmountPaid, PermitYear, DatePaid, RecordedBy)
@@ -295,7 +291,7 @@ public sealed class VehicleService(IConfiguration configuration)
             await transaction.RollbackAsync(cancellationToken);
             return exception.Message.Contains("UX_VehiclePermitHistory_VIN_PermitYear", StringComparison.Ordinal)
                 ? new(false, "This permit year is already paid.")
-                : new(false, "Vehicle OR number already exists.");
+                : new(false, Receipts.ReceiptRegistry.DuplicateMessage);
         }
         catch { await transaction.RollbackAsync(cancellationToken); throw; }
     }

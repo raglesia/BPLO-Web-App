@@ -618,6 +618,12 @@ internal static class BrowserScenarios
               await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin", ("@vin", vin)) == 0,
             "vehicle payment without anti-forgery token refused");
         Page staleVehicle = await second.Get("/Vehicles/Details/" + vin);
+        Page crossLedgerRejected = await first.Post($"/Vehicles/Details/{vin}?handler=Pay", draftReloaded,
+            ("OrNumber", "  " + orNumber.ToLowerInvariant() + "  "), ("ConfirmPayment", "true"));
+        Check(Has(crossLedgerRejected, "already been recorded in the system") &&
+              await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin", ("@vin", vin)) == 0,
+            "rental OR cannot be reused for vehicle payment, including case and edge spaces");
+        orNumber += "-VEH";
         Page vehiclePaid = await first.Post($"/Vehicles/Details/{vin}?handler=Pay", draftReloaded,
             ("OrNumber", orNumber), ("ConfirmPayment", "true"), ("Amount", "0.01"),
             ("PermitYear", (DateTime.Today.Year + 1).ToString()), ("RecordedBy", "-1"),
@@ -629,7 +635,7 @@ internal static class BrowserScenarios
               await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin AND ORNumber=@or AND PermitYear=@year AND RecordedBy=(SELECT Id FROM Users WHERE Username=@user)",
                   ("@vin", vin), ("@or", orNumber), ("@year", DateTime.Today.Year), ("@user", primary.Username)) == 1 &&
               await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin", ("@vin", competingVin)) == 0,
-            "vehicle payment stores authenticated user and authoritative VIN/year; same OR allowed in separate ledgers");
+            "vehicle payment stores authenticated user and authoritative VIN/year with a distinct global OR");
         int vehiclePaymentId = await Count("SELECT Id FROM VehiclePermitHistory WHERE VIN=@vin AND ORNumber=@or",
             ("@vin", vin), ("@or", orNumber));
         Check(Has(await first.Get("/Vehicles/Details/" + vin), $"/Reports/VehiclePaymentPreview?selected={vehiclePaymentId}"),

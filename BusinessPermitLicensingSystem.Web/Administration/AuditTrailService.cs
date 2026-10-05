@@ -9,6 +9,18 @@ public sealed record AuditPage(IReadOnlyList<AuditEntry> Entries, int Total, int
 public sealed class AuditTrailService(IConfiguration configuration)
 {
     public const int PageSize = 50;
+    public async Task RecordSessionAsync(int userId, string action, CancellationToken token)
+    {
+        if (userId <= 0 || action is not ("Login" or "Logout"))
+            throw new ArgumentException("A valid user and session action are required.");
+        await using var connection = await OpenAsync(token);
+        await using var command = new SqlCommand("INSERT INTO AuditTrail (Action,SIN,UserId,Timestamp,Details) VALUES (@action,NULL,@userId,GETDATE(),@details)", connection);
+        command.Parameters.Add("@action", SqlDbType.NVarChar, 255).Value = action;
+        command.Parameters.Add("@userId", SqlDbType.Int).Value = userId;
+        command.Parameters.Add("@details", SqlDbType.NVarChar, -1).Value = action == "Login" ? "User signed in to BPLO." : "User signed out of BPLO.";
+        await command.ExecuteNonQueryAsync(token);
+    }
+
     public async Task<AuditPage> ListAsync(string? category, string? search, int page, CancellationToken token)
     {
         await using var connection = await OpenAsync(token);

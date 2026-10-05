@@ -331,7 +331,7 @@ public sealed class BillingService(IConfiguration configuration)
     public async Task<PaymentResult> PayAsync(string sin, string orNumber, int userId,
         DateTime paidAt, CancellationToken cancellationToken)
     {
-        orNumber = orNumber.Trim();
+        orNumber = Receipts.ReceiptRegistry.NormalizeOR(orNumber);
         if (string.IsNullOrWhiteSpace(sin)) return new(false, "Profile is required.");
         if (orNumber.Length is 0 or > 100) return new(false, "Enter an OR number up to 100 characters.");
         if (userId <= 0) return new(false, "Sign in again before recording payment.");
@@ -410,16 +410,15 @@ public sealed class BillingService(IConfiguration configuration)
             if (due.Count + dueArrears.Count == 0)
             { await transaction.RollbackAsync(cancellationToken); return new(false, "There are no outstanding rental periods to pay."); }
 
-            await using var duplicate = new SqlCommand(
-                "SELECT 1 FROM PaymentHistory WITH (UPDLOCK, HOLDLOCK) WHERE ORNumber=@or", connection, transaction);
-            duplicate.Parameters.Add("@or", SqlDbType.NVarChar, 100).Value = orNumber;
-            if (await duplicate.ExecuteScalarAsync(cancellationToken) is not null)
-            { await transaction.RollbackAsync(cancellationToken); return new(false, "OR number already exists."); }
+            await Receipts.ReceiptRegistry.ReserveAsync(connection, transaction, orNumber,
+                "StallRental", userId, paidAt, cancellationToken);
 
             decimal amount = BillingRules.Total(rent, additional, penalty);
             await using var insert = new SqlCommand("""
+                DECLARE @created TABLE(Id int);
                 INSERT INTO PaymentHistory (SIN, ORNumber, AmountPaid, Penalty, DatePaid, RecordedBy)
-                OUTPUT INSERTED.Id VALUES (@sin, @or, @amount, @penalty, @date, @user)
+                OUTPUT INSERTED.Id INTO @created VALUES (@sin, @or, @amount, @penalty, @date, @user);
+                SELECT Id FROM @created;
                 """, connection, transaction);
             insert.Parameters.Add("@sin", SqlDbType.NVarChar, 100).Value = sin;
             insert.Parameters.Add("@or", SqlDbType.NVarChar, 100).Value = orNumber;
@@ -513,7 +512,7 @@ public sealed class BillingService(IConfiguration configuration)
             return new(true, null, orNumber, amount, due.Count + dueArrears.Count);
         }
         catch (SqlException exception) when (exception.Number is 2601 or 2627)
-        { await transaction.RollbackAsync(cancellationToken); return new(false, "OR number already exists."); }
+        { await transaction.RollbackAsync(cancellationToken); return new(false, Receipts.ReceiptRegistry.DuplicateMessage); }
         catch
         { await transaction.RollbackAsync(cancellationToken); throw; }
     }

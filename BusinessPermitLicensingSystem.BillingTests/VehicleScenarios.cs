@@ -77,7 +77,7 @@ internal static class VehicleScenarios
         amounts[0] = 100m;
 
         var duplicateOr = await service.PayAsync(second, orFirst, 2026, users[1], PaidAt, default);
-        Check(!duplicateOr.Success && duplicateOr.Error == "Vehicle OR number already exists." &&
+        Check(!duplicateOr.Success && duplicateOr.Error == BusinessPermitLicensingSystem.Web.Receipts.ReceiptRegistry.DuplicateMessage &&
               await CountHistory(connection, second) == 0 && await VehicleStatus(connection, second) == ("Unpaid", 0),
             "duplicate vehicle OR rejected without status change");
         string orSecond = $"DEV-VEH-{run}-2";

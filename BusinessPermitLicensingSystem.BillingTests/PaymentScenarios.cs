@@ -67,7 +67,7 @@ internal static class PaymentScenarios
 
         await service.GenerateAsync(duplicate, paidAt, default);
         var duplicateResult = await service.PayAsync(duplicate, normalOr, users[0], paidAt, default);
-        Check(!duplicateResult.Success && duplicateResult.Error == "OR number already exists." &&
+        Check(!duplicateResult.Success && duplicateResult.Error == BusinessPermitLicensingSystem.Web.Receipts.ReceiptRegistry.DuplicateMessage &&
               await PaidCount(connection, duplicate) == 0 &&
               await Count(connection, "PaymentHistory", "SIN", duplicate) == 0,
             "duplicate stall OR rejected without payment");
