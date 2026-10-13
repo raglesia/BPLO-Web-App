@@ -269,6 +269,7 @@ if (args.Contains("--vehicles")) await VehicleScenarios.RunAsync();
 if (args.Contains("--archive")) await ArchiveScenarios.RunAsync();
 if (args.Contains("--transfer")) await TransferScenarios.RunAsync();
 if (args.Contains("--reports")) await ReportScenarios.RunAsync();
+if (args.Contains("--profile-fixes")) await ProfileFixScenarios.RunAsync();
 if (args.Contains("--admin")) await AdminScenarios.RunAsync();
 string? browserArg = args.FirstOrDefault(x => x.StartsWith("--browser=", StringComparison.Ordinal));
 if (browserArg is not null) await BrowserScenarios.RunAsync(browserArg[10..]);

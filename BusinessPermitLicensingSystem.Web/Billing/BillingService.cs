@@ -1,3 +1,4 @@
+using BusinessPermitLicensingSystem.Web.Data;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
@@ -25,6 +26,9 @@ public sealed record BillingView(string Name, string Status, bool Archived, stri
 public sealed record PaymentRecord(string OrNumber, DateTime DatePaid, decimal Amount,
     decimal Penalty, string RecordedBy, string Periods);
 
+public sealed record SettledRentalItem(int Year, int Month, bool Arrears, decimal? BaseRent,
+    decimal Additional, decimal Penalty);
+
 public sealed record ArrearsRow(int Id, int Year, int Month, decimal BaseRent,
     decimal Additional, decimal StoredPenalty, bool IsPaid, DateTime? PaidAt,
     string TreasuryReference)
@@ -41,6 +45,36 @@ public sealed record PaymentResult(bool Success, string? Error, string? OrNumber
 
 public sealed class BillingService(IConfiguration configuration)
 {
+    public async Task<IReadOnlyList<SettledRentalItem>> GetPaymentItemsAsync(string sin, string orNumber, CancellationToken token)
+    {
+        await using var connection = await OpenAsync(token);
+        await using var command = new SqlCommand("""
+            SELECT mb.BillingYear,mb.BillingMonth,0,mb.MonthlyRental,mb.AdditionalCharge,mb.Penalty,mb.WebRentBasis
+            FROM PaymentHistory ph JOIN PaymentHistoryBilling l ON l.PaymentHistoryId=ph.Id
+            JOIN MonthlyBilling mb ON mb.Id=l.MonthlyBillingId AND mb.SIN=ph.SIN
+            WHERE ph.SIN=@sin AND ph.ORNumber=@or
+            UNION ALL
+            SELECT a.BillingYear,a.BillingMonth,1,a.BaseRent,a.AdditionalCharge,a.PenaltyAmount,N'BaseOnly'
+            FROM PaymentHistory ph JOIN PaymentHistoryArrears l ON l.PaymentHistoryId=ph.Id
+            JOIN StallOwnerArrears a ON a.Id=l.StallOwnerArrearsId AND a.SIN=ph.SIN
+            WHERE ph.SIN=@sin AND ph.ORNumber=@or
+            ORDER BY 1,2,3
+            """, connection);
+        command.Parameters.Add("@sin",SqlDbType.NVarChar,100).Value=sin;
+        command.Parameters.Add("@or",SqlDbType.NVarChar,100).Value=orNumber;
+        var items=new List<SettledRentalItem>();
+        await using var reader=await command.ExecuteReaderAsync(token);
+        while(await reader.ReadAsync(token))
+        {
+            bool arrears=reader.GetInt32(2)==1;
+            decimal rental=reader.GetDecimal(3),additional=reader.GetDecimal(4);
+            items.Add(new(reader.GetInt32(0),reader.GetInt32(1),arrears,
+                arrears ? rental : BillingRules.BaseFromBill(rental,additional,reader.IsDBNull(6)?null:reader.GetString(6)),
+                additional,reader.GetDecimal(5)));
+        }
+        return items;
+    }
+
     public async Task<BillingView?> GetAsync(string sin, DateTime asOf, CancellationToken cancellationToken)
     {
         await using var connection = await OpenAsync(cancellationToken);
@@ -162,6 +196,18 @@ public sealed class BillingService(IConfiguration configuration)
             await using (var reader = await existingCommand.ExecuteReaderAsync(cancellationToken))
                 while (await reader.ReadAsync(cancellationToken)) existing.Add((reader.GetInt32(0), reader.GetInt32(1)));
             DateTime billThrough = legacy && occupancy > asOf ? occupancy : asOf;
+            if(!legacy)
+            {
+                await using var schedule = new SqlCommand("SELECT [Value] FROM AppSettings WITH (UPDLOCK,HOLDLOCK) WHERE [Key]=@key",connection,transaction);
+                schedule.Parameters.Add("@key",SqlDbType.NVarChar,100).Value="ProfileFirstBillingMonth:"+sin;
+                var value=await schedule.ExecuteScalarAsync(cancellationToken);
+                if(value is string configured)
+                {
+                    if(!DateTime.TryParseExact(configured,"yyyy-MM-dd",System.Globalization.CultureInfo.InvariantCulture,System.Globalization.DateTimeStyles.None,out var firstMonth))
+                        throw new InvalidOperationException("Invalid first billing month.");
+                    occupancy=firstMonth.AddMonths(-1);
+                }
+            }
             var missing = BillingRules.MissingPeriods(occupancy, billThrough, existing, legacy);
             decimal baseRent = BillingRules.BaseFromCombinedProfile(rent, additional);
             foreach (var (year, month) in missing)
@@ -334,6 +380,8 @@ public sealed class BillingService(IConfiguration configuration)
         orNumber = Receipts.ReceiptRegistry.NormalizeOR(orNumber);
         if (string.IsNullOrWhiteSpace(sin)) return new(false, "Profile is required.");
         if (orNumber.Length is 0 or > 100) return new(false, "Enter an OR number up to 100 characters.");
+        if (orNumber.Any(c => (c < '0' || c > '9') && c != '-'))
+            return new(false, "OR number must contain numbers and hyphens only.");
         if (userId <= 0) return new(false, "Sign in again before recording payment.");
 
         await using var connection = await OpenAsync(cancellationToken);
@@ -517,17 +565,8 @@ public sealed class BillingService(IConfiguration configuration)
         { await transaction.RollbackAsync(cancellationToken); throw; }
     }
 
-    private async Task<SqlConnection> OpenAsync(CancellationToken cancellationToken)
-    {
-        var builder = new SqlConnectionStringBuilder(configuration.GetConnectionString("BPLS"));
-        if (!string.Equals(builder.InitialCatalog, "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Billing requires BPLS_Dev.");
-        var connection = new SqlConnection(builder.ConnectionString);
-        await connection.OpenAsync(cancellationToken);
-        if (!string.Equals(connection.Database, "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-        { await connection.DisposeAsync(); throw new InvalidOperationException("Billing requires BPLS_Dev."); }
-        return connection;
-    }
+    private Task<SqlConnection> OpenAsync(CancellationToken cancellationToken)
+        => DatabaseConnection.OpenAsync(configuration, cancellationToken);
 
     private static async Task<IReadOnlyList<ArrearsRow>> ReadArrearsAsync(SqlConnection connection,
         SqlTransaction? transaction, string sin, CancellationToken token)

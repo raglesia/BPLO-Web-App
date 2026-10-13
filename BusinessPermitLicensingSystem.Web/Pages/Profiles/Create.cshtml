@@ -6,9 +6,10 @@
 }
 
 <div class="page-header"><div><p class="eyebrow">Stall owners</p><h1>Add Profile</h1><p>SIN is assigned when the profile is saved.</p></div></div>
-<form method="post" class="form-panel">
+<form method="post" class="form-panel" onsubmit="return confirm('New Profile\n\nCreate this Stall Owner Profile with the selected first billable month? Payment is due on the 20th.');">
     <div asp-validation-summary="All" class="text-danger" role="alert"></div>
     <partial name="_Fields" for="Input" />
+    <div class="mb-3"><label asp-for="Input.FirstBillingMonth" class="form-label">First billable month (optional)</label><input asp-for="Input.FirstBillingMonth" type="month" asp-format="{0:yyyy-MM}" class="form-control" /><span asp-validation-for="Input.FirstBillingMonth" class="text-danger"></span><p class="form-text">Leave blank to start billing the month after occupancy. Payment remains due on the 20th of each billable month.</p></div>
     <div class="form-actions"><button class="btn btn-primary" type="submit">Save Profile</button>
     <a class="btn btn-outline-secondary" asp-page="/Profiles/Index">Cancel</a></div>
 </form>

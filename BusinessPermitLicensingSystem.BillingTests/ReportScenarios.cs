@@ -5,38 +5,46 @@ using Microsoft.Extensions.Configuration;
 
 internal static class ReportScenarios
 {
-    private const string ConnectionString = "Server=.\\SQLEXPRESS;Database=BPLS_Dev;Integrated Security=True;Encrypt=True;TrustServerCertificate=True";
     private static void Check(bool yes, string label) { if (!yes) throw new Exception(label); Console.WriteLine("PASS " + label); }
     public static async Task RunAsync()
     {
-        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-        { ["ConnectionStrings:BPLS"] = ConnectionString }).Build();
+        var configuration = QaDatabase.Configuration();
+        QaDatabase.RequireIsolated(configuration);
         var service = new ReportService(configuration);
-        await using var connection = new SqlConnection(ConnectionString);
+        await using var connection = new SqlConnection(configuration.GetConnectionString("BPLS"));
         await connection.OpenAsync();
-        Check((string?)await Scalar("SELECT DB_NAME()") == "BPLS_Dev", "report tests use BPLS_Dev");
+        Check((string?)await Scalar("SELECT DB_NAME()") == configuration["Database:ApprovedDatabase"], "report tests use isolated QA staging");
         Check(ReportService.ValidateRange(2026, 2, 2026, 1) is not null &&
             ReportService.ValidateRange(2026, 13, 2026, 13) is not null &&
             ReportService.ValidateRange(2026, 1, 2026, 3) is null, "report period validation");
         int user = (int)(await Scalar("SELECT TOP (1) Id FROM Users ORDER BY Id") ?? throw new Exception("No user"));
         string run = Guid.NewGuid().ToString("N")[..10];
+        string orRun = QaDatabase.OrRun();
         string sin = "SIN-REPTEST-" + run, legacySin = "SIN-LEGREP-" + run;
         await InsertProfile(sin, "Synthetic Report Owner", 1);
         await InsertProfile(legacySin, "Synthetic Legacy Owner", 1);
-        await Bill(sin, 1, 100, 10, 25, "Paid", "BaseOnly", "DEV-REP-" + run);
+        await Bill(sin, 1, 100, 10, 25, "Paid", "BaseOnly", orRun + "-1");
         await Bill(sin, 2, 200, 0, 0, "Unpaid", "BaseOnly", null);
         await Bill(sin, 3, 100, 0, 25, "Unpaid", "BaseOnly", null);
         await Bill(legacySin, 1, 110, 10, 25, "Unpaid", null, null);
         await Execute("""
             INSERT INTO PaymentHistory (SIN, ORNumber, AmountPaid, Penalty, DatePaid, RecordedBy)
             VALUES (@sin, @or, 135, 25, '2026-02-15', @user)
-            """, ("@sin", sin), ("@or", "DEV-REP-" + run), ("@user", user));
+            """, ("@sin", sin), ("@or", orRun + "-1"), ("@user", user));
         await Execute("""
             INSERT INTO PaymentHistoryBilling (PaymentHistoryId, MonthlyBillingId)
             SELECT p.Id, b.Id FROM PaymentHistory p CROSS JOIN MonthlyBilling b
             WHERE p.SIN=@sin AND p.ORNumber=@or AND b.SIN=@sin AND b.BillingYear=2026 AND b.BillingMonth=1
-            """, ("@sin", sin), ("@or", "DEV-REP-" + run));
+            """, ("@sin", sin), ("@or", orRun + "-1"));
         await Execute("UPDATE Profiling SET MonthlyRental=999, BusinessName='=SUM(1,1)' WHERE SIN=@sin", ("@sin", sin));
+        var settled = await new BusinessPermitLicensingSystem.Web.Billing.BillingService(configuration)
+            .GetPaymentItemsAsync(sin, orRun + "-1", default);
+        Check(settled.Count == 1 && settled[0].Month == 1 && settled[0].BaseRent == 100m &&
+            settled[0].Additional == 10m && settled[0].Penalty == 25m,
+            "settled rental itemization uses only linked paid bill, not current rent or unpaid bills");
+        Check((await new BusinessPermitLicensingSystem.Web.Billing.BillingService(configuration)
+            .GetPaymentItemsAsync(sin, orRun + "-999", default)).Count == 0,
+            "unknown OR cannot include unrelated rental items");
         int billsBefore = (int)(await Scalar("SELECT COUNT(*) FROM MonthlyBilling") ?? 0);
         int paymentsBefore = (int)(await Scalar("SELECT COUNT(*) FROM PaymentHistory") ?? 0);
         int auditsBefore = (int)(await Scalar("SELECT COUNT(*) FROM AuditTrail") ?? 0);
@@ -46,7 +54,7 @@ internal static class ReportScenarios
         Check(report.Bills.First(x => x.Month == 1).StoredRent == 100m &&
               Convert.ToDecimal(await Scalar("SELECT MonthlyRental FROM Profiling WHERE SIN=@sin", ("@sin", sin))) == 999m,
               "billing report uses stored snapshot after profile rent changes");
-        Check(report.Payments.Count == 1 && report.Payments[0].OrNumber == "DEV-REP-" + run &&
+        Check(report.Payments.Count == 1 && report.Payments[0].OrNumber == orRun + "-1" &&
               report.Payments[0].Amount == 135m && report.Payments[0].Periods == "2026-01" &&
               report.Payments[0].PaidAt.Date == new DateTime(2026, 2, 15) && report.Payments[0].Recorder.Length > 0,
               "paid billing uses OR, date, amount, recorder, and exact linked period");

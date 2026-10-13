@@ -54,7 +54,9 @@ public sealed class ProfileInput
 
     [Range(typeof(decimal), "0", "9999999999999999.99")]
     [Display(Name = "Additional charge")]
-    public decimal AdditionalCharge { get; set; }
+    public decimal? AdditionalCharge { get; set; }
+
+    public DateTime? FirstBillingMonth { get; set; }
 
     public static ProfileInput FromRecord(ProfileRecord record) => new()
     {

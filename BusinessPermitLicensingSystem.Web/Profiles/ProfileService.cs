@@ -1,3 +1,4 @@
+using BusinessPermitLicensingSystem.Web.Data;
 using System.Data;
 using System.Globalization;
 using System.Text.RegularExpressions;
@@ -101,6 +102,16 @@ public sealed class ProfileService(IConfiguration configuration)
                 """, connection, transaction);
             AddProfileParameters(insert, sin, data!);
             await insert.ExecuteNonQueryAsync(cancellationToken);
+            if(input.FirstBillingMonth is DateTime firstMonth)
+            {
+                if(!input.StartDate.HasValue || firstMonth.Year < 2000 || firstMonth.Year > 2100 ||
+                    new DateTime(firstMonth.Year,firstMonth.Month,1) < new DateTime(input.StartDate.Value.Year,input.StartDate.Value.Month,1))
+                    return new(null,"First billable month must be on or after the occupancy month.","Input.FirstBillingMonth");
+                await using var schedule = new SqlCommand("INSERT INTO AppSettings ([Key],[Value]) VALUES (@key,@value)",connection,transaction);
+                schedule.Parameters.Add("@key",SqlDbType.NVarChar,100).Value="ProfileFirstBillingMonth:"+sin;
+                schedule.Parameters.Add("@value",SqlDbType.NVarChar,255).Value=new DateTime(firstMonth.Year,firstMonth.Month,1).ToString("yyyy-MM-dd",CultureInfo.InvariantCulture);
+                await schedule.ExecuteNonQueryAsync(cancellationToken);
+            }
             await InsertAuditAsync(connection, transaction, "Add", sin, userId,
                 $"Added profile for {data!.FullName}, Status: {data.PaymentStatus}", cancellationToken);
             await transaction.CommitAsync(cancellationToken);
@@ -201,7 +212,7 @@ public sealed class ProfileService(IConfiguration configuration)
             catch (OverflowException) { return (null, new(null, "Calculated rental is too large.", "Input.StallSize")); }
         }
 
-        decimal additional = input.IncludeAdditionalCharge ? decimal.Round(input.AdditionalCharge, 2) : 0;
+        decimal additional = input.IncludeAdditionalCharge ? decimal.Round(input.AdditionalCharge ?? 0, 2) : 0;
         if (additional < 0)
             return (null, new(null, "Additional charge cannot be negative.", "Input.AdditionalCharge"));
         decimal rental;
@@ -219,27 +230,8 @@ public sealed class ProfileService(IConfiguration configuration)
             input.StartDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "", additional), null);
     }
 
-    private async Task<SqlConnection> OpenAsync(CancellationToken cancellationToken)
-    {
-        string connectionString = configuration.GetConnectionString("BPLS")
-            ?? throw new InvalidOperationException("BPLS connection is not configured.");
-        if (!string.Equals(new SqlConnectionStringBuilder(connectionString).InitialCatalog,
-                "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Profile work requires BPLS_Dev.");
-        var connection = new SqlConnection(connectionString);
-        try
-        {
-            await connection.OpenAsync(cancellationToken);
-            if (!string.Equals(connection.Database, "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Profile work requires BPLS_Dev.");
-            return connection;
-        }
-        catch
-        {
-            await connection.DisposeAsync();
-            throw;
-        }
-    }
+    private Task<SqlConnection> OpenAsync(CancellationToken cancellationToken)
+        => DatabaseConnection.OpenAsync(configuration, cancellationToken);
 
     private static async Task<ProfileRecord?> GetAsync(
         SqlConnection connection, SqlTransaction? transaction, string sin, CancellationToken cancellationToken)
