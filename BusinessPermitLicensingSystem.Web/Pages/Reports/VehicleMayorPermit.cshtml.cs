@@ -5,6 +5,7 @@ using System.Security.Claims;
 namespace BusinessPermitLicensingSystem.Web.Pages.Reports;
 public class VehicleMayorPermitModel(VehiclePaymentReportService payments, VehicleMayorPermitService permits, ILogger<VehicleMayorPermitModel> logger) : PageModel
 {
+    [BindProperty(SupportsGet=true)] public string? ReturnUrl { get; set; }
     public VehiclePaymentReport? Report { get; private set; }
     public string? PermitNumber { get; private set; }
     public string? Error { get; private set; }
@@ -36,7 +37,7 @@ public class VehicleMayorPermitModel(VehiclePaymentReportService payments, Vehic
         if(Report is null || Error is not null)return Page();
         if(!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier),out int userId))
         {Error="Sign in again before preparing a permit.";return Page();}
-        try { await permits.PrepareAsync(id,userId,PrintedAt,HttpContext.RequestAborted);return RedirectToPage(new{id}); }
+        try { await permits.PrepareAsync(id,userId,PrintedAt,HttpContext.RequestAborted);return RedirectToPage(new{id,returnUrl=Url.IsLocalUrl(ReturnUrl)?ReturnUrl:null}); }
         catch(Exception ex){logger.LogError(ex,"Mayor's Permit preparation failed for {Id}",id);Error="Permit preparation failed. Refresh and try again.";return Page();}
     }
 }

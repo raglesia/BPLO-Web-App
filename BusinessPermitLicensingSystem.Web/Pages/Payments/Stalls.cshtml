@@ -10,16 +10,16 @@
 {
     <p><strong>@Model.Record.Name</strong> · <span class="status-badge @Model.Record.Status.ToLowerInvariant()">@Model.Record.Status</span></p>
     <p class="eyebrow">1 · Before Payment</p><h2 class="section-heading">Rental Assessment</h2><p class="form-text">Review the current rental obligation before payment.</p>
-    <p><a class="btn btn-outline-primary" asp-page="/Reports/RentalPaymentPreview" asp-route-selected="@RouteData.Values["sin"]">Print Rental Report</a></p><p class="form-text">Shows current rent, verified arrears, penalties, and total amount due.</p>
+    <p><a class="btn btn-outline-primary" asp-page="/Reports/RentalPaymentPreview" asp-route-returnUrl="@Url.Page("/Payments/Stalls",new {sin=RouteData.Values["sin"],listSearch=Model.ListSearch,listPage=Model.ListPage})" asp-route-selected="@RouteData.Values["sin"]">Print Rental Report</a></p><p class="form-text">Shows current rent, verified arrears, penalties, and total amount due.</p>
     @if (Model.Record.IsLegacyBaseline) { <p class="form-text">December 1, 2026 is this legacy profile's computerized tracking baseline, not its verified historical occupancy date. December rent is immediately billable.</p> }
     @if (Model.Record.Archived) { <p>Archived profile. Billing generation is unavailable.</p> }
     else if (Model.Record.Status == "Unverified") { <p>Unverified profile. Billing generation is unavailable.</p> }
     else
     {
-        <form method="post" asp-page-handler="Generate" asp-route-sin="@RouteData.Values["sin"]" class="d-inline">
+        <form method="post" asp-route-listSearch="@Model.ListSearch" asp-route-listPage="@Model.ListPage" asp-page-handler="Generate" asp-route-sin="@RouteData.Values["sin"]" class="d-inline">
             <button class="btn btn-outline-primary" type="submit">Generate missing billing periods</button>
         </form>
-        <form method="post" asp-page-handler="Penalties" asp-route-sin="@RouteData.Values["sin"]" class="d-inline">
+        <form method="post" asp-route-listSearch="@Model.ListSearch" asp-route-listPage="@Model.ListPage" asp-page-handler="Penalties" asp-route-sin="@RouteData.Values["sin"]" class="d-inline">
             <button class="btn btn-outline-secondary" type="submit">Recalculate profile penalty</button>
         </form>
     }
@@ -56,7 +56,7 @@
             <p>Enter prior unpaid rent from the Treasury logbook. Saving arrears does not record payment. Only an issued OR records payment.</p>
             @if (!Model.Record.Archived && Model.Record.Status != "Unverified")
             {
-                <form method="post" asp-page-handler="SaveArrears" asp-route-sin="@RouteData.Values["sin"]" class="row g-3 align-items-end mb-4">
+                <form method="post" asp-route-listSearch="@Model.ListSearch" asp-route-listPage="@Model.ListPage" asp-page-handler="SaveArrears" asp-route-sin="@RouteData.Values["sin"]" class="row g-3 align-items-end mb-4">
                     <div class="col-sm-2"><label class="form-label" for="arrears-year">Year</label><input class="form-control" id="arrears-year" name="ArrearsYear" type="number" min="2000" max="2100" required /></div>
                     <div class="col-sm-2"><label class="form-label" for="arrears-month">Month</label><select class="form-select" id="arrears-month" name="ArrearsMonth" required><option value="">Choose</option>@for (int month = 1; month <= 12; month++) { <option value="@month">@(new DateTime(2000, month, 1).ToString("MMMM"))</option> }</select></div>
                     <div class="col-sm-2"><label class="form-label" for="arrears-rent">Base Rent</label><input class="form-control" id="arrears-rent" name="ArrearsBaseRent" type="number" min="0.01" step="0.01" required /></div>
@@ -71,7 +71,7 @@
                     <tr><td>@(new DateTime(item.Year, item.Month, 1).ToString("MMMM yyyy"))</td><td class="money">₱@item.BaseRent.ToString("N2")</td><td class="money">₱@item.Additional.ToString("N2")</td><td class="money">₱@item.CurrentPenalty(Model.AsOf).ToString("N2")</td><td class="money">₱@item.Total(Model.AsOf).ToString("N2")</td><td>@(item.IsPaid ? "Paid" : "Unpaid")</td><td>@item.TreasuryReference</td><td>
                         @if (!item.IsPaid && !Model.Record.Archived)
                         {
-                            <details><summary>Correct</summary><form method="post" asp-page-handler="SaveArrears" asp-route-sin="@RouteData.Values["sin"]" class="d-grid gap-2 mt-2" style="min-width: 12rem">
+                            <details><summary>Correct</summary><form method="post" asp-route-listSearch="@Model.ListSearch" asp-route-listPage="@Model.ListPage" asp-page-handler="SaveArrears" asp-route-sin="@RouteData.Values["sin"]" class="d-grid gap-2 mt-2" style="min-width: 12rem">
                                 <input type="hidden" name="ArrearsId" value="@item.Id" />
                                 <label>Year<input class="form-control" name="ArrearsYear" type="number" min="2000" max="2100" value="@item.Year" required /></label>
                                 <label>Month<select class="form-select" name="ArrearsMonth" required>@for (int month = 1; month <= 12; month++) { <option value="@month" selected="@(month == item.Month)">@(new DateTime(2000, month, 1).ToString("MMMM"))</option> }</select></label>
@@ -91,7 +91,7 @@
     {
         <section class="section-panel"><p class="eyebrow">3 · Record Payment</p><h2 class="section-heading">Payment</h2><p class="form-text">Recording the OR finalizes payment of the outstanding obligations.</p>
         <p>One OR number settles all eligible outstanding billing periods and verified arrears included in the total above. The full amount is calculated again when submitted.</p>
-        <form method="post" asp-page-handler="Pay" asp-route-sin="@RouteData.Values["sin"]" style="max-width: 28rem">
+        <form method="post" asp-route-listSearch="@Model.ListSearch" asp-route-listPage="@Model.ListPage" asp-page-handler="Pay" asp-route-sin="@RouteData.Values["sin"]" style="max-width: 28rem">
             <div class="mb-3"><label class="form-label" asp-for="OrNumber">OR Number</label>
                 <input class="form-control" asp-for="OrNumber" maxlength="100" pattern="[0-9-]+" title="Use numbers and hyphens only." oninput="this.value = this.value.replace(/[^0-9-]/g, &apos;&apos;)" required /></div>
             <div class="form-check mb-3"><input class="form-check-input" asp-for="ConfirmPayment" required />
@@ -108,11 +108,11 @@
         {
             <tr><td>@payment.OrNumber</td><td>@payment.DatePaid.ToString("MMMM dd, yyyy hh:mm tt")</td>
                 <td class="money">₱@payment.Amount.ToString("N2")</td><td class="money">₱@payment.Penalty.ToString("N2")</td>
-                <td>@payment.RecordedBy</td><td>@payment.Periods</td><td><a asp-page="/Reports/StallPaymentPreview" asp-route-sin="@RouteData.Values["sin"]" asp-route-orNumber="@payment.OrNumber">Print Payment Report</a></td></tr>
+                <td>@payment.RecordedBy</td><td>@payment.Periods</td><td><a asp-page="/Reports/StallPaymentPreview" asp-route-returnUrl="@Url.Page("/Payments/Stalls",new {sin=RouteData.Values["sin"],listSearch=Model.ListSearch,listPage=Model.ListPage})" asp-route-sin="@RouteData.Values["sin"]" asp-route-orNumber="@payment.OrNumber">Print Payment Report</a></td></tr>
         }
         </tbody>
     </table></div>
     @if (Model.Record.Payments.Count == 0) { <p class="empty-state">Rental Payment Report available after an OR is recorded.</p> }
 }
-<a asp-page="/Profiles/Details" asp-route-sin="@RouteData.Values["sin"]">Back to profile</a>
+<a asp-page="/Payments/Index" asp-route-kind="stalls" asp-route-search="@Model.ListSearch" asp-route-pageNumber="@Math.Max(1,Model.ListPage)">Back to Billing &amp; Payments</a>
 

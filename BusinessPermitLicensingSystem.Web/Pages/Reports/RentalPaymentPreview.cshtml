@@ -5,7 +5,7 @@
     <div class="page-actions">
         @if (Model.Reports.Count == 1)
         {
-            <a class="btn btn-outline-secondary" asp-page="/Payments/Stalls" asp-route-sin="@Model.Reports[0].Sin">Back</a>
+            <a class="btn btn-outline-secondary" href="@(Url.IsLocalUrl(Request.Query["returnUrl"].ToString()) ? Request.Query["returnUrl"].ToString() : Url.Page("/Payments/Stalls",new {sin=Model.Reports[0].Sin}))">Back</a>
         }
         else
         {

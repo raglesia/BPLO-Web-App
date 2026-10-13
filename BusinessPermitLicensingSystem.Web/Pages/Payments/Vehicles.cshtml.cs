@@ -8,6 +8,8 @@ namespace BusinessPermitLicensingSystem.Web.Pages.Payments;
 
 public class VehiclePaymentsModel(VehicleService vehicles, ILogger<VehiclePaymentsModel> logger) : PageModel
 {
+    [BindProperty(SupportsGet=true)] public string ListSearch { get; set; } = "";
+    [BindProperty(SupportsGet=true)] public int ListPage { get; set; } = 1;
     protected ILogger<VehiclePaymentsModel> Log => logger;
     public VehicleDetails? Vehicle { get; private set; }
     public string? Error { get; protected set; }
@@ -39,7 +41,7 @@ public class VehiclePaymentsModel(VehicleService vehicles, ILogger<VehiclePaymen
             if (!result.Success)
             { Error = result.Error; return await LoadAsync(vin, false); }
             TempData["VehicleNotice"] = $"{DateTime.Today.Year} fee draft saved: ₱{result.Total:N2}. No payment was recorded.";
-            return RedirectToPage("/Payments/Vehicles", new { vin });
+            return RedirectToPage("/Payments/Vehicles", new { vin, listSearch=ListSearch, listPage=ListPage });
         }
         catch (Exception exception)
         { logger.LogError(exception, "Vehicle fee draft failed for {Vin}", vin);
@@ -59,7 +61,7 @@ public class VehiclePaymentsModel(VehicleService vehicles, ILogger<VehiclePaymen
             if (!result.Success)
             { Error = result.Error; return await LoadAsync(vin, true); }
             TempData["VehicleNotice"] = $"Vehicle payment recorded for {result.Year}. OR {result.OrNumber}; amount ₱{result.Amount:N2}.";
-            return RedirectToPage("/Payments/Vehicles", new { vin });
+            return RedirectToPage("/Payments/Vehicles", new { vin, listSearch=ListSearch, listPage=ListPage });
         }
         catch (Exception exception)
         { logger.LogError(exception, "Vehicle payment failed for {Vin}", vin);

@@ -4,7 +4,7 @@
 @{ ViewData["Title"] = "Special Vehicle Permit Billing Report"; }
 <div class="page-header rental-preview-toolbar">
     <div><p class="eyebrow">Reports</p><h1>Special Vehicle Permit Billing Report</h1><p>Saved current-year assessment for Treasury payment.</p></div>
-    <div class="page-actions"><a class="btn btn-outline-secondary" asp-page="/Payments/Vehicles" asp-route-vin="@Request.Query["vin"]">Back</a>
+    <div class="page-actions"><a class="btn btn-outline-secondary" href="@(Url.IsLocalUrl(Request.Query["returnUrl"].ToString()) ? Request.Query["returnUrl"].ToString() : Url.Page("/Payments/Vehicles",new {vin=Request.Query["vin"].ToString()}))">Back</a>
         @if (Model.Vehicle is not null) { <button class="btn btn-primary" type="button" onclick="window.print()">Print</button> }
     </div>
 </div>

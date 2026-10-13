@@ -44,7 +44,7 @@
         <div class="vehicle-assessment-width"><p class="eyebrow">1 · Before Payment</p><h2 class="section-heading" id="fee-assessment">@Model.Vehicle.SelectedYear Permit Assessment</h2>
         @if (Model.Vehicle.DraftError is not null) { <p class="text-danger" role="alert">@Model.Vehicle.DraftError</p> }
         <p>Save Draft stores the fee assessment only. It does not record an annual permit payment. Existing payment amounts stay unchanged.</p></div>
-        <form method="post" asp-page-handler="SaveDraft" asp-route-vin="@Model.Vehicle.Vin" class="vehicle-assessment vehicle-assessment-width" data-fee-assessment>
+        <form method="post" asp-route-listSearch="@Model.ListSearch" asp-route-listPage="@Model.ListPage" asp-page-handler="SaveDraft" asp-route-vin="@Model.Vehicle.Vin" class="vehicle-assessment vehicle-assessment-width" data-fee-assessment>
             <section class="section-panel assessment-section" aria-labelledby="permit-details-title">
             <h3 id="permit-details-title" class="assessment-heading">Permit Details</h3>
             <p class="form-text">These details describe the annual permit. Fee amounts are entered separately below.</p>
@@ -121,7 +121,7 @@
             </section>
             <section class="section-panel assessment-summary" aria-label="Total Amount Due and Save Draft"><div><span class="assessment-summary-label">Total Amount Due</span><output id="fee-total" class="money assessment-total" aria-live="polite">₱0.00</output><span class="form-text">Current form total. Save Draft to use this assessment for payment.</span></div>
                 <div class="assessment-actions"><span class="form-text">Saved total: @(Model.Vehicle.Draft is null ? "No draft" : $"₱{Model.Vehicle.Draft.GrandTotal:N2}")</span><button class="btn btn-primary" type="submit">Save Draft</button>
-                    @if (!Model.Vehicle.Archived && Model.Vehicle.Draft is not null) { <a class="btn btn-outline-primary" asp-page="/Reports/VehicleBillingPreview" asp-route-vin="@Model.Vehicle.Vin">Print Billing Report</a> }
+                    @if (!Model.Vehicle.Archived && Model.Vehicle.Draft is not null) { <a class="btn btn-outline-primary" asp-page="/Reports/VehicleBillingPreview" asp-route-returnUrl="@Url.Page("/Payments/Vehicles",new {vin=Model.Vehicle.Vin,listSearch=Model.ListSearch,listPage=Model.ListPage})" asp-route-vin="@Model.Vehicle.Vin">Print Billing Report</a> }
                     <span class="form-text">For payment at Treasury. Print the saved assessment before recording the OR.</span>
                 </div>
             </section>
@@ -131,7 +131,7 @@
         {
             <section class="section-panel vehicle-assessment-width" id="vehicle-payment" tabindex="-1"><p class="eyebrow">2 · Record Payment</p><h2 class="section-heading">Treasury Payment</h2><p class="form-text">Recording the OR finalizes the official Treasury payment for this permit year.</p>
             <p>Annual payment for <strong>@Model.Vehicle.Company</strong> · plate number <strong>@Model.Vehicle.Plate</strong> · permit year <strong>@Model.Vehicle.SelectedYear</strong>. Amount due: <strong class="money">₱@Model.Vehicle.Draft.GrandTotal.ToString("N2")</strong>. The saved assessment is checked again when you submit.</p>
-            <form method="post" asp-page-handler="Pay" asp-route-vin="@Model.Vehicle.Vin" style="max-width: 28rem">
+            <form method="post" asp-route-listSearch="@Model.ListSearch" asp-route-listPage="@Model.ListPage" asp-page-handler="Pay" asp-route-vin="@Model.Vehicle.Vin" style="max-width: 28rem">
                 <div class="mb-3"><label asp-for="OrNumber" class="form-label">Vehicle OR Number</label>
                     <input asp-for="OrNumber" class="form-control" maxlength="100" pattern="[0-9-]+" title="Use numbers and hyphens only." oninput="this.value = this.value.replace(/[^0-9-]/g, &apos;&apos;)" required /></div>
                 <div class="form-check mb-3"><input asp-for="ConfirmPayment" class="form-check-input" required />
@@ -147,12 +147,12 @@
         <tbody>
         @foreach (var payment in Model.Vehicle.History)
         { <tr><td>@payment.Year</td><td>@payment.OrNumber</td><td class="money">₱@payment.Amount.ToString("N2")</td>
-            <td>@payment.PaidAt.ToString("yyyy-MM-dd HH:mm")</td><td>@payment.Recorder</td><td><a asp-page="/Reports/VehiclePaymentPreview" asp-route-selected="@payment.Id">Print Payment Report</a>@if (!Model.Vehicle.Archived) { <form method="post" asp-page="/Reports/VehicleMayorPermit" asp-page-handler="Prepare" asp-route-id="@payment.Id"><button type="submit" class="vehicle-report-link">Print Mayor’s Permit</button></form> }</td></tr> }
+            <td>@payment.PaidAt.ToString("yyyy-MM-dd HH:mm")</td><td>@payment.Recorder</td><td><a asp-page="/Reports/VehiclePaymentPreview" asp-route-returnUrl="@Url.Page("/Payments/Vehicles",new {vin=Model.Vehicle.Vin,listSearch=Model.ListSearch,listPage=Model.ListPage})" asp-route-selected="@payment.Id">Print Payment Report</a>@if (!Model.Vehicle.Archived) { <form method="post" asp-page="/Reports/VehicleMayorPermit" asp-route-returnUrl="@Url.Page("/Payments/Vehicles",new {vin=Model.Vehicle.Vin,listSearch=Model.ListSearch,listPage=Model.ListPage})" asp-route-listSearch="@Model.ListSearch" asp-route-listPage="@Model.ListPage" asp-page-handler="Prepare" asp-route-id="@payment.Id"><button type="submit" class="vehicle-report-link">Print Mayor’s Permit</button></form> }</td></tr> }
         </tbody>
     </table></div>
     @if (Model.Vehicle.History.Count == 0) { <p class="empty-state">Payment Report and Mayor’s Permit are available after an OR is recorded. Complete the saved permit details before issuing the Mayor’s Permit.</p> }
 
 }
-<a asp-page="/Vehicles/Index">Back to Special Vehicle Permits</a>
+<a asp-page="/Payments/Index" asp-route-kind="vehicles" asp-route-search="@Model.ListSearch" asp-route-pageNumber="@Math.Max(1,Model.ListPage)">Back to Billing &amp; Payments</a>
 @section Scripts { <script src="~/js/vehicle-fee-assessment.js" asp-append-version="true"></script> }
 

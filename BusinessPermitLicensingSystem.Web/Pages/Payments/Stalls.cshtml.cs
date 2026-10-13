@@ -7,6 +7,8 @@ namespace BusinessPermitLicensingSystem.Web.Pages.Payments;
 
 public class StallPaymentsModel(BillingService billing, ILogger<StallPaymentsModel> logger) : PageModel
 {
+    [BindProperty(SupportsGet=true)] public string ListSearch { get; set; } = "";
+    [BindProperty(SupportsGet=true)] public int ListPage { get; set; } = 1;
     public BillingView? Record { get; private set; }
     public string? Error { get; private set; }
     public string? Notice { get; private set; }
@@ -28,7 +30,7 @@ public class StallPaymentsModel(BillingService billing, ILogger<StallPaymentsMod
         {
             int added = await billing.GenerateAsync(sin, DateTime.Today, HttpContext.RequestAborted);
             TempData["BillingNotice"] = $"Generated {added} missing billing period(s).";
-            return RedirectToPage("/Payments/Stalls", new { sin });
+            return RedirectToPage("/Payments/Stalls", new { sin, listSearch=ListSearch, listPage=ListPage });
         }
         catch (Exception exception)
         {
@@ -44,7 +46,7 @@ public class StallPaymentsModel(BillingService billing, ILogger<StallPaymentsMod
         {
             var amount = await billing.UpdatePenaltyAsync(sin, DateTime.Today, HttpContext.RequestAborted);
             TempData["BillingNotice"] = $"Profile penalty recalculated: {amount:N2}.";
-            return RedirectToPage("/Payments/Stalls", new { sin });
+            return RedirectToPage("/Payments/Stalls", new { sin, listSearch=ListSearch, listPage=ListPage });
         }
         catch (Exception exception)
         {
@@ -66,7 +68,7 @@ public class StallPaymentsModel(BillingService billing, ILogger<StallPaymentsMod
             if (!result.Success)
             { Error = result.Error; return await LoadAsync(sin); }
             TempData["BillingNotice"] = $"Payment recorded. OR {result.OrNumber}; {result.Bills} period(s); amount {result.Amount:N2}.";
-            return RedirectToPage("/Payments/Stalls", new { sin });
+            return RedirectToPage("/Payments/Stalls", new { sin, listSearch=ListSearch, listPage=ListPage });
         }
         catch (Exception exception)
         {
@@ -89,7 +91,7 @@ public class StallPaymentsModel(BillingService billing, ILogger<StallPaymentsMod
             TempData["BillingNotice"] = ArrearsId is null ?
                 "Verified prior unpaid rent added. No payment was recorded." :
                 "Verified prior unpaid rent corrected. No payment was recorded.";
-            return RedirectToPage("/Payments/Stalls", new { sin });
+            return RedirectToPage("/Payments/Stalls", new { sin, listSearch=ListSearch, listPage=ListPage });
         }
         catch (Exception exception)
         {

@@ -2,8 +2,8 @@
 @model BusinessPermitLicensingSystem.Web.Pages.Reports.VehicleMayorPermitModel
 @{ ViewData["Title"]="Mayor’s Permit"; }
 <link rel="stylesheet" href="~/css/vehicle-mayors-permit.css" asp-append-version="true" />
-<div class="page-header mayor-toolbar"><div><p class="eyebrow">Special Vehicle Permits</p><h1>Mayor’s Permit</h1></div><div class="page-actions">@if(Model.Report is not null){<a class="btn btn-outline-secondary" asp-page="/Payments/Vehicles" asp-route-vin="@Model.Report.Vin">Back</a>}else{<a class="btn btn-outline-secondary" asp-page="/Payments/Index" asp-route-kind="vehicles">Back</a>}
-@if(Model.Report is not null && Model.Error is null){if(Model.PermitNumber is null){<form method="post" asp-page-handler="Prepare" asp-route-id="@Model.Report.Id"><button class="btn btn-primary">Print Mayor’s Permit</button></form>}else{<button class="btn btn-primary" onclick="window.print()">Print Mayor’s Permit</button>}}</div></div>
+<div class="page-header mayor-toolbar"><div><p class="eyebrow">Special Vehicle Permits</p><h1>Mayor’s Permit</h1></div><div class="page-actions">@if(Model.Report is not null){<a class="btn btn-outline-secondary" href="@(Url.IsLocalUrl(Model.ReturnUrl) ? Model.ReturnUrl : Url.Page("/Payments/Vehicles",new {vin=Model.Report.Vin}))">Back</a>}else{<a class="btn btn-outline-secondary" asp-page="/Payments/Index" asp-route-kind="vehicles">Back</a>}
+@if(Model.Report is not null && Model.Error is null){if(Model.PermitNumber is null){<form method="post" asp-page-handler="Prepare" asp-route-returnUrl="@Model.ReturnUrl" asp-route-id="@Model.Report.Id"><button class="btn btn-primary">Print Mayor’s Permit</button></form>}else{<button class="btn btn-primary" onclick="window.print()">Print Mayor’s Permit</button>}}</div></div>
 @if(Model.Error is not null){<p class="alert alert-danger" role="alert">@Model.Error</p>}
 else if(Model.Report is not null && Model.PermitNumber is null){<p class="alert alert-info">Click Print Mayor’s Permit to assign its permanent number. Review the preview, then click Print Mayor’s Permit again to print. Reprints reuse that number.</p>}
 @if(Model.Report is not null)
