@@ -1,3 +1,4 @@
+using BusinessPermitLicensingSystem.Web.Data;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Data.SqlClient;
 
@@ -26,19 +27,9 @@ public class IndexModel(IConfiguration configuration, ILogger<IndexModel> logger
             logger.LogWarning("Dashboard counts unavailable: BPLS connection string is not configured.");
             return;
         }
-        if (!string.Equals(new SqlConnectionStringBuilder(connectionString).InitialCatalog,
-                "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-        {
-            logger.LogError("Dashboard counts require BPLS_Dev.");
-            return;
-        }
-
         try
         {
-            await using var connection = new SqlConnection(connectionString);
-            await connection.OpenAsync(HttpContext.RequestAborted);
-            if (!string.Equals(connection.Database, "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Dashboard counts require BPLS_Dev.");
+            await using var connection = await DatabaseConnection.OpenAsync(configuration, HttpContext.RequestAborted);
             await using var command = new SqlCommand("""
                 SELECT
                     (SELECT COUNT(*) FROM Profiling WHERE IsArchived = 0),

@@ -26,8 +26,21 @@ else if (Model.Profile is not null)
         <dt class="col-sm-3">Payment status</dt><dd class="col-sm-9"><span class="status-badge @Model.Profile.PaymentStatus.ToLowerInvariant()">@Model.Profile.PaymentStatus</span></dd>
     </dl></section>
     <div class="page-actions"><a class="btn btn-primary" asp-page="/Profiles/Edit" asp-route-sin="@Model.Profile.Sin">Edit Profile</a>
-    <a class="btn btn-outline-primary" asp-page="/Profiles/Billing" asp-route-sin="@Model.Profile.Sin">Billing and Payments</a>
-    <a class="btn btn-outline-primary" asp-page="/Reports/RentalPaymentPreview" asp-route-selected="@Model.Profile.Sin">Print Rental Payment Report</a></div>
+    <a class="btn btn-outline-primary" asp-page="/Payments/Stalls" asp-route-sin="@Model.Profile.Sin">Go to Billing &amp; Payments</a>
+    </div>
+    @if(Model.FinancialSummary is {} financial) {
+    <section class="section-panel mt-4"><h2 class="section-heading">Billing Status and Payment Records</h2>
+    <p>Outstanding total: <strong>@(financial.TotalDue?.ToString("₱#,##0.00") ?? "Review needed")</strong>. Billing actions are available in Billing &amp; Payments.</p>
+    <div class="table-responsive"><table class="table financial-table"><thead><tr><th>Rental period</th><th>Status</th><th>Base rent</th><th>Additional</th><th>OR number</th></tr></thead><tbody>
+    @foreach(var row in financial.Rows){<tr><td>@(new DateTime(row.Year,row.Month,1).ToString("MMMM yyyy"))</td><td>@row.Status</td><td>@(row.BaseRent?.ToString("₱#,##0.00") ?? "Review needed")</td><td>₱@row.Additional.ToString("N2")</td><td>@row.OrNumber</td></tr>}
+    </tbody></table></div>
+    @if(financial.Rows.Count==0){<p class="empty-state">No billing periods yet.</p>}
+    @if(financial.Arrears.Count>0){<h3>Treasury-Verified Arrears</h3><div class="table-responsive"><table class="table financial-table"><thead><tr><th>Period</th><th>Status</th><th>Base rent</th><th>Additional</th></tr></thead><tbody>@foreach(var item in financial.Arrears){<tr><td>@(new DateTime(item.Year,item.Month,1).ToString("MMMM yyyy"))</td><td>@(item.IsPaid?"Paid":"Unpaid")</td><td>₱@item.BaseRent.ToString("N2")</td><td>₱@item.Additional.ToString("N2")</td></tr>}</tbody></table></div>}
+    <h3>Payment Records</h3><div class="table-responsive"><table class="table financial-table"><thead><tr><th>OR number</th><th>Date</th><th>Amount paid</th><th>Covered periods</th><th>Report</th></tr></thead><tbody>
+    @foreach(var payment in financial.Payments){<tr><td>@payment.OrNumber</td><td>@payment.DatePaid.ToString("yyyy-MM-dd HH:mm")</td><td>₱@payment.Amount.ToString("N2")</td><td>@payment.Periods</td><td><a asp-page="/Reports/StallPaymentPreview" asp-route-sin="@Model.Profile.Sin" asp-route-orNumber="@payment.OrNumber" asp-route-returnUrl="@Url.Page("/Profiles/Details",new {sin=Model.Profile.Sin})">Print Rental Payment Report</a></td></tr>}
+    </tbody></table></div>@if(financial.Payments.Count==0){<p class="empty-state">No recorded payments.</p>}
+    </section>
+    }
     <form method="post" asp-page-handler="Archive" asp-route-sin="@Model.Profile.Sin" class="section-panel mt-4">
         <h2 class="section-heading">Archive Profile</h2>
         <div class="form-check"><input asp-for="ConfirmArchive" class="form-check-input" required />

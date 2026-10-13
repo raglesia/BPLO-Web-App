@@ -1,3 +1,4 @@
+using BusinessPermitLicensingSystem.Web.Data;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
@@ -90,16 +91,6 @@ public sealed class RentalRateService(IConfiguration configuration)
         p = command.Parameters.Add("@flat", SqlDbType.Decimal); p.Precision = 18; p.Scale = 2; p.Value = flat;
     }
 
-    private async Task<SqlConnection> OpenAsync(CancellationToken token)
-    {
-        var builder = new SqlConnectionStringBuilder(configuration.GetConnectionString("BPLS"));
-        if (!string.Equals(builder.InitialCatalog, "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Rental rate work requires BPLS_Dev.");
-        var connection = new SqlConnection(builder.ConnectionString);
-        try { await connection.OpenAsync(token);
-            if (!string.Equals(connection.Database, "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Rental rate work requires BPLS_Dev.");
-            return connection; }
-        catch { await connection.DisposeAsync(); throw; }
-    }
+    private Task<SqlConnection> OpenAsync(CancellationToken token)
+        => DatabaseConnection.OpenAsync(configuration, token);
 }

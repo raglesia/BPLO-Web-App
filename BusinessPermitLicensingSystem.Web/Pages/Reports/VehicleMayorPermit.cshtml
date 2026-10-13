@@ -1,0 +1,27 @@
+@page
+@model BusinessPermitLicensingSystem.Web.Pages.Reports.VehicleMayorPermitModel
+@{ ViewData["Title"]="Mayor’s Permit"; }
+<link rel="stylesheet" href="~/css/vehicle-mayors-permit.css" asp-append-version="true" />
+<div class="page-header mayor-toolbar"><div><p class="eyebrow">Special Vehicle Permits</p><h1>Mayor’s Permit</h1></div><div class="page-actions">@if(Model.Report is not null){<a class="btn btn-outline-secondary" asp-page="/Payments/Vehicles" asp-route-vin="@Model.Report.Vin">Back</a>}else{<a class="btn btn-outline-secondary" asp-page="/Payments/Index" asp-route-kind="vehicles">Back</a>}
+@if(Model.Report is not null && Model.Error is null){if(Model.PermitNumber is null){<form method="post" asp-page-handler="Prepare" asp-route-id="@Model.Report.Id"><button class="btn btn-primary">Print Mayor’s Permit</button></form>}else{<button class="btn btn-primary" onclick="window.print()">Print Mayor’s Permit</button>}}</div></div>
+@if(Model.Error is not null){<p class="alert alert-danger" role="alert">@Model.Error</p>}
+else if(Model.Report is not null && Model.PermitNumber is null){<p class="alert alert-info">Click Print Mayor’s Permit to assign its permanent number. Review the preview, then click Print Mayor’s Permit again to print. Reprints reuse that number.</p>}
+@if(Model.Report is not null)
+{
+var r=Model.Report;var d=r.Assessment!.Data;
+<article class="mayor-paper" data-prepared="@(Model.PermitNumber is not null && Model.Error is null ? "true" : "false")" aria-label="Mayor’s Permit preview">
+@if(Model.PermitNumber is null || Model.Error is not null){<p class="mayor-preview-notice">PREVIEW ONLY — NOT ISSUED — NOT VALID FOR PRINTING</p>}
+<svg class="mayor-wave" viewBox="0 0 800 180" preserveAspectRatio="none" aria-hidden="true"><path fill="#adb0b7" d="M0 0H800V180C510 100 270 22 0 130Z"/><path fill="#182abe" d="M0 0H800V155C510 70 270 0 0 105Z"/></svg>
+<img class="mayor-watermark" src="~/images/mayors-permit/municipal-hall.png" alt="" aria-hidden="true" />
+<header class="mayor-heading"><div>Republic of the Philippines<br/>Province of Zambales<br/>Municipality of Masinloc</div><img class="mayor-seal mayor-seal-left" src="~/images/masinloc-logo.jpg" alt="Municipality of Masinloc seal"/><img class="mayor-seal mayor-seal-right" src="~/images/mayors-permit/bplo-logo.jpg" alt="Business Permits and Licensing Office logo"/><h2>MAYOR’S PERMIT</h2><strong>PERMIT No.: @(Model.PermitNumber ?? "Not assigned")</strong><p>Date Issued: @Model.PrintedAt.ToString("MMMM dd, yyyy")</p></header>
+<p class="mayor-grant">Having complied with all existing ordinances, rules and regulations, this permit is issued pursuant to Masinloc Revenue Code of 2019, Local Government Code Series of 1991 is hereby granted this privilege in the operation</p>
+<div class="mayor-subject"><strong>@r.Company</strong><span>Business Name</span><strong>@r.Driver</strong><span>Tax Payer’s Name</span><strong>@d.Location</strong><span>Location</span><strong>@d.LineOfBusiness</strong><span>Line of Business</span><strong>@d.Description</strong><span>Description of Business</span></div>
+<dl class="mayor-receipt"><div><dt>Mayor’s Permit:</dt><dd>₱@r.Assessment.Amounts[0].ToString("N2")</dd></div><div><dt>O.R. No.:</dt><dd>@r.OrNumber</dd></div><div><dt>Payment Date:</dt><dd>@r.PaidAt.ToString("MMMM dd, yyyy")</dd></div><div><dt>Place Issued:</dt><dd>MASINLOC, ZAMBALES</dd></div><div><dt>Date Printed:</dt><dd>@Model.PrintedAt.ToString("MMMM dd, yyyy")</dd></div></dl>
+<div class="mayor-approval"><span>Approved by:</span><div class="mayor-signature"></div><strong>HON. HAZEL J. LIM</strong><span>MUNICIPAL MAYOR</span></div>
+<div class="mayor-bottom"><section class="mayor-terms"><h3>TERMS &amp; CONDITIONS:</h3><ol><li>This permit must be posted in a conspicuous place in your establishment.</li><li>This permit is only a privilege and not a right, subject to revocation and closure of business establishment for any violation of existing Laws and Ordinances and conditions set forth in the permit.</li><li>This permit must be renewed on or before January 20 of the following year unless sooner revoked for cause. Failure to renew within the time required shall subject the taxpayer to a surcharge of 25% of the amount of taxes, fees or charges due, plus an interest of 2% per month of the unpaid taxes, fees and charges including surcharges.</li><li>This permit is not valid without Official Receipt, Barangay Permit, Sanitary Permit, Fire Safety Inspection Certificate and other government agencies requirements.</li><li>Your business establishment is subject to financial inspection on regulatory compliances.</li><li>Surrender this permit upon closure / retirement of the business.</li></ol></section><img class="mayor-potog" src="~/images/mayors-permit/serbisyon-potog.png" alt="Serbisyon Potog"/></div>
+<footer class="mayor-validity">Valid until December 31, @r.Year, unless sooner revoked</footer>
+</article>
+}
+
+<script src="~/js/vehicle-mayors-permit-print.js" asp-append-version="true"></script>
+

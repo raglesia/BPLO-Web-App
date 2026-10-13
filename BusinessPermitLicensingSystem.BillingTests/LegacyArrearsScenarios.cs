@@ -5,20 +5,20 @@ using Microsoft.Extensions.Configuration;
 
 internal static class LegacyArrearsScenarios
 {
-    private const string ConnectionString = "Server=.\\SQLEXPRESS;Database=BPLS_Dev;Integrated Security=True;Encrypt=True;TrustServerCertificate=True";
 
     public static async Task RunAsync()
     {
-        var settings = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-        { ["ConnectionStrings:BPLS"] = ConnectionString }).Build();
+        var settings = QaDatabase.Configuration();
+        QaDatabase.RequireIsolated(settings);
         var billing = new BillingService(settings);
         var reports = new ReportService(settings);
-        await using var connection = new SqlConnection(ConnectionString);
+        await using var connection = new SqlConnection(settings.GetConnectionString("BPLS"));
         await connection.OpenAsync();
-        Check((string?)await Scalar(connection, "SELECT DB_NAME()") == "BPLS_Dev", "arrears tests use BPLS_Dev");
+        Check((string?)await Scalar(connection, "SELECT DB_NAME()") == settings["Database:ApprovedDatabase"], "arrears tests use isolated QA staging");
         int user = (int)(await Scalar(connection, "SELECT TOP(1) Id FROM Users ORDER BY Id") ?? 0);
         Check(user > 0, "arrears verifier exists");
         string run = Guid.NewGuid().ToString("N")[..10];
+        string orRun = QaDatabase.OrRun();
         string legacy = $"SIN-ARREARS-{run}-L", normal = $"SIN-ARREARS-{run}-N";
         string rollback = $"SIN-ARREARS-{run}-R";
         foreach (var (sin, isLegacy, start) in new[]
@@ -89,7 +89,7 @@ internal static class LegacyArrearsScenarios
         Check((await billing.SaveVerifiedArrearsAsync(legacy, octoberId, 2026, 10,
             1000m, 100m, "Corrected reference", user, overdue, default)).Success,
             "unpaid arrears correction saved");
-        string orNumber = $"ARREARS-{run}-OR";
+        string orNumber = $"{orRun}-1";
         var paid = await billing.PayAsync(legacy, orNumber, user, overdue, default);
         Check(paid.Success && paid.Bills == 4 && paid.Amount == 5300m,
             "one OR settles two arrears and two regular bills");
@@ -119,7 +119,7 @@ internal static class LegacyArrearsScenarios
                 END
                 """);
             bool failed = false;
-            try { await billing.PayAsync(rollback, $"ARREARS-{run}-FAIL", user, overdue, default); }
+            try { await billing.PayAsync(rollback, $"{orRun}-2", user, overdue, default); }
             catch (SqlException exception) when (exception.Number == 51000) { failed = true; }
             Check(failed && (int)(await Scalar(connection,
                 $"SELECT COUNT(*) FROM PaymentHistory WHERE SIN='{rollback}'") ?? 0) == 0 &&
@@ -127,7 +127,7 @@ internal static class LegacyArrearsScenarios
                 "arrears link failure rolls back OR and payment states");
         }
         finally { await Execute(connection, $"DROP TRIGGER IF EXISTS {trigger}"); }
-        Console.WriteLine($"Synthetic arrears profiles retained in BPLS_Dev: {legacy}, {normal}, {rollback}");
+        Console.WriteLine($"Synthetic arrears profiles retained in isolated QA staging: {legacy}, {normal}, {rollback}");
     }
 
     private static async Task<object?> Scalar(SqlConnection connection, string sql)

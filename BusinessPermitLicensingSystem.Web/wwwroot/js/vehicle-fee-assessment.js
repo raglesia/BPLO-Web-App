@@ -21,6 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function computeOccupational() {
     if (!occupational || !employees) return;
     const raw = employees.value.trim();
+    if (raw === '') {
+      occupational.value = money(0n);
+      return;
+    }
     if (/^\d+$/.test(raw) && BigInt(raw) <= 2147483647n)
       occupational.value = money(BigInt(raw) * 30000n);
   }

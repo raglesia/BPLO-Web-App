@@ -275,3 +275,6 @@ string? browserArg = args.FirstOrDefault(x => x.StartsWith("--browser=", StringC
 if (browserArg is not null) await BrowserScenarios.RunAsync(browserArg[10..]);
 string? cleanBaselineArg = args.FirstOrDefault(x => x.StartsWith("--clean-baseline=", StringComparison.Ordinal));
 if (cleanBaselineArg is not null) await CleanBaselineScenarios.RunAsync(cleanBaselineArg[17..]);
+
+if (args.Contains("--database-targets")) await DatabaseTargetScenarios.RunAsync();
+if (args.Contains("--release-qa")) await ReleaseQaScenarios.RunAsync();

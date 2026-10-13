@@ -1,7 +1,7 @@
 @page
 @model BusinessPermitLicensingSystem.Web.Pages.Reports.RentalPaymentModel
-@{ ViewData["Title"] = "Stall Owner Rental Payment"; }
-<div class="page-header"><div><p class="eyebrow">Reports</p><h1>Stall Owner Rental Payment</h1><p>Select up to three active stall owners for one print job.</p></div></div>
+@{ ViewData["Title"] = "Rental Report"; }
+<div class="page-header"><div><p class="eyebrow">Reports</p><h1>Rental Report</h1><p>Select up to three active stall owners for one print job.</p></div></div>
 @if (Model.Error is not null) { <p class="alert alert-danger" role="alert">@Model.Error</p> }
 <section class="section-panel rental-selector" aria-labelledby="selected-heading">
     <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap"><h2 class="section-heading mb-0" id="selected-heading">Selected Stall Owners</h2><p class="mb-0" role="status" aria-live="polite">@Model.Selected.Count of 3 selected</p></div>

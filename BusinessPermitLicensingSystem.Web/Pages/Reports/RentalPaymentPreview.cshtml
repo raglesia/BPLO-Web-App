@@ -1,8 +1,18 @@
 @page
 @model BusinessPermitLicensingSystem.Web.Pages.Reports.RentalPaymentPreviewModel
-@{ ViewData["Title"] = "Stall Owner Rental Payment Preview"; }
-<div class="page-header rental-preview-toolbar"><div><p class="eyebrow">Reports</p><h1>Stall Owner Rental Payment</h1><p>Combined print preview · @Model.Reports.Count report@(Model.Reports.Count == 1 ? "" : "s")</p></div>
-    <div class="page-actions"><a class="btn btn-outline-secondary" asp-page="/Reports/RentalPayment">Back to selection</a>@if (Model.Error is null) { <button class="btn btn-primary" type="button" onclick="window.print()">Print</button> }</div>
+@{ ViewData["Title"] = "Rental Report"; }
+<div class="page-header rental-preview-toolbar"><div><p class="eyebrow">Reports</p><h1>Rental Report</h1><p>Before Payment · @Model.Reports.Count report@(Model.Reports.Count == 1 ? "" : "s")</p></div>
+    <div class="page-actions">
+        @if (Model.Reports.Count == 1)
+        {
+            <a class="btn btn-outline-secondary" asp-page="/Payments/Stalls" asp-route-sin="@Model.Reports[0].Sin">Back</a>
+        }
+        else
+        {
+            <a class="btn btn-outline-secondary" asp-page="/Reports/RentalPayment">Back</a>
+        }
+        @if (Model.Error is null) { <button class="btn btn-primary" type="button" onclick="window.print()">Print</button> }
+    </div>
 </div>
 @if (Model.Error is not null) { <p class="alert alert-danger" role="alert">@Model.Error <a asp-page="/Reports/RentalPayment">Choose stall owners again</a>.</p> }
 @if (Model.Reports.Count > 0)
@@ -28,9 +38,9 @@
         decimal? total = assessed && !review ? rent + additional + penalty + arrearsBase + arrearsAdditional + arrearsPenalty : null;
         string status = unverified ? "Unverified" : review ? "Review Needed" : dueBills.Count + dueArrears.Count > 0 ? "Unpaid" : !assessed ? "Not assessed" : "Paid";
         <article class="rental-payment-block @(dueArrears.Count > 0 ? "rental-arrears-report" : "")" aria-label="Rental payment report for @report.Owner, @report.Sin">
-            <div class="rental-document-heading">
+            <div class="rental-document-heading payment-report-heading">
                 <img src="@Url.Content("~/images/masinloc-logo.jpg")" alt="Municipality of Masinloc seal" width="70" height="70" />
-                <div><strong>Municipality of Masinloc</strong><span>Province of Zambales</span><span>Business Permit and Licensing Office</span><h2>STALL OWNER RENTAL PAYMENT</h2></div>
+                <div><strong>Municipality of Masinloc</strong><span>Province of Zambales</span><span>Business Permit and Licensing Office</span><h2>RENTAL REPORT</h2></div><img src="~/images/mayors-permit/bplo-logo.jpg" alt="Business Permits and Licensing Office logo" width="70" height="70" />
             </div>
             <dl class="rental-info-grid">
                 <div><dt>Stall Owner Name</dt><dd>@report.Owner</dd></div><div><dt>Business Name</dt><dd>@report.Business</dd></div>

@@ -1,0 +1,41 @@
+@model BusinessPermitLicensingSystem.Web.Pages.Profiles.ProfilesIndexModel
+@if (Model.LoadError is not null)
+{
+    <p class="text-danger" role="alert">@Model.LoadError</p>
+}
+else
+{
+    <p class="record-count">@Model.TotalCount active record(s)</p>
+    <div class="table-responsive">
+        <table class="table table-striped table-sm"><caption class="visually-hidden">Active stall-owner profiles</caption>
+            <thead><tr><th scope="col">SIN</th><th scope="col">Full name</th><th scope="col">Business name</th><th scope="col">Monthly rental</th><th scope="col">Additional charge</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
+            <tbody>
+            @foreach (var profile in Model.Profiles)
+            {
+                <tr>
+                    <td>@profile.Sin</td><td>@profile.FullName</td><td>@profile.BusinessName</td>
+                    <td class="money">₱@profile.MonthlyRental.ToString("N2")</td><td class="money">₱@profile.AdditionalCharge.ToString("N2")</td>
+                    <td><span class="status-badge @profile.PaymentStatus.ToLowerInvariant()">@profile.PaymentStatus</span></td>
+                    <td><a asp-page="/Profiles/Details" asp-route-sin="@profile.Sin">View Profile</a> · <a asp-page="/Profiles/Edit" asp-route-sin="@profile.Sin">Edit</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.Profiles.Count == 0) { <p class="empty-state">No stall owners found.</p> }
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Profile pages">
+            @if (Model.PageNumber > 1)
+            {
+                <a class="btn btn-outline-secondary" asp-page="/Profiles/Index" asp-route-search="@Model.Search" asp-route-pageNumber="@(Model.PageNumber - 1)">Previous Page</a>
+            }
+            <span aria-current="page">Page @Model.PageNumber of @Model.TotalPages</span>
+            @if (Model.PageNumber < Model.TotalPages)
+            {
+                <a class="btn btn-outline-secondary" asp-page="/Profiles/Index" asp-route-search="@Model.Search" asp-route-pageNumber="@(Model.PageNumber + 1)">Next Page</a>
+            }
+        </nav>
+    }
+}
+

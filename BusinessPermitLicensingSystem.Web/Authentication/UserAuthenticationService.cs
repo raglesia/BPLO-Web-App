@@ -1,3 +1,4 @@
+using BusinessPermitLicensingSystem.Web.Data;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
@@ -19,14 +20,7 @@ public sealed class UserAuthenticationService(
             return null;
         }
 
-        if (!string.Equals(new SqlConnectionStringBuilder(connectionString).InitialCatalog,
-                "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Authentication requires BPLS_Dev.");
-
-        await using var connection = new SqlConnection(connectionString);
-        await connection.OpenAsync(cancellationToken);
-        if (!string.Equals(connection.Database, "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Authentication requires BPLS_Dev.");
+        await using var connection = await DatabaseConnection.OpenAsync(configuration, cancellationToken);
         await using var command = new SqlCommand(
             "SELECT Id, Username, FullName, Position, Password FROM Users WHERE Username = @username", connection);
         command.Parameters.Add("@username", SqlDbType.NVarChar, 255).Value = username.Trim();

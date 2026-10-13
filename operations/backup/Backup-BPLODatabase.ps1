@@ -20,8 +20,14 @@ try {
  $file=Join-Path $cfg.BackupFolder ($cfg.Database+'_'+(Get-Date -Format 'yyyy-MM-dd_HHmmss_fff')+'_'+[guid]::NewGuid().ToString('N').Substring(0,8)+'.bak')
  if(Test-Path -LiteralPath $file){throw 'Backup filename already exists.'}
  Log "START database=$($cfg.Database) file=$file"
- $builder=[System.Data.SqlClient.SqlConnectionStringBuilder]::new();$builder['Data Source']=$cfg.Server;$builder['Initial Catalog']=$cfg.Database;$builder['Integrated Security']=$true;$builder['Encrypt']=$true;$builder['TrustServerCertificate']=$true;$builder['Connect Timeout']=15
+ $trust=$true # Preserve existing development/QA configurations; host setup explicitly sets false.
+ if($cfg.PSObject.Properties.Name -contains 'TrustServerCertificate'){$trust=[bool]$cfg.TrustServerCertificate}
+ $builder=[System.Data.SqlClient.SqlConnectionStringBuilder]::new();$builder['Data Source']=$cfg.Server;$builder['Initial Catalog']=$cfg.Database;$builder['Integrated Security']=$true;$builder['Encrypt']=$true;$builder['TrustServerCertificate']=$trust;$builder['Connect Timeout']=15
  $connection=[System.Data.SqlClient.SqlConnection]::new($builder.ConnectionString);$connection.Open()
+ if($cfg.PSObject.Properties.Name -contains 'ExpectedServerIdentity'){
+  $identity=$connection.CreateCommand();$identity.CommandText="SELECT CONVERT(nvarchar(256),SERVERPROPERTY('ServerName'))"
+  if([string]$identity.ExecuteScalar() -ine $cfg.ExpectedServerIdentity){throw 'Backup server identity mismatch.'}
+ }
  $cmd=$connection.CreateCommand();$cmd.CommandText='SELECT SUM(CONVERT(bigint,size))*8192 FROM sys.database_files';$estimate=[long]$cmd.ExecuteScalar()
  $drive=[IO.DriveInfo]::new([IO.Path]::GetPathRoot($file));if($drive.AvailableFreeSpace -lt ($estimate*1.2+100MB)){throw "Insufficient free disk space; database estimate=$estimate bytes."}
  $db='['+$cfg.Database.Replace(']',']]')+']'

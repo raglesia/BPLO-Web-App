@@ -4,7 +4,6 @@ using Microsoft.Extensions.Configuration;
 
 internal static class VehicleScenarios
 {
-    private const string ConnectionString = "Server=.\\SQLEXPRESS;Database=BPLS_Dev;Integrated Security=True;Encrypt=True;TrustServerCertificate=True";
     private static readonly DateTime PaidAt = new(2026, 9, 26, 10, 30, 0);
 
     public static async Task RunAsync()
@@ -22,12 +21,12 @@ internal static class VehicleScenarios
         Check(Rejects(() => VehicleFeeDraft.Total(bad)), "sub-cent fee rejected");
         Check(Rejects(() => VehicleFeeDraft.Read(json, 111m)), "draft total mismatch rejected");
 
-        var settings = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-        { ["ConnectionStrings:BPLS"] = ConnectionString }).Build();
+        var settings = QaDatabase.Configuration();
+        QaDatabase.RequireIsolated(settings);
         var service = new VehicleService(settings);
-        await using var connection = new SqlConnection(ConnectionString);
+        await using var connection = new SqlConnection(settings.GetConnectionString("BPLS"));
         await connection.OpenAsync();
-        Check((string?)await Scalar(connection, "SELECT DB_NAME()") == "BPLS_Dev", "vehicle tests use BPLS_Dev");
+        Check((string?)await Scalar(connection, "SELECT DB_NAME()") == settings["Database:ApprovedDatabase"], "vehicle tests use isolated QA staging");
         Check((int)(await Scalar(connection, "SELECT COUNT(*) FROM sys.indexes WHERE object_id=OBJECT_ID('dbo.VehiclePermitHistory') AND name='UX_VehiclePermitHistory_VIN_PermitYear' AND is_unique=1") ?? 0) == 1,
             "unique VIN and permit-year index exists");
         var users = new List<int>();
@@ -38,6 +37,7 @@ internal static class VehicleScenarios
         int stallPaymentsBefore = (int)(await Scalar(connection, "SELECT COUNT(*) FROM PaymentHistory") ?? 0);
         int stallLinksBefore = (int)(await Scalar(connection, "SELECT COUNT(*) FROM PaymentHistoryBilling") ?? 0);
         string run = Guid.NewGuid().ToString("N")[..10];
+        string orRun = QaDatabase.OrRun();
         string first = $"VIN-PAYTEST-{run}-1", second = $"VIN-PAYTEST-{run}-2";
         string concurrent = $"VIN-PAYTEST-{run}-3", rollback = $"VIN-PAYTEST-{run}-4";
         foreach (string vin in new[] { first, second, concurrent, rollback }) await InsertVehicle(connection, vin);
@@ -61,7 +61,7 @@ internal static class VehicleScenarios
             "annual permit details save and reload with fee draft");
         Check((await service.GetAsync(first, PaidAt, default)) is { Eligible: true, SelectedYearStatus: "Unpaid", Draft.GrandTotal: 1010m },
             "current year eligibility and stored draft display");
-        string orFirst = $"DEV-VEH-{run}-1";
+        string orFirst = $"{orRun}-1";
         amounts[0] = 999m; // Browser-side amount changes after draft save cannot affect payment.
         var payment = await service.PayAsync(first, orFirst, 2026, users[0], PaidAt, default);
         Check(payment.Success && payment.Amount == 1010m && payment.Year == 2026,
@@ -71,29 +71,29 @@ internal static class VehicleScenarios
             "history, vehicle status/year, and first recorder stored atomically");
         Check(await CountAudit(connection, first) == 0, "desktop vehicle payment creates no audit row");
         amounts[0] = 200m;
-        Check((await service.SaveDraftAsync(first, 2026, amounts, ["changed", "", "", ""], PaidAt, default)).Success &&
+        Check(!(await service.SaveDraftAsync(first, 2026, amounts, ["changed", "", "", ""], PaidAt, default)).Success &&
               await HistoryAmount(connection, orFirst) == 1010m,
-            "later draft edit does not rewrite historical payment amount");
+            "paid assessment edit is blocked and historical payment amount preserved");
         amounts[0] = 100m;
 
         var duplicateOr = await service.PayAsync(second, orFirst, 2026, users[1], PaidAt, default);
         Check(!duplicateOr.Success && duplicateOr.Error == BusinessPermitLicensingSystem.Web.Receipts.ReceiptRegistry.DuplicateMessage &&
               await CountHistory(connection, second) == 0 && await VehicleStatus(connection, second) == ("Unpaid", 0),
             "duplicate vehicle OR rejected without status change");
-        string orSecond = $"DEV-VEH-{run}-2";
+        string orSecond = $"{orRun}-2";
         Check((await service.PayAsync(second, orSecond, 2026, users[1], PaidAt, default)).Success &&
               await Recorder(connection, orSecond) == users[1],
             "second authenticated user recorded separately");
-        var alreadyPaid = await service.PayAsync(first, $"DEV-VEH-{run}-again", 2026, users[0], PaidAt, default);
+        var alreadyPaid = await service.PayAsync(first, $"{orRun}-3", 2026, users[0], PaidAt, default);
         Check(!alreadyPaid.Success && await CountHistory(connection, first) == 1,
             "already-paid VIN/year cannot be paid again");
-        var wrongYear = await service.PayAsync(second, $"DEV-VEH-{run}-past", 2025, users[0], PaidAt, default);
+        var wrongYear = await service.PayAsync(second, $"{orRun}-4", 2025, users[0], PaidAt, default);
         Check(!wrongYear.Success && await CountHistory(connection, second) == 1,
             "requested permit year checked server-side");
 
         var attempts = await Task.WhenAll(
-            service.PayAsync(concurrent, $"DEV-VEH-{run}-C1", 2026, users[0], PaidAt, default),
-            service.PayAsync(concurrent, $"DEV-VEH-{run}-C2", 2026, users[1], PaidAt, default));
+            service.PayAsync(concurrent, $"{orRun}-5", 2026, users[0], PaidAt, default),
+            service.PayAsync(concurrent, $"{orRun}-6", 2026, users[1], PaidAt, default));
         Check(attempts.Count(x => x.Success) == 1 && await CountHistory(connection, concurrent) == 1 &&
               await VehicleStatus(connection, concurrent) == ("Paid", 2026),
             "concurrent same VIN/year produces exactly one payment");
@@ -110,7 +110,7 @@ internal static class VehicleScenarios
                 END
                 """);
             bool failed = false;
-            try { await service.PayAsync(rollback, $"DEV-VEH-{run}-R", 2026, users[0], PaidAt, default); }
+            try { await service.PayAsync(rollback, $"{orRun}-7", 2026, users[0], PaidAt, default); }
             catch (SqlException exception) when (exception.Number == 51000) { failed = true; }
             Check(failed && await CountHistory(connection, rollback) == 0 &&
                   await VehicleStatus(connection, rollback) == ("Unpaid", 0) &&
@@ -120,7 +120,7 @@ internal static class VehicleScenarios
         finally { await Execute(connection, $"DROP TRIGGER IF EXISTS {trigger}"); }
 
         await Execute(connection, $"UPDATE VehiclePermits SET IsArchived=1 WHERE VIN='{rollback}'");
-        var archivedPay = await service.PayAsync(rollback, $"DEV-VEH-{run}-archived", 2026, users[0], PaidAt, default);
+        var archivedPay = await service.PayAsync(rollback, $"{orRun}-8", 2026, users[0], PaidAt, default);
         Check(!archivedPay.Success && await CountHistory(connection, rollback) == 0 &&
               await VehicleStatus(connection, rollback) == ("Unpaid", 0),
             "archived vehicle cannot receive annual payment");
@@ -132,7 +132,7 @@ internal static class VehicleScenarios
             "new year eligible without page-load reset or database mutation");
         Check((await service.SaveDraftAsync(first, 2027, amounts, ["", "", "", ""], nextYear, default)).Success,
             "new year has independent fee draft");
-        Check((await service.PayAsync(first, $"DEV-VEH-{run}-2027", 2027, users[0], nextYear, default)).Success &&
+        Check((await service.PayAsync(first, $"{orRun}-9", 2027, users[0], nextYear, default)).Success &&
               await CountHistory(connection, first) == 2 && await VehicleStatus(connection, first) == ("Paid", 2027),
             "same VIN can pay later permit year once");
         var listed = (await service.ListAsync(first, 1, default)).Items.Single(x => x.Vin == first);
@@ -142,7 +142,7 @@ internal static class VehicleScenarios
         Check((int)(await Scalar(connection, "SELECT COUNT(*) FROM PaymentHistory") ?? 0) == stallPaymentsBefore &&
               (int)(await Scalar(connection, "SELECT COUNT(*) FROM PaymentHistoryBilling") ?? 0) == stallLinksBefore,
             "stall payment tables unchanged by vehicle tests");
-        Console.WriteLine($"Synthetic vehicle profiles retained in BPLS_Dev: {first}, {second}, {concurrent}, {rollback}");
+        Console.WriteLine($"Synthetic vehicle profiles retained in isolated QA staging: {first}, {second}, {concurrent}, {rollback}");
     }
 
     private static bool Rejects(Action action)

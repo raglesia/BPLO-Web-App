@@ -1,0 +1,7 @@
+{
+  "Database": {
+    "ApprovedServer": "REPLACE_WITH_APPROVED_HOST_AND_INSTANCE",
+    "ApprovedServerIdentity": "REPLACE_WITH_SQL_SERVERPROPERTY_SERVERNAME",
+    "ApprovedDatabase": "REPLACE_WITH_APPROVED_DATABASE"
+  }
+}

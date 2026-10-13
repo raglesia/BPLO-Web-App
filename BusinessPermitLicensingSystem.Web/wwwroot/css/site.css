@@ -1094,6 +1094,13 @@ strong,dt {
     width:38mm;
 }
 
+.payment-report-heading {
+    grid-template-columns:20mm minmax(0,1fr) 20mm;
+}
+.payment-report-heading > img:last-child {
+    justify-self:end;
+}
+
 .rental-obligation-table th:not(:first-child),.rental-obligation-table td:not(:first-child) {
     text-align:right;
     white-space:nowrap;

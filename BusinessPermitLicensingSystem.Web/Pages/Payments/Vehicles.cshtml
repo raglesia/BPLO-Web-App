@@ -1,0 +1,158 @@
+@page "{vin}"
+@using BusinessPermitLicensingSystem.Web.Vehicles
+@model BusinessPermitLicensingSystem.Web.Pages.Payments.VehiclePaymentsModel
+@{
+    ViewData["Title"] = "Vehicle Billing & Payments";
+}
+<div class="page-header"><div><p class="eyebrow">Special Vehicle Permits</p><h1>Vehicle Billing and Payments</h1><p>Vehicle assessment, billing reports and annual payment.</p></div></div>
+@if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
+@if (Model.Notice is not null) { <p class="text-success" role="status">@Model.Notice</p> }
+@if (Model.Vehicle is not null)
+{
+    var currentPayment = Model.Vehicle.History.FirstOrDefault(payment => payment.Year == Model.Vehicle.SelectedYear);
+    <section class="section-panel vehicle-assessment-width"><h2 class="section-heading">Vehicle Identity</h2><dl class="row detail-list">
+        <dt class="col-sm-3">VIN</dt><dd class="col-sm-9">@Model.Vehicle.Vin</dd>
+        <dt class="col-sm-3">Company</dt><dd class="col-sm-9">@Model.Vehicle.Company</dd>
+        <dt class="col-sm-3">Driver</dt><dd class="col-sm-9">@Model.Vehicle.Driver</dd>
+        <dt class="col-sm-3">Plate Number</dt><dd class="col-sm-9">@Model.Vehicle.Plate</dd>
+    </dl></section>
+    <section class="section-panel annual-permit-status vehicle-assessment-width" aria-labelledby="annual-permit-title">
+        <h2 id="annual-permit-title" class="section-heading">@Model.Vehicle.SelectedYear Special Vehicle Permit</h2>
+        <p class="mb-2"><span class="status-badge @Model.Vehicle.SelectedYearStatus.ToLowerInvariant()">@Model.Vehicle.SelectedYearStatus</span> for @Model.Vehicle.SelectedYear · @Model.Vehicle.Plate</p>
+        @if (Model.Vehicle.Archived) { <p class="mb-0">This vehicle is archived. Previous permit payments remain below; no new payment can be recorded.</p> }
+        else if (!Model.Vehicle.Eligible)
+        {
+            @if (currentPayment is not null)
+            { <p class="mb-0">Paid on @currentPayment.PaidAt.ToString("yyyy-MM-dd") · OR @currentPayment.OrNumber · <strong class="money">₱@currentPayment.Amount.ToString("N2")</strong></p> }
+            else
+            { <p class="mb-0">The stored permit state says this year is paid, but no annual payment-history row is available. Review this record before any further payment.</p> }
+        }
+        else if (Model.Vehicle.Draft is null)
+        { <p class="mb-0">Create and save the permit fee assessment before recording payment. <a href="#fee-assessment">Go to fee assessment</a>.</p> }
+        else if (Model.Vehicle.Draft.GrandTotal <= 0)
+        { <p class="mb-0">The saved assessment total is zero. Enter the applicable fees and save it before recording payment. <a href="#fee-assessment">Go to fee assessment</a>.</p> }
+        else
+        { <p class="mb-0">Saved assessment: <strong class="money">₱@Model.Vehicle.Draft.GrandTotal.ToString("N2")</strong> · <a href="#vehicle-payment">Go to annual payment</a></p> }
+    </section>
+    @if (!Model.Vehicle.Archived)
+    {
+        <div class="page-actions mb-3 vehicle-assessment-width"><a class="btn btn-outline-primary" asp-page="/Vehicles/Details" asp-route-vin="@Model.Vehicle.Vin">View Profile</a></div>
+        @if (!Model.Vehicle.Eligible)
+        { <p class="vehicle-assessment-width" role="status">This assessment is locked because payment has already been recorded. Use the Payment Report for settled details.</p> }
+        else
+        {
+        <div class="vehicle-assessment-width"><p class="eyebrow">1 · Before Payment</p><h2 class="section-heading" id="fee-assessment">@Model.Vehicle.SelectedYear Permit Assessment</h2>
+        @if (Model.Vehicle.DraftError is not null) { <p class="text-danger" role="alert">@Model.Vehicle.DraftError</p> }
+        <p>Save Draft stores the fee assessment only. It does not record an annual permit payment. Existing payment amounts stay unchanged.</p></div>
+        <form method="post" asp-page-handler="SaveDraft" asp-route-vin="@Model.Vehicle.Vin" class="vehicle-assessment vehicle-assessment-width" data-fee-assessment>
+            <section class="section-panel assessment-section" aria-labelledby="permit-details-title">
+            <h3 id="permit-details-title" class="assessment-heading">Permit Details</h3>
+            <p class="form-text">These details describe the annual permit. Fee amounts are entered separately below.</p>
+            <div class="permit-details-grid">
+                <div><label asp-for="PermitDetails.LineOfBusiness" class="form-label">Line of Business</label><input asp-for="PermitDetails.LineOfBusiness" class="form-control" maxlength="255" /><span asp-validation-for="PermitDetails.LineOfBusiness" class="text-danger"></span></div>
+                <div><label asp-for="PermitDetails.Description" class="form-label">Description</label><input asp-for="PermitDetails.Description" class="form-control" maxlength="255" /><span asp-validation-for="PermitDetails.Description" class="text-danger"></span></div>
+                <div><label asp-for="PermitDetails.Location" class="form-label">Location</label><input asp-for="PermitDetails.Location" class="form-control" maxlength="255" /><span asp-validation-for="PermitDetails.Location" class="text-danger"></span></div>
+                <div><label asp-for="PermitDetails.Employees" class="form-label">No. of Employees</label><input asp-for="PermitDetails.Employees" class="form-control" inputmode="numeric" pattern="[0-9]+" maxlength="10" /><span asp-validation-for="PermitDetails.Employees" class="text-danger"></span></div>
+                <div><label asp-for="PermitDetails.Organization" class="form-label">Organization</label><select asp-for="PermitDetails.Organization" class="form-select"><option value="">Select organization</option><option>Individual</option><option>Sole Proprietorship</option><option>Partnership</option><option>Corporation</option><option>Cooperative</option><option>Other</option></select><span asp-validation-for="PermitDetails.Organization" class="text-danger"></span></div>
+                <div><label asp-for="PermitDetails.Quarter" class="form-label">Quarter</label><select asp-for="PermitDetails.Quarter" class="form-select"><option value="">Select quarter</option><option>1ST QUARTER</option><option>2ND QUARTER</option><option>3RD QUARTER</option><option>4TH QUARTER</option></select><span asp-validation-for="PermitDetails.Quarter" class="text-danger"></span></div>
+                <div><label asp-for="PermitDetails.Capital" class="form-label">Capital</label><input asp-for="PermitDetails.Capital" class="form-control" inputmode="decimal" maxlength="30" data-capital /><span asp-validation-for="PermitDetails.Capital" class="text-danger"></span></div>
+                <div><label asp-for="PermitDetails.Stickers" class="form-label">No. of Stickers</label><input asp-for="PermitDetails.Stickers" class="form-control" inputmode="numeric" pattern="[0-9]+" maxlength="10" /><span asp-validation-for="PermitDetails.Stickers" class="text-danger"></span></div>
+            </div>
+            </section>
+            <section class="section-panel assessment-section" aria-labelledby="permit-fees-title">
+            <h3 id="permit-fees-title" class="assessment-heading">Permit and License Fees</h3>
+            <div class="fee-columns">
+                <div class="fee-column">
+                @for (int i = 0; i < 6; i++)
+                {
+                    <div class="fee-entry @(i == 1 ? "classified-fee" : "")"><label for="fee-@i">@VehicleFeeDraft.FeeNames[i]</label>
+                        @if (i == 1)
+                        { <div><select asp-for="PermitDetails.SanitaryType" class="form-select" aria-label="Sanitary Fee classification"><option value="">Select type</option><option>OTHER</option><option>FOOD</option><option>NON-FOOD</option></select><span asp-validation-for="PermitDetails.SanitaryType" class="text-danger"></span></div> }
+                        <input asp-for="FeeAmounts[i]" id="fee-@i" type="text" inputmode="decimal" autocomplete="off" class="form-control fee-amount" aria-describedby="fee-error-@i" required />
+                        <span id="fee-error-@i" class="fee-error" aria-live="polite"></span></div>
+                }
+                </div>
+                <div class="fee-column">
+                @for (int i = 6; i < 11; i++)
+                {
+                    <div class="fee-entry @(i == 8 ? "classified-fee" : "")"><label for="fee-@i">@VehicleFeeDraft.FeeNames[i]</label>
+                        @if (i == 8)
+                        { <div><select asp-for="PermitDetails.FireType" class="form-select" aria-label="Fire Inspection Fee classification"><option value="">Select type</option><option>ESTAB</option><option>OTHER</option></select><span asp-validation-for="PermitDetails.FireType" class="text-danger"></span></div> }
+                        <input asp-for="FeeAmounts[i]" id="fee-@i" type="text" inputmode="decimal" autocomplete="off" class="form-control fee-amount" aria-describedby="fee-error-@i" required />
+                        <span id="fee-error-@i" class="fee-error" aria-live="polite"></span></div>
+                }
+                </div>
+            </div>
+            </section>
+            <section class="section-panel assessment-section" aria-labelledby="additional-fees-title">
+            <h3 id="additional-fees-title" class="assessment-heading">Additional Fees</h3>
+            <div class="fee-columns">
+                <div class="fee-column">
+                @for (int i = 11; i < 15; i += 2)
+                {
+                    <div class="fee-entry"><label for="fee-@i">@VehicleFeeDraft.FeeNames[i]</label>
+                        <input asp-for="FeeAmounts[i]" id="fee-@i" type="text" inputmode="decimal" autocomplete="off" class="form-control fee-amount" aria-describedby="fee-error-@i" required />
+                        <span id="fee-error-@i" class="fee-error" aria-live="polite"></span></div>
+                }
+                </div>
+                <div class="fee-column">
+                @for (int i = 12; i < 15; i += 2)
+                {
+                    <div class="fee-entry"><label for="fee-@i">@VehicleFeeDraft.FeeNames[i]</label>
+                        <input asp-for="FeeAmounts[i]" id="fee-@i" type="text" inputmode="decimal" autocomplete="off" class="form-control fee-amount" aria-describedby="fee-error-@i" required />
+                        <span id="fee-error-@i" class="fee-error" aria-live="polite"></span></div>
+                }
+                </div>
+            </div>
+            </section>
+            <section class="section-panel assessment-section" aria-labelledby="other-fees-title">
+            <h3 id="other-fees-title" class="assessment-heading">Other Fees</h3>
+            <p class="form-text">Name each additional fee. A blank name retains its Other Fee number on reports.</p>
+            <div class="other-fee-grid">
+                @for (int j = 0; j < 4; j++)
+                {
+                    int feeIndex = j + 15;
+                    <div class="other-fee-entry"><strong>Other Fee @(j + 1)</strong>
+                        <div><label for="other-description-@j">Description</label><input asp-for="OtherDescriptions[j]" id="other-description-@j" aria-label="Other Fee @(j + 1) description" class="form-control" maxlength="255" placeholder="Fee name" /></div>
+                        <div><label for="fee-@feeIndex">Amount</label><input asp-for="FeeAmounts[feeIndex]" id="fee-@feeIndex" aria-label="Other Fee @(j + 1) amount" type="text" inputmode="decimal" autocomplete="off" class="form-control fee-amount" aria-describedby="fee-error-@feeIndex" required /><span id="fee-error-@feeIndex" class="fee-error" aria-live="polite"></span></div>
+                    </div>
+                }
+            </div>
+            </section>
+            <section class="section-panel assessment-summary" aria-label="Total Amount Due and Save Draft"><div><span class="assessment-summary-label">Total Amount Due</span><output id="fee-total" class="money assessment-total" aria-live="polite">₱0.00</output><span class="form-text">Current form total. Save Draft to use this assessment for payment.</span></div>
+                <div class="assessment-actions"><span class="form-text">Saved total: @(Model.Vehicle.Draft is null ? "No draft" : $"₱{Model.Vehicle.Draft.GrandTotal:N2}")</span><button class="btn btn-primary" type="submit">Save Draft</button>
+                    @if (!Model.Vehicle.Archived && Model.Vehicle.Draft is not null) { <a class="btn btn-outline-primary" asp-page="/Reports/VehicleBillingPreview" asp-route-vin="@Model.Vehicle.Vin">Print Billing Report</a> }
+                    <span class="form-text">For payment at Treasury. Print the saved assessment before recording the OR.</span>
+                </div>
+            </section>
+        </form>
+        }
+        @if (Model.Vehicle.Eligible && Model.Vehicle.Draft is not null && Model.Vehicle.Draft.GrandTotal > 0)
+        {
+            <section class="section-panel vehicle-assessment-width" id="vehicle-payment" tabindex="-1"><p class="eyebrow">2 · Record Payment</p><h2 class="section-heading">Treasury Payment</h2><p class="form-text">Recording the OR finalizes the official Treasury payment for this permit year.</p>
+            <p>Annual payment for <strong>@Model.Vehicle.Company</strong> · plate number <strong>@Model.Vehicle.Plate</strong> · permit year <strong>@Model.Vehicle.SelectedYear</strong>. Amount due: <strong class="money">₱@Model.Vehicle.Draft.GrandTotal.ToString("N2")</strong>. The saved assessment is checked again when you submit.</p>
+            <form method="post" asp-page-handler="Pay" asp-route-vin="@Model.Vehicle.Vin" style="max-width: 28rem">
+                <div class="mb-3"><label asp-for="OrNumber" class="form-label">Vehicle OR Number</label>
+                    <input asp-for="OrNumber" class="form-control" maxlength="100" pattern="[0-9-]+" title="Use numbers and hyphens only." oninput="this.value = this.value.replace(/[^0-9-]/g, &apos;&apos;)" required /></div>
+                <div class="form-check mb-3"><input asp-for="ConfirmPayment" class="form-check-input" required />
+                    <label asp-for="ConfirmPayment" class="form-check-label">I confirm the @Model.Vehicle.SelectedYear permit, amount, and OR number entered above.</label></div>
+                <button class="btn btn-primary" type="submit">Record @Model.Vehicle.SelectedYear Permit Payment</button>
+            </form>
+            </section>
+        }
+    }
+    <p class="eyebrow mt-4">3 · After Payment</p><h2 class="section-heading" id="official-documents">Official Documents</h2><p class="form-text">Payment Report: recorded payment and OR details. Mayor’s Permit: official permit for an eligible paid vehicle.</p>
+    <div class="table-responsive"><table class="table table-striped financial-table"><caption class="visually-hidden">Vehicle payment history for @Model.Vehicle.Vin</caption>
+        <thead><tr><th scope="col">Permit year</th><th scope="col">OR number</th><th scope="col" class="money">Amount paid</th><th scope="col">Payment date</th><th scope="col">Recorded by</th><th scope="col">Report</th></tr></thead>
+        <tbody>
+        @foreach (var payment in Model.Vehicle.History)
+        { <tr><td>@payment.Year</td><td>@payment.OrNumber</td><td class="money">₱@payment.Amount.ToString("N2")</td>
+            <td>@payment.PaidAt.ToString("yyyy-MM-dd HH:mm")</td><td>@payment.Recorder</td><td><a asp-page="/Reports/VehiclePaymentPreview" asp-route-selected="@payment.Id">Print Payment Report</a>@if (!Model.Vehicle.Archived) { <form method="post" asp-page="/Reports/VehicleMayorPermit" asp-page-handler="Prepare" asp-route-id="@payment.Id"><button type="submit" class="vehicle-report-link">Print Mayor’s Permit</button></form> }</td></tr> }
+        </tbody>
+    </table></div>
+    @if (Model.Vehicle.History.Count == 0) { <p class="empty-state">Payment Report and Mayor’s Permit are available after an OR is recorded. Complete the saved permit details before issuing the Mayor’s Permit.</p> }
+
+}
+<a asp-page="/Vehicles/Index">Back to Special Vehicle Permits</a>
+@section Scripts { <script src="~/js/vehicle-fee-assessment.js" asp-append-version="true"></script> }
+

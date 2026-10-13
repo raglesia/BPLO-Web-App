@@ -1,5 +1,6 @@
 using BusinessPermitLicensingSystem.Web.Profiles;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc;
 
 namespace BusinessPermitLicensingSystem.Web.Pages.Profiles;
 
@@ -11,6 +12,13 @@ public class ProfilesIndexModel(ProfileService profiles, ILogger<ProfilesIndexMo
     public int TotalCount { get; private set; }
     public IReadOnlyList<ProfileRecord> Profiles { get; private set; } = [];
     public string? LoadError { get; private set; }
+
+    public async Task<IActionResult> OnGetResultsAsync(string? search, int pageNumber = 1)
+    {
+        await OnGetAsync(search, pageNumber);
+        if (LoadError is not null) return StatusCode(503);
+        return Partial("_Results", this);
+    }
 
     public async Task OnGetAsync(string? search, int pageNumber = 1)
     {

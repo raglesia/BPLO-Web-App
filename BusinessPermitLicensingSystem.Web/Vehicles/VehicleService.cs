@@ -1,3 +1,4 @@
+using BusinessPermitLicensingSystem.Web.Data;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
@@ -146,6 +147,17 @@ public sealed class VehicleService(IConfiguration configuration)
             if (await vehicle.ExecuteScalarAsync(cancellationToken) is null)
             { await transaction.RollbackAsync(cancellationToken); return new(false, "Active vehicle not found."); }
 
+            // Use the same vehicle-first lock order as payment. A draft cannot cross a payment commit.
+            await using var settled = new SqlCommand("""
+                SELECT 1 FROM VehiclePermits WHERE VIN=@vin AND PermitStatus='Paid' AND PermitYear=@year
+                UNION ALL
+                SELECT 1 FROM VehiclePermitHistory WITH (UPDLOCK, HOLDLOCK) WHERE VIN=@vin AND PermitYear=@year
+                """, connection, transaction);
+            settled.Parameters.Add("@vin", SqlDbType.NVarChar, 100).Value = vin;
+            settled.Parameters.Add("@year", SqlDbType.Int).Value = year;
+            if (await settled.ExecuteScalarAsync(cancellationToken) is not null)
+            { await transaction.RollbackAsync(cancellationToken); return new(false, "This assessment is locked because payment has already been recorded."); }
+
             await using var priorCommand = new SqlCommand("""
                 SELECT DetailsJson, GrandTotal FROM VehiclePermitFeeDrafts WITH (UPDLOCK, HOLDLOCK)
                 WHERE VIN=@vin AND PermitYear=@year
@@ -197,6 +209,8 @@ public sealed class VehicleService(IConfiguration configuration)
         orNumber = Receipts.ReceiptRegistry.NormalizeOR(orNumber);
         if (string.IsNullOrWhiteSpace(vin)) return new(false, "Vehicle is required.");
         if (orNumber.Length is 0 or > 100) return new(false, "Enter a vehicle OR number up to 100 characters.");
+        if (orNumber.Any(c => (c < '0' || c > '9') && c != '-'))
+            return new(false, "Vehicle OR number must contain numbers and hyphens only.");
         if (year != paidAt.Year) return new(false, "Only the current permit year can be paid.");
         if (userId <= 0) return new(false, "Sign in again before recording payment.");
 
@@ -262,7 +276,8 @@ public sealed class VehicleService(IConfiguration configuration)
 
             await using var history = new SqlCommand("""
                 INSERT INTO VehiclePermitHistory (VIN, ORNumber, AmountPaid, PermitYear, DatePaid, RecordedBy)
-                VALUES (@vin, @or, @amount, @year, @date, @user)
+                VALUES (@vin, @or, @amount, @year, @date, @user);
+                SELECT CONVERT(int, SCOPE_IDENTITY());
                 """, connection, transaction);
             history.Parameters.Add("@vin", SqlDbType.NVarChar, 100).Value = vin;
             history.Parameters.Add("@or", SqlDbType.NVarChar, 100).Value = orNumber;
@@ -271,8 +286,27 @@ public sealed class VehicleService(IConfiguration configuration)
             history.Parameters.Add("@year", SqlDbType.Int).Value = year;
             history.Parameters.Add("@date", SqlDbType.DateTime).Value = paidAt;
             history.Parameters.Add("@user", SqlDbType.Int).Value = userId;
-            if (await history.ExecuteNonQueryAsync(cancellationToken) != 1)
+            int paymentId = Convert.ToInt32(await history.ExecuteScalarAsync(cancellationToken));
+            if (paymentId <= 0)
                 throw new InvalidOperationException("Vehicle payment-history insert failed.");
+
+            // Required historical evidence: failure here rolls back history and receipt reservation too.
+            await using var snapshot = new SqlCommand("""
+                INSERT INTO VehiclePaymentAssessmentSnapshots
+                    (PaymentHistoryId, DetailsJson, GrandTotal, CompanyName, DriverName, PlateNo,
+                     SECRegNo, DTINumber, RecorderName, RecorderPosition)
+                SELECT @id, @json, @amount, v.CompanyName, v.DriverName, v.PlateNo,
+                       COALESCE(v.SECRegNo,''), COALESCE(v.DTINumber,''), u.FullName, u.Position
+                FROM VehiclePermits v CROSS JOIN Users u WHERE v.VIN=@vin AND u.Id=@user
+                """, connection, transaction);
+            snapshot.Parameters.Add("@id", SqlDbType.Int).Value = paymentId;
+            snapshot.Parameters.Add("@json", SqlDbType.NVarChar, -1).Value = draftJson;
+            snapshot.Parameters.Add("@amount", SqlDbType.Decimal).Value = amount;
+            snapshot.Parameters["@amount"].Precision = 18; snapshot.Parameters["@amount"].Scale = 2;
+            snapshot.Parameters.Add("@vin", SqlDbType.NVarChar, 100).Value = vin;
+            snapshot.Parameters.Add("@user", SqlDbType.Int).Value = userId;
+            if (await snapshot.ExecuteNonQueryAsync(cancellationToken) != 1)
+                throw new InvalidOperationException("Payment assessment snapshot insert failed.");
 
             await using var update = new SqlCommand("""
                 UPDATE VehiclePermits SET PermitStatus='Paid', PermitYear=@year
@@ -296,21 +330,8 @@ public sealed class VehicleService(IConfiguration configuration)
         catch { await transaction.RollbackAsync(cancellationToken); throw; }
     }
 
-    private async Task<SqlConnection> OpenAsync(CancellationToken cancellationToken)
-    {
-        var builder = new SqlConnectionStringBuilder(configuration.GetConnectionString("BPLS"));
-        if (!string.Equals(builder.InitialCatalog, "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Vehicle work requires BPLS_Dev.");
-        var connection = new SqlConnection(builder.ConnectionString);
-        try
-        {
-            await connection.OpenAsync(cancellationToken);
-            if (!string.Equals(connection.Database, "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Vehicle work requires BPLS_Dev.");
-            return connection;
-        }
-        catch { await connection.DisposeAsync(); throw; }
-    }
+    private Task<SqlConnection> OpenAsync(CancellationToken cancellationToken)
+        => DatabaseConnection.OpenAsync(configuration, cancellationToken);
 
     private static void Search(SqlCommand command, string term, string pattern)
     {

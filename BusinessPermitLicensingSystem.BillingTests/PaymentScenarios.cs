@@ -4,16 +4,15 @@ using Microsoft.Extensions.Configuration;
 
 internal static class PaymentScenarios
 {
-    private const string ConnectionString = "Server=.\\SQLEXPRESS;Database=BPLS_Dev;Integrated Security=True;Encrypt=True;TrustServerCertificate=True";
 
     public static async Task RunAsync()
     {
-        var settings = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-        { ["ConnectionStrings:BPLS"] = ConnectionString }).Build();
+        var settings = QaDatabase.Configuration();
+        QaDatabase.RequireIsolated(settings);
         var service = new BillingService(settings);
-        await using var connection = new SqlConnection(ConnectionString);
+        await using var connection = new SqlConnection(settings.GetConnectionString("BPLS"));
         await connection.OpenAsync();
-        Check((string?)await Scalar(connection, "SELECT DB_NAME()") == "BPLS_Dev", "payment tests use BPLS_Dev");
+        Check((string?)await Scalar(connection, "SELECT DB_NAME()") == settings["Database:ApprovedDatabase"], "payment tests use isolated QA staging");
         var users = new List<int>();
         await using (var command = new SqlCommand("SELECT TOP (2) Id FROM Users ORDER BY Id", connection))
         await using (var reader = await command.ExecuteReaderAsync())
@@ -21,6 +20,7 @@ internal static class PaymentScenarios
         Check(users.Count == 2, "two development users available");
 
         string run = Guid.NewGuid().ToString("N")[..10];
+        string orRun = QaDatabase.OrRun();
         string normal = $"SIN-PAYTEST-{run}-1", single = $"SIN-PAYTEST-{run}-2";
         string duplicate = $"SIN-PAYTEST-{run}-3", concurrent = $"SIN-PAYTEST-{run}-4";
         string rollback = $"SIN-PAYTEST-{run}-5";
@@ -30,7 +30,7 @@ internal static class PaymentScenarios
             await InsertProfile(connection, sin, start);
 
         var paidAt = new DateTime(2026, 4, 21, 11, 30, 0);
-        string normalOr = $"DEV-{run}-N", singleOr = $"DEV-{run}-S";
+        string normalOr = $"{orRun}-1", singleOr = $"{orRun}-2";
         var normalResult = await service.PayAsync(normal, normalOr, users[0], paidAt, default);
         Check(normalResult.Success && normalResult.Amount == 405m && normalResult.Bills == 3,
             "normal payment settles three periods with corrected total");
@@ -71,13 +71,13 @@ internal static class PaymentScenarios
               await PaidCount(connection, duplicate) == 0 &&
               await Count(connection, "PaymentHistory", "SIN", duplicate) == 0,
             "duplicate stall OR rejected without payment");
-        var alreadyPaid = await service.PayAsync(single, $"DEV-{run}-again", users[0], paidAt, default);
+        var alreadyPaid = await service.PayAsync(single, $"{orRun}-3", users[0], paidAt, default);
         Check(!alreadyPaid.Success && await Count(connection, "PaymentHistory", "SIN", single) == 1,
             "already-paid bills cannot be paid again");
 
         var attempts = await Task.WhenAll(
-            service.PayAsync(concurrent, $"DEV-{run}-C1", users[0], paidAt, default),
-            service.PayAsync(concurrent, $"DEV-{run}-C2", users[1], paidAt, default));
+            service.PayAsync(concurrent, $"{orRun}-4", users[0], paidAt, default),
+            service.PayAsync(concurrent, $"{orRun}-5", users[1], paidAt, default));
         Check(attempts.Count(result => result.Success) == 1 &&
               await Count(connection, "PaymentHistory", "SIN", concurrent) == 1 &&
               await LinkedCountForSin(connection, concurrent) == 3 && await PaidCount(connection, concurrent) == 3,
@@ -97,7 +97,7 @@ internal static class PaymentScenarios
                 END
                 """);
             bool failed = false;
-            try { await service.PayAsync(rollback, $"DEV-{run}-R", users[0], paidAt, default); }
+            try { await service.PayAsync(rollback, $"{orRun}-6", users[0], paidAt, default); }
             catch (SqlException exception) when (exception.Number == 51000) { failed = true; }
             Check(failed && await Count(connection, "PaymentHistory", "SIN", rollback) == 0 &&
                   await LinkedCountForSin(connection, rollback) == 0 &&
@@ -107,7 +107,7 @@ internal static class PaymentScenarios
         }
         finally { await Execute(connection, $"DROP TRIGGER IF EXISTS {trigger}"); }
 
-        Console.WriteLine($"Synthetic payment profiles retained in BPLS_Dev: {normal}, {single}, {duplicate}, {concurrent}, {rollback}");
+        Console.WriteLine($"Synthetic payment profiles retained in isolated QA staging: {normal}, {single}, {duplicate}, {concurrent}, {rollback}");
     }
 
     private static async Task InsertProfile(SqlConnection connection, string sin, string start)

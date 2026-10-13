@@ -1,3 +1,4 @@
+using BusinessPermitLicensingSystem.Web.Data;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
@@ -98,21 +99,6 @@ public sealed class VehicleRecordService(IConfiguration configuration)
         }
     }
 
-    private async Task<SqlConnection> OpenAsync(CancellationToken cancellationToken)
-    {
-        string connectionString = configuration.GetConnectionString("BPLS")
-            ?? throw new InvalidOperationException("BPLS connection is not configured.");
-        if (!string.Equals(new SqlConnectionStringBuilder(connectionString).InitialCatalog,
-                "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Vehicle record work requires BPLS_Dev.");
-        var connection = new SqlConnection(connectionString);
-        try
-        {
-            await connection.OpenAsync(cancellationToken);
-            if (!string.Equals(connection.Database, "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Vehicle record work requires BPLS_Dev.");
-            return connection;
-        }
-        catch { await connection.DisposeAsync(); throw; }
-    }
+    private Task<SqlConnection> OpenAsync(CancellationToken cancellationToken)
+        => DatabaseConnection.OpenAsync(configuration, cancellationToken);
 }

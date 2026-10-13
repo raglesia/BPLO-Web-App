@@ -1,0 +1,356 @@
+[
+  {
+    "Kind": "Check",
+    "Table": "ReceiptRegistry",
+    "Name": "CK_ReceiptRegistry_OR",
+    "Definition": "(datalength([ORNumber])>(0) AND datalength([ORNumber])=datalength([dbo].[NormalizeOR]([ORNumber])))"
+  },
+  {
+    "Kind": "Check",
+    "Table": "ReceiptRegistry",
+    "Name": "CK_ReceiptRegistry_Type",
+    "Definition": "([PaymentType]='VehiclePermit' OR [PaymentType]='StallRental')"
+  },
+  {
+    "Kind": "Check",
+    "Table": "StallOwnerArrears",
+    "Name": "CK_StallOwnerArrears_Amounts",
+    "Definition": "([BaseRent]>=(0) AND [AdditionalCharge]>=(0) AND [PenaltyAmount]>=(0))"
+  },
+  {
+    "Kind": "Check",
+    "Table": "StallOwnerArrears",
+    "Name": "CK_StallOwnerArrears_Month",
+    "Definition": "([BillingMonth]>=(1) AND [BillingMonth]<=(12))"
+  },
+  {
+    "Kind": "ForeignKey",
+    "Table": "MonthlyBilling",
+    "Name": "FK__MonthlyBill__SIN__7B5B524B",
+    "Definition": "Profiling|NO_ACTION|NO_ACTION|SIN=SIN"
+  },
+  {
+    "Kind": "ForeignKey",
+    "Table": "PaymentHistory",
+    "Name": "FK__PaymentHist__SIN__6FE99F9F",
+    "Definition": "Profiling|NO_ACTION|NO_ACTION|SIN=SIN"
+  },
+  {
+    "Kind": "ForeignKey",
+    "Table": "PaymentHistoryArrears",
+    "Name": "FK_PaymentHistoryArrears_Arrears",
+    "Definition": "StallOwnerArrears|NO_ACTION|NO_ACTION|StallOwnerArrearsId=Id"
+  },
+  {
+    "Kind": "ForeignKey",
+    "Table": "PaymentHistoryArrears",
+    "Name": "FK_PaymentHistoryArrears_Payment",
+    "Definition": "PaymentHistory|NO_ACTION|NO_ACTION|PaymentHistoryId=Id"
+  },
+  {
+    "Kind": "ForeignKey",
+    "Table": "PaymentHistoryBilling",
+    "Name": "FK__PaymentHi__Month__7F2BE32F",
+    "Definition": "MonthlyBilling|NO_ACTION|NO_ACTION|MonthlyBillingId=Id"
+  },
+  {
+    "Kind": "ForeignKey",
+    "Table": "PaymentHistoryBilling",
+    "Name": "FK__PaymentHi__Payme__7E37BEF6",
+    "Definition": "PaymentHistory|NO_ACTION|NO_ACTION|PaymentHistoryId=Id"
+  },
+  {
+    "Kind": "ForeignKey",
+    "Table": "StallOwnerArrears",
+    "Name": "FK_StallOwnerArrears_Profile",
+    "Definition": "Profiling|NO_ACTION|NO_ACTION|SIN=SIN"
+  },
+  {
+    "Kind": "ForeignKey",
+    "Table": "StallOwnerArrears",
+    "Name": "FK_StallOwnerArrears_Verifier",
+    "Definition": "Users|NO_ACTION|NO_ACTION|VerifiedByUserId=Id"
+  },
+  {
+    "Kind": "ForeignKey",
+    "Table": "VehiclePermitFeeDrafts",
+    "Name": "FK_VehiclePermitFeeDrafts_VehiclePermits",
+    "Definition": "VehiclePermits|NO_ACTION|NO_ACTION|VIN=VIN"
+  },
+  {
+    "Kind": "ForeignKey",
+    "Table": "VehiclePermitHistory",
+    "Name": "FK__VehiclePe__Recor__0E6E26BF",
+    "Definition": "Users|NO_ACTION|NO_ACTION|RecordedBy=Id"
+  },
+  {
+    "Kind": "ForeignKey",
+    "Table": "VehiclePermitHistory",
+    "Name": "FK__VehiclePerm__VIN__0D7A0286",
+    "Definition": "VehiclePermits|NO_ACTION|NO_ACTION|VIN=VIN"
+  },
+  {
+    "Kind": "Index",
+    "Table": "AppSettings",
+    "Name": "PK__AppSetti__C41E0288F33080EE",
+    "Definition": "1|1|CLUSTERED||Key:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "AuditTrail",
+    "Name": "PK__AuditTra__3214EC07695C7BBB",
+    "Definition": "1|1|CLUSTERED||Id:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "MonthlyBilling",
+    "Name": "PK__MonthlyB__3214EC07FE9369F1",
+    "Definition": "1|1|CLUSTERED||Id:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "MonthlyBilling",
+    "Name": "UQ_MonthlyBilling",
+    "Definition": "1|0|NONCLUSTERED||SIN:1:0:0,BillingYear:2:0:0,BillingMonth:3:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "PaymentHistory",
+    "Name": "PK__PaymentH__3214EC079097FF49",
+    "Definition": "1|1|CLUSTERED||Id:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "PaymentHistory",
+    "Name": "UQ__PaymentH__E0E8FFF38BB77422",
+    "Definition": "1|0|NONCLUSTERED||ORNumber:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "PaymentHistoryArrears",
+    "Name": "PK_PaymentHistoryArrears",
+    "Definition": "1|1|CLUSTERED||PaymentHistoryId:1:0:0,StallOwnerArrearsId:2:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "PaymentHistoryArrears",
+    "Name": "UQ_PaymentHistoryArrears_Arrears",
+    "Definition": "1|0|NONCLUSTERED||StallOwnerArrearsId:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "PaymentHistoryBilling",
+    "Name": "PK__PaymentH__9CB73B042AAC7245",
+    "Definition": "1|1|CLUSTERED||PaymentHistoryId:1:0:0,MonthlyBillingId:2:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "Profiling",
+    "Name": "PK__Profilin__CA1959466E1C3BB3",
+    "Definition": "1|1|CLUSTERED||SIN:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "Profiling",
+    "Name": "UQ__Profilin__76B574A0E38F2FB0",
+    "Definition": "1|0|NONCLUSTERED||FullName:1:0:0,BusinessName:2:0:0,StallNumber:3:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "ReceiptRegistry",
+    "Name": "PK_ReceiptRegistry",
+    "Definition": "1|1|CLUSTERED||Id:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "ReceiptRegistry",
+    "Name": "UQ_ReceiptRegistry_ORNumber",
+    "Definition": "1|0|NONCLUSTERED||ORNumber:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "ReceiptRegistry",
+    "Name": "UX_ReceiptRegistry_Payment",
+    "Definition": "1|0|NONCLUSTERED|([PaymentReferenceId] IS NOT NULL)|PaymentType:1:0:0,PaymentReferenceId:2:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "RentalRates",
+    "Name": "PK__RentalRa__70E702BA794C88FA",
+    "Definition": "1|1|CLUSTERED||Section:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "StallOwnerArrears",
+    "Name": "PK_StallOwnerArrears",
+    "Definition": "1|1|CLUSTERED||Id:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "StallOwnerArrears",
+    "Name": "UQ_StallOwnerArrears_Period",
+    "Definition": "1|0|NONCLUSTERED||SIN:1:0:0,BillingYear:2:0:0,BillingMonth:3:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "Users",
+    "Name": "PK__Users__3214EC076AFF7267",
+    "Definition": "1|1|CLUSTERED||Id:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "Users",
+    "Name": "UQ__Users__536C85E4A18DC92B",
+    "Definition": "1|0|NONCLUSTERED||Username:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "VehiclePermitFeeDrafts",
+    "Name": "PK_VehiclePermitFeeDrafts",
+    "Definition": "1|1|CLUSTERED||VIN:1:0:0,PermitYear:2:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "VehiclePermitHistory",
+    "Name": "PK__VehicleP__3214EC07B2FAD9DA",
+    "Definition": "1|1|CLUSTERED||Id:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "VehiclePermitHistory",
+    "Name": "UQ__VehicleP__E0E8FFF332D2CC29",
+    "Definition": "1|0|NONCLUSTERED||ORNumber:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "VehiclePermitHistory",
+    "Name": "UX_VehiclePermitHistory_VIN_PermitYear",
+    "Definition": "1|0|NONCLUSTERED||VIN:1:0:0,PermitYear:2:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "VehiclePermits",
+    "Name": "PK__VehicleP__C5DF234D7E9F87E3",
+    "Definition": "1|1|CLUSTERED||VIN:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "VehiclePermits",
+    "Name": "UQ__VehicleP__48227C0CF83EA013",
+    "Definition": "1|0|NONCLUSTERED||PlateNo:1:0:0"
+  },
+  {
+    "Kind": "Module",
+    "Table": "",
+    "Name": "NormalizeOR",
+    "Definition": "CREATE   FUNCTION dbo.NormalizeOR(@value nvarchar(100)) RETURNS nvarchar(100)\n    WITH SCHEMABINDING AS BEGIN\n        RETURN TRIM(NCHAR(9)+NCHAR(10)+NCHAR(11)+NCHAR(12)+NCHAR(13)+NCHAR(32) FROM @value);\n    END"
+  },
+  {
+    "Kind": "Module",
+    "Table": "PaymentHistory",
+    "Name": "TR_PaymentHistory_ReceiptRegistry",
+    "Definition": "CREATE   TRIGGER dbo.TR_PaymentHistory_ReceiptRegistry ON dbo.[PaymentHistory]\n        AFTER INSERT,UPDATE,DELETE AS\n        BEGIN\n          SET NOCOUNT ON;\n          IF EXISTS(SELECT 1 FROM inserted i JOIN deleted d ON d.Id=i.Id\n             WHERE i.ORNumber COLLATE Latin1_General_100_BIN2<>d.ORNumber COLLATE Latin1_General_100_BIN2\n             OR DATALENGTH(i.ORNumber)<>DATALENGTH(d.ORNumber))\n             THROW 51002,'Recorded OR numbers cannot be changed.',1;\n          DELETE r FROM dbo.ReceiptRegistry r JOIN deleted d ON r.PaymentReferenceId=d.Id\n             AND r.PaymentType='StallRental' WHERE NOT EXISTS(SELECT 1 FROM inserted i WHERE i.Id=d.Id);\n          UPDATE r SET PaymentReferenceId=i.Id FROM dbo.ReceiptRegistry r JOIN inserted i\n             ON r.ORNumber=dbo.NormalizeOR(i.ORNumber) COLLATE Latin1_General_100_CI_AS\n             WHERE r.PaymentType='StallRental' AND r.PaymentReferenceId IS NULL;\n          INSERT INTO dbo.ReceiptRegistry(ORNumber,PaymentType,PaymentReferenceId,RecordedByUserId,RecordedAt)\n             SELECT dbo.NormalizeOR(i.ORNumber),'StallRental',i.Id,i.RecordedBy,i.DatePaid FROM inserted i\n             WHERE NOT EXISTS(SELECT 1 FROM dbo.ReceiptRegistry r\n                WHERE r.PaymentType='StallRental' AND r.PaymentReferenceId=i.Id);\n        END"
+  },
+  {
+    "Kind": "Module",
+    "Table": "VehiclePermitHistory",
+    "Name": "TR_VehiclePermitHistory_ReceiptRegistry",
+    "Definition": "CREATE   TRIGGER dbo.TR_VehiclePermitHistory_ReceiptRegistry ON dbo.[VehiclePermitHistory]\n        AFTER INSERT,UPDATE,DELETE AS\n        BEGIN\n          SET NOCOUNT ON;\n          IF EXISTS(SELECT 1 FROM inserted i JOIN deleted d ON d.Id=i.Id\n             WHERE i.ORNumber COLLATE Latin1_General_100_BIN2<>d.ORNumber COLLATE Latin1_General_100_BIN2\n             OR DATALENGTH(i.ORNumber)<>DATALENGTH(d.ORNumber))\n             THROW 51002,'Recorded OR numbers cannot be changed.',1;\n          DELETE r FROM dbo.ReceiptRegistry r JOIN deleted d ON r.PaymentReferenceId=d.Id\n             AND r.PaymentType='VehiclePermit' WHERE NOT EXISTS(SELECT 1 FROM inserted i WHERE i.Id=d.Id);\n          UPDATE r SET PaymentReferenceId=i.Id FROM dbo.ReceiptRegistry r JOIN inserted i\n             ON r.ORNumber=dbo.NormalizeOR(i.ORNumber) COLLATE Latin1_General_100_CI_AS\n             WHERE r.PaymentType='VehiclePermit' AND r.PaymentReferenceId IS NULL;\n          INSERT INTO dbo.ReceiptRegistry(ORNumber,PaymentType,PaymentReferenceId,RecordedByUserId,RecordedAt)\n             SELECT dbo.NormalizeOR(i.ORNumber),'VehiclePermit',i.Id,i.RecordedBy,i.DatePaid FROM inserted i\n             WHERE NOT EXISTS(SELECT 1 FROM dbo.ReceiptRegistry r\n                WHERE r.PaymentType='VehiclePermit' AND r.PaymentReferenceId=i.Id);\n        END"
+  },
+  {
+    "Kind": "Check",
+    "Table": "VehicleMayorPermitCounters",
+    "Name": "CK_VehicleMayorPermitCounters_Number",
+    "Definition": "([LastNumber]>(0))"
+  },
+  {
+    "Kind": "Check",
+    "Table": "VehicleMayorPermitCounters",
+    "Name": "CK_VehicleMayorPermitCounters_Year",
+    "Definition": "([IssueYear]>=(1) AND [IssueYear]<=(9999))"
+  },
+  {
+    "Kind": "Check",
+    "Table": "VehicleMayorPermits",
+    "Name": "CK_VehicleMayorPermits_Number",
+    "Definition": "([SequenceNumber]>(0))"
+  },
+  {
+    "Kind": "Check",
+    "Table": "VehiclePaymentAssessmentSnapshots",
+    "Name": "CK_VehiclePaymentAssessmentSnapshots_Json",
+    "Definition": "(isjson([DetailsJson])=(1))"
+  },
+  {
+    "Kind": "Check",
+    "Table": "VehiclePaymentAssessmentSnapshots",
+    "Name": "CK_VehiclePaymentAssessmentSnapshots_Total",
+    "Definition": "([GrandTotal]>(0))"
+  },
+  {
+    "Kind": "Check",
+    "Table": "VehiclePaymentAssessmentSnapshots",
+    "Name": "CK_VehiclePaymentAssessmentSnapshots_Version",
+    "Definition": "([SnapshotVersion]=(1))"
+  },
+  {
+    "Kind": "ForeignKey",
+    "Table": "VehicleMayorPermits",
+    "Name": "FK_VehicleMayorPermits_Counter",
+    "Definition": "VehicleMayorPermitCounters|NO_ACTION|NO_ACTION|IssueYear=IssueYear"
+  },
+  {
+    "Kind": "ForeignKey",
+    "Table": "VehicleMayorPermits",
+    "Name": "FK_VehicleMayorPermits_Payment",
+    "Definition": "VehiclePermitHistory|NO_ACTION|NO_ACTION|PaymentHistoryId=Id"
+  },
+  {
+    "Kind": "ForeignKey",
+    "Table": "VehicleMayorPermits",
+    "Name": "FK_VehicleMayorPermits_Preparer",
+    "Definition": "Users|NO_ACTION|NO_ACTION|PreparedBy=Id"
+  },
+  {
+    "Kind": "ForeignKey",
+    "Table": "VehiclePaymentAssessmentSnapshots",
+    "Name": "FK_VehiclePaymentAssessmentSnapshots_PaymentAmount",
+    "Definition": "VehiclePermitHistory|NO_ACTION|NO_ACTION|PaymentHistoryId=Id,GrandTotal=AmountPaid"
+  },
+  {
+    "Kind": "Index",
+    "Table": "VehicleMayorPermitCounters",
+    "Name": "PK_VehicleMayorPermitCounters",
+    "Definition": "1|1|CLUSTERED||IssueYear:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "VehicleMayorPermits",
+    "Name": "PK_VehicleMayorPermits",
+    "Definition": "1|1|CLUSTERED||PaymentHistoryId:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "VehicleMayorPermits",
+    "Name": "UQ_VehicleMayorPermitNumber",
+    "Definition": "1|0|NONCLUSTERED||IssueYear:1:0:0,SequenceNumber:2:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "VehiclePaymentAssessmentSnapshots",
+    "Name": "PK_VehiclePaymentAssessmentSnapshots",
+    "Definition": "1|1|CLUSTERED||PaymentHistoryId:1:0:0"
+  },
+  {
+    "Kind": "Index",
+    "Table": "VehiclePermitHistory",
+    "Name": "UQ_VehiclePermitHistory_IdAmount",
+    "Definition": "1|0|NONCLUSTERED||Id:1:0:0,AmountPaid:2:0:0"
+  },
+  {
+    "Kind": "Module",
+    "Table": "VehiclePaymentAssessmentSnapshots",
+    "Name": "TR_VehiclePaymentAssessmentSnapshots_Immutable",
+    "Definition": "\nCREATE TRIGGER dbo.TR_VehiclePaymentAssessmentSnapshots_Immutable ON dbo.VehiclePaymentAssessmentSnapshots\nAFTER UPDATE, DELETE AS\nBEGIN\n    SET NOCOUNT ON;\n    IF EXISTS (SELECT 1 FROM deleted)\n        THROW 51003, 'Recorded payment assessment snapshots cannot be changed or deleted.', 1;\nEND\n"
+  }
+]

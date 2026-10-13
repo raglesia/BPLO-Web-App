@@ -1,7 +1,7 @@
 @page
 @model BusinessPermitLicensingSystem.Web.Pages.Reports.VehiclePaymentModel
-@{ ViewData["Title"] = "Special Vehicle Permit Payment"; }
-<div class="page-header"><div><p class="eyebrow">Reports</p><h1>Special Vehicle Permit Payment</h1><p>Select up to three recorded annual payments for one print job.</p></div></div>
+@{ ViewData["Title"] = "Special Vehicle Permit Payment Report"; }
+<div class="page-header"><div><p class="eyebrow">Reports</p><h1>Special Vehicle Permit Payment Report</h1><p>Select up to three recorded annual payments for one print job.</p></div></div>
 @if (Model.Error is not null) { <p class="alert alert-danger" role="alert">@Model.Error</p> }
 <section class="section-panel vehicle-report-selector" aria-labelledby="vehicle-selected-heading">
     <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap"><h2 class="section-heading mb-0" id="vehicle-selected-heading">Selected Payments</h2><p class="mb-0" role="status" aria-live="polite">@Model.Selected.Count of 3 selected</p></div>

@@ -3,6 +3,7 @@
     bool home = path == "/";
     bool profiles = path.StartsWith("/Profiles", StringComparison.OrdinalIgnoreCase);
     bool vehicles = path.StartsWith("/Vehicles", StringComparison.OrdinalIgnoreCase);
+    bool payments = path.StartsWith("/Payments", StringComparison.OrdinalIgnoreCase);
     bool reports = path.StartsWith("/Reports", StringComparison.OrdinalIgnoreCase);
     bool rates = path.StartsWith("/RentalRates", StringComparison.OrdinalIgnoreCase);
     bool archive = path.StartsWith("/Archive", StringComparison.OrdinalIgnoreCase);
@@ -12,7 +13,7 @@
     bool transfer = path.EndsWith("/Transfer", StringComparison.OrdinalIgnoreCase);
     bool archiveVehicles = path.StartsWith("/Archive/Vehicles", StringComparison.OrdinalIgnoreCase);
     bool vehicleTransfer = path.StartsWith("/Vehicles/Transfer", StringComparison.OrdinalIgnoreCase);
-    string pageSection = home ? "Dashboard" : reports ? "Reports" : archive ? "Archive" : rates ? "Rental Rates" : accounts ? "User Accounts" : audit ? "Audit Trail" : vehicles ? "Special Vehicle Permits" : profiles ? "Stall Owners" : health ? "Database Check" : "Workspace";
+    string pageSection = home ? "Dashboard" : payments ? "Billing & Payments" : reports ? "Reports" : archive ? "Archive" : rates ? "Rental Rates" : accounts ? "User Accounts" : audit ? "Audit Trail" : vehicles ? "Special Vehicle Permits" : profiles ? "Stall Owners" : health ? "Database Check" : "Workspace";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -52,7 +53,8 @@
                     <p class="sidebar-group">Main</p>
                     <a class="sidebar-link @(home ? "active" : "")" aria-current="@(home ? "page" : null)" asp-page="/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-dashboard" /></svg>Dashboard</a>
                     <a class="sidebar-link @(profiles && !transfer ? "active" : "")" aria-current="@(profiles && !transfer ? "page" : null)" asp-page="/Profiles/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-profiles" /></svg>Stall Owners</a>
-                    <a class="sidebar-link @(vehicles && !transfer ? "active" : "")" aria-current="@(vehicles && !transfer ? "page" : null)" asp-page="/Vehicles/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-vehicles" /></svg>Special Vehicle Permits</a>
+                    <a class="sidebar-link @(vehicles && !transfer ? "active" : "")" aria-current="@(vehicles && !transfer ? "page" : null)" asp-page="/Vehicles/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-vehicles" /></svg>Special Vehicle</a>
+                    <a class="sidebar-link @(payments ? "active" : "")" aria-current="@(payments ? "page" : null)" asp-page="/Payments/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-wallet" /></svg>Billing &amp; Payments</a>
                     <p class="sidebar-group">Management</p>
                     <a class="sidebar-link @(rates ? "active" : "")" aria-current="@(rates ? "page" : null)" asp-page="/RentalRates/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-rates" /></svg>Rental Rates</a>
                     <details class="sidebar-disclosure" @(archive ? "open" : "")><summary class="sidebar-link @(archive ? "active" : "")"><svg class="nav-icon" aria-hidden="true"><use href="#i-archive" /></svg>Archive<span class="disclosure-chevron" aria-hidden="true">⌄</span></summary><a class="sidebar-sublink @(archive && !archiveVehicles ? "active" : "")" aria-current="@(archive && !archiveVehicles ? "page" : null)" asp-page="/Archive/Profiles">Stall Owners</a><a class="sidebar-sublink @(archiveVehicles ? "active" : "")" aria-current="@(archiveVehicles ? "page" : null)" asp-page="/Archive/Vehicles">Special Vehicle Permits</a></details>

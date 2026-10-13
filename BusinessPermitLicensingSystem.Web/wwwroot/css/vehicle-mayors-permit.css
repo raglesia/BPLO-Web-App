@@ -1,0 +1,40 @@
+.mayor-paper{position:relative;isolation:isolate;box-sizing:border-box;width:210mm;min-height:287mm;margin:20px auto;padding:22mm 10mm 9mm;background:white;color:#111;font-family:Arial,sans-serif;box-shadow:0 2px 12px #0002;overflow:hidden;display:flex;flex-direction:column}
+.mayor-wave{position:absolute;inset:0 0 auto;width:100%;height:48mm;z-index:-1}
+.mayor-watermark{position:absolute;top:120mm;left:0;width:100%;height:135mm;object-fit:cover;opacity:.10;z-index:-1}
+.mayor-heading{text-align:center;font-size:18px;font-weight:700;line-height:1.25;position:relative}
+.mayor-seal{position:absolute;right:-3mm;top:-12mm;width:30mm;height:30mm;border-radius:50%;object-fit:contain}
+.mayor-heading h2{font-size:38px;line-height:1.05;margin:11mm 0 2mm;font-weight:800;letter-spacing:.4px;color:#111}
+.mayor-heading>strong{font-size:22px}.mayor-heading p{margin:3mm 0 1mm;font-size:17px}
+.mayor-grant{text-align:center;font-size:13px;line-height:1.2;font-weight:bold;margin:1mm 0 3mm}
+.mayor-subject{text-align:center;display:grid;gap:1mm}.mayor-subject strong{font-size:23px;line-height:1.15;text-transform:uppercase;overflow-wrap:anywhere}.mayor-subject span{font-size:13px;font-weight:bold;margin-bottom:3mm}
+.mayor-receipt{width:70%;font-size:12px;margin:2mm 0 4mm}.mayor-receipt>div{display:grid;grid-template-columns:40mm 1fr;margin:1mm 0}.mayor-receipt dt{font-weight:bold}.mayor-receipt dd{margin:0;text-align:center}
+.mayor-approval{text-align:center;display:flex;flex-direction:column;font-size:16px;margin:2mm 0 5mm}.mayor-signature{width:70mm;height:7mm;border-bottom:1px solid #111;margin:0 auto 4mm}.mayor-approval strong{font-size:22px}
+.mayor-bottom{display:grid;grid-template-columns:1fr 56mm;align-items:end;gap:4mm;margin-top:auto}.mayor-terms h3{font-size:10px;font-weight:bold;margin:0 0 1mm}.mayor-terms ol{padding-left:4mm;margin:0;font-size:9px;line-height:1.25}.mayor-terms li{padding-left:1mm}.mayor-potog{width:100%;height:auto;object-fit:contain}.mayor-validity{background:#182abe;color:white;text-align:right;font-size:10px;padding:2mm 3mm;margin-top:3mm}
+@media(max-width:900px){.mayor-paper{max-width:100%;width:210mm}.mayor-seal{width:23mm;height:23mm}.mayor-heading h2{font-size:30px}.mayor-subject strong{font-size:20px}}
+@media print{@page{size:A4 portrait;margin:5mm}html,body{margin:0!important;padding:0!important;background:white!important}.app-sidebar,.app-topbar,.app-footer,.mayor-toolbar,.skip-link,.sidebar-backdrop{display:none!important}.app-main,.app-content,.main-content,main{margin:0!important;padding:0!important;max-width:none!important;width:100%!important}.mayor-paper{width:200mm;min-height:287mm;margin:0;box-shadow:none;print-color-adjust:exact;-webkit-print-color-adjust:exact;break-inside:avoid}.mayor-heading h2{font-size:38px}.mayor-subject strong{font-size:23px}.mayor-seal{width:30mm;height:30mm}.mayor-bottom{break-inside:avoid}}
+.mayor-preview-notice{margin:0 0 4mm;text-align:center;font-size:11px;font-weight:700;color:#a12626}@media print{.app-shell,.app-workspace{display:block!important;margin:0!important;padding:0!important;width:100%!important;min-height:0!important}.mayor-paper[data-prepared="false"],.mayor-preview-notice,.alert{display:none!important}}
+.mayor-seal-left{left:-3mm;right:auto}.mayor-seal-right{right:-3mm;left:auto}.mayor-heading>div{padding-inline:27mm}@media(max-width:600px){.mayor-heading>div{padding-inline:18mm;font-size:14px}}@media print{.mayor-heading>div{padding-inline:27mm;font-size:18px}}
+.mayor-subject{justify-items:stretch}.mayor-subject>strong,.mayor-subject>span{display:block;width:100%;text-align:center!important}.mayor-bottom-actions{display:flex;justify-content:center;margin:16px 0 24px}
+.mayor-receipt{margin-left:auto;margin-right:auto}
+.mayor-receipt dd{font-weight:600}
+.mayor-paper :is(h2,h3,p,strong,span,dt,dd,li){color:#000}
+.mayor-heading>div{color:#000;text-shadow:-1px -1px 0 #fff,0 -1px 0 #fff,1px -1px 0 #fff,-1px 0 0 #fff,1px 0 0 #fff,-1px 1px 0 #fff,0 1px 0 #fff,1px 1px 0 #fff}
+@media print{.mayor-paper>.mayor-heading,.mayor-paper>.mayor-validity{display:block!important}.mayor-paper{overflow:visible;padding-top:18mm;padding-bottom:6mm}.mayor-heading h2{margin-top:7mm}.mayor-subject span{margin-bottom:2mm}.mayor-approval{margin-bottom:3mm}.mayor-receipt{margin-bottom:3mm}}
+/* Print sizing is also applied before measurement, independent of viewport width. */
+.mayor-paper.mayor-print-sizing{width:194mm!important;max-width:none!important;min-height:0!important;height:auto!important;padding:18mm 10mm 6mm;margin:0 auto!important;font-size:12px;line-height:1.2;overflow:visible}
+.mayor-print-sizing>*{flex-shrink:0}
+.mayor-print-sizing>.mayor-heading,.mayor-print-sizing>.mayor-validity{display:block!important}
+.mayor-print-sizing .mayor-heading>div{padding-inline:27mm;font-size:18px}
+.mayor-print-sizing .mayor-heading h2{font-size:38px;margin-top:7mm}
+.mayor-print-sizing .mayor-seal{width:30mm;height:30mm}
+.mayor-print-sizing .mayor-subject strong{font-size:23px}
+.mayor-print-sizing .mayor-subject span{margin-bottom:2mm}
+.mayor-print-sizing .mayor-approval,.mayor-print-sizing .mayor-receipt{margin-bottom:3mm}
+.mayor-print-sizing .mayor-bottom{margin-top:3mm}
+@media print{
+ @page mayor-permit{size:A4 portrait;margin:8mm}
+ .mayor-paper{page:mayor-permit;width:194mm;min-height:0;height:auto;font-size:12px;line-height:1.2;margin:0 auto;break-inside:avoid;page-break-inside:avoid}
+ .mayor-paper>*{flex-shrink:0}
+ .mayor-bottom{margin-top:3mm}
+ .mayor-validity{break-inside:avoid;page-break-inside:avoid}
+}

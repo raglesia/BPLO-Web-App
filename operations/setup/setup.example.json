@@ -1,0 +1,19 @@
+{
+  "Server": ".\\SQLEXPRESS",
+  "ServerIdentity": "REPLACE_HOST\\SQLEXPRESS",
+  "Database": "REPLACE_APPROVED_DATABASE",
+  "DatabaseMode": "Validate",
+  "HostName": "REPLACE_APPROVED_DNS_NAME",
+  "CertificateThumbprint": "REPLACE_LOCAL_MACHINE_MY_CERTIFICATE_THUMBPRINT",
+  "WebFolder": "C:\\BPLO\\Web",
+  "SiteName": "BPLO",
+  "PoolName": "BPLO",
+  "HttpsPort": 443,
+  "LanSubnet": "192.168.1.0/24",
+  "InstallPrerequisites": false,
+  "SqlInstaller": "",
+  "HostingBundleInstaller": "",
+  "PrepareBackupTask": false,
+  "SqlServiceAccount": "",
+  "BackupTaskName": "BPLO Weekly Database Backup"
+}

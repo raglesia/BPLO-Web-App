@@ -1,9 +1,19 @@
 @page
 @using BusinessPermitLicensingSystem.Web.Vehicles
 @model BusinessPermitLicensingSystem.Web.Pages.Reports.VehiclePaymentPreviewModel
-@{ ViewData["Title"] = "Special Vehicle Permit Payment Preview"; }
-<div class="page-header rental-preview-toolbar"><div><p class="eyebrow">Reports</p><h1>Special Vehicle Permit Payment</h1><p>Combined print preview · @Model.Reports.Count report@(Model.Reports.Count == 1 ? "" : "s")</p></div>
-    <div class="page-actions"><a class="btn btn-outline-secondary" asp-page="/Reports/VehiclePayment">Back to Report Selection</a>@if (Model.Reports.Count > 0) { <button class="btn btn-primary" type="button" onclick="window.print()">Print</button> }</div>
+@{ ViewData["Title"] = "Special Vehicle Permit Payment Report"; }
+<div class="page-header rental-preview-toolbar"><div><p class="eyebrow">Reports</p><h1>Special Vehicle Permit Payment Report</h1><p>Recorded Payment · @Model.Reports.Count report@(Model.Reports.Count == 1 ? "" : "s")</p></div>
+    <div class="page-actions">
+        @if (Model.Reports.Count == 1)
+        {
+            <a class="btn btn-outline-secondary" href="@(Url.IsLocalUrl(Request.Query["returnUrl"].ToString()) ? Request.Query["returnUrl"].ToString() : Url.Page("/Payments/Vehicles",new {vin=Model.Reports[0].Vin}))">Back</a>
+        }
+        else
+        {
+            <a class="btn btn-outline-secondary" asp-page="/Reports/VehiclePayment">Back</a>
+        }
+        @if (Model.Reports.Count > 0) { <button class="btn btn-primary" type="button" onclick="window.print()">Print</button> }
+    </div>
 </div>
 @if (Model.Error is not null) { <p class="alert alert-danger" role="alert">@Model.Error <a asp-page="/Reports/VehiclePayment">Choose recorded payments again</a>.</p> }
 @if (Model.Reports.Count > 0)
@@ -12,9 +22,9 @@
     @foreach (var report in Model.Reports)
     {
         <article class="rental-payment-block vehicle-payment-block" aria-label="Special Vehicle Permit payment for @report.Vin, @report.Year, OR @report.OrNumber">
-            <div class="rental-document-heading">
+            <div class="rental-document-heading payment-report-heading">
                 <img src="@Url.Content("~/images/masinloc-logo.jpg")" alt="Municipality of Masinloc seal" width="70" height="70" />
-                <div><strong>Municipality of Masinloc</strong><span>Province of Zambales</span><span>Business Permit and Licensing Office</span><h2>SPECIAL VEHICLE PERMIT PAYMENT</h2></div>
+                <div><strong>Municipality of Masinloc</strong><span>Province of Zambales</span><span>Business Permit and Licensing Office</span><h2>SPECIAL VEHICLE PERMIT PAYMENT REPORT</h2></div><img src="~/images/mayors-permit/bplo-logo.jpg" alt="Business Permits and Licensing Office logo" width="70" height="70" />
             </div>
             <dl class="rental-info-grid vehicle-report-info">
                 <div><dt>Company / Operator</dt><dd>@report.Company</dd></div><div><dt>Plate Number</dt><dd>@report.Plate</dd></div>
@@ -41,7 +51,7 @@
             @if (report.AmountMismatch) { <p class="rental-review-note" role="note">Assessment total ₱@report.Assessment!.GrandTotal.ToString("N2") differs from recorded amount paid. Payment history amount is authoritative.</p> }
             @if (report.AssessmentWarning is not null) { <p class="rental-review-note" role="note">@report.AssessmentWarning</p> }
             <div class="rental-document-footer"><div><span>Processed By:</span><strong>@report.Recorder</strong><span>@report.RecorderPosition</span></div><p>Date Printed: @Model.PrintedAt.ToString("MMMM dd, yyyy hh:mm tt")</p></div>
-            <p class="rental-scope">Recorded annual payment for permit year @report.Year. Vehicle identity and saved assessment reflect currently stored records.</p>
+            <p class="rental-scope">Recorded annual payment for permit year @report.Year. @(report.Assessment is null ? "Legacy payment: historical assessment unavailable." : "Identity and assessment are preserved from the payment-time snapshot.")</p>
         </article>
     }
     </div>

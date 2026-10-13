@@ -6,19 +6,21 @@ using Microsoft.Extensions.Configuration;
 
 internal static class GlobalReceiptScenarios
 {
-    private const string ConnectionString = "Server=.\\SQLEXPRESS;Database=BPLS_Dev;Integrated Security=True;Encrypt=True;TrustServerCertificate=True";
-    public static async Task RunAsync()
+    public static async Task RunAsync(IConfiguration? staging = null)
     {
-        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string,string?>
-            { ["ConnectionStrings:BPLS"] = ConnectionString }).Build();
+        var config = staging ?? QaDatabase.Configuration();
+        QaDatabase.RequireIsolated(config);
+        string targetConnection = config.GetConnectionString("BPLS")!;
+        string targetDatabase = config["Database:ApprovedDatabase"]!;
         var rental = new BillingService(config); var vehicle = new VehicleService(config);
-        await using var db = new SqlConnection(ConnectionString); await db.OpenAsync();
-        Check((string?)await Scalar("SELECT DB_NAME()") == "BPLS_Dev", "database guard");
+        await using var db = new SqlConnection(targetConnection); await db.OpenAsync();
+        Check((string?)await Scalar("SELECT DB_NAME()") == targetDatabase, "database guard");
         int user = Convert.ToInt32(await Scalar("SELECT TOP(1) Id FROM Users ORDER BY Id"));
         string tag = Guid.NewGuid().ToString("N")[..10];
+        string orRun = QaDatabase.OrRun();
         DateTime date = new(2026,4,21,12,0,0);
         var profiles = new List<string>(); var vehicles = new List<string>();
-        string[] fixedOrs = ["OR-TEST-GLOBAL-001","OR-TEST-GLOBAL-002","OR-TEST-GLOBAL-003"];
+        string[] fixedOrs = [$"{orRun}-1",$"{orRun}-2",$"{orRun}-3"];
         foreach(string or in fixedOrs)
             Check(await CountOr(or) == 0, "requested synthetic OR available " + or);
         try
@@ -34,11 +36,11 @@ internal static class GlobalReceiptScenarios
             Check(!duplicateRental.Success && duplicateRental.Error==ReceiptRegistry.DuplicateMessage && await CountRental(d)==0,
                 "vehicle to rental duplicate rejected with no rental payment");
             // Distinct obligations, same receipt: test receipt uniqueness rather than same-profile locking.
-            string rr1=await Profile(),rr2=await Profile(),orR="GLOBAL-"+tag+"-RR";
+            string rr1=await Profile(),rr2=await Profile(),orR=orRun+"-4";
             var rr=await Task.WhenAll(rental.PayAsync(rr1,orR,user,date,default),rental.PayAsync(rr2,orR,user,date,default));
             Check(rr.Count(x=>x.Success)==1 && rr.Single(x=>!x.Success).Error==ReceiptRegistry.DuplicateMessage && await CountOr(orR)==1,
                 "rental versus rental same OR has one clean winner");
-            string vv1=await Car(),vv2=await Car(),orV="GLOBAL-"+tag+"-VV";
+            string vv1=await Car(),vv2=await Car(),orV=orRun+"-5";
             var vv=await Task.WhenAll(vehicle.PayAsync(vv1,orV,2026,user,date,default),vehicle.PayAsync(vv2,orV,2026,user,date,default));
             Check(vv.Count(x=>x.Success)==1 && vv.Single(x=>!x.Success).Error==ReceiptRegistry.DuplicateMessage && await CountOr(orV)==1,
                 "vehicle versus vehicle same OR has one clean winner");
@@ -54,7 +56,7 @@ internal static class GlobalReceiptScenarios
             foreach(bool isRental in new[]{true,false})
             {
                 string owner=isRental?await Profile():await Car();
-                string or="GLOBAL-"+tag+(isRental?"-ROLL-R":"-ROLL-V");
+                string or=orRun+(isRental?"-6":"-7");
                 string trigger="TR_GlobalReceipt_QA_"+tag+(isRental?"R":"V");
                 string table=isRental?"PaymentHistoryBilling":"VehiclePermitHistory";
                 string predicate=isRental
@@ -96,21 +98,9 @@ internal static class GlobalReceiptScenarios
         }
         finally
         {
-            // Exact owned identifiers only. History DELETE triggers remove their receipt entries.
-            foreach(string sin in profiles)
-                await Execute("""
-                    DELETE l FROM PaymentHistoryBilling l JOIN PaymentHistory h ON h.Id=l.PaymentHistoryId WHERE h.SIN=@sin;
-                    DELETE l FROM PaymentHistoryArrears l JOIN PaymentHistory h ON h.Id=l.PaymentHistoryId WHERE h.SIN=@sin;
-                    DELETE FROM PaymentHistory WHERE SIN=@sin;
-                    DELETE FROM MonthlyBilling WHERE SIN=@sin;
-                    DELETE FROM AuditTrail WHERE SIN=@sin;
-                    DELETE FROM Profiling WHERE SIN=@sin;
-                    """,("@sin",sin));
-            foreach(string vin in vehicles)
-                await Execute("DELETE FROM VehiclePermitHistory WHERE VIN=@vin; DELETE FROM VehiclePermitFeeDrafts WHERE VIN=@vin; DELETE FROM AuditTrail WHERE SIN=@vin; DELETE FROM VehiclePermits WHERE VIN=@vin;",("@vin",vin));
-            Check(Convert.ToInt32(await Scalar("SELECT COUNT(*) FROM ReceiptRegistry WHERE ORNumber LIKE @tag",("@tag","GLOBAL-"+tag+"%")))==0,
-                "owned global receipt fixtures cleaned");
-            foreach(string or in fixedOrs) Check(await CountOr(or)==0,"requested OR fixture cleaned "+or);
+            // Immutable snapshots are not deleted for fixture cleanup. The entire isolated database
+            // is disposable; retain exact transaction evidence for post-run integrity review.
+            Console.WriteLine("Global receipt fixtures retained only in " + targetDatabase);
         }
         async Task<string> Profile()
         {

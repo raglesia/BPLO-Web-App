@@ -1,3 +1,4 @@
+using BusinessPermitLicensingSystem.Web.Data;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
@@ -90,21 +91,8 @@ public sealed class ArchiveService(IConfiguration configuration)
         catch { await transaction.RollbackAsync(CancellationToken.None); throw; }
     }
 
-    private async Task<SqlConnection> OpenAsync(CancellationToken token)
-    {
-        var builder = new SqlConnectionStringBuilder(configuration.GetConnectionString("BPLS"));
-        if (!string.Equals(builder.InitialCatalog, "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Archive work requires BPLS_Dev.");
-        var connection = new SqlConnection(builder.ConnectionString);
-        try
-        {
-            await connection.OpenAsync(token);
-            if (!string.Equals(connection.Database, "BPLS_Dev", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Archive work requires BPLS_Dev.");
-            return connection;
-        }
-        catch { await connection.DisposeAsync(); throw; }
-    }
+    private Task<SqlConnection> OpenAsync(CancellationToken token)
+        => DatabaseConnection.OpenAsync(configuration, token);
 
     private static void AddSearch(SqlCommand command, string? search)
     {

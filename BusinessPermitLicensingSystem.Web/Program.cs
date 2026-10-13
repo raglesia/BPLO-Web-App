@@ -7,8 +7,21 @@ using BusinessPermitLicensingSystem.Web.Transfer;
 using BusinessPermitLicensingSystem.Web.Reports;
 using BusinessPermitLicensingSystem.Web.Administration;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
+// The host owns environment selection; database configuration cannot override it.
+builder.Configuration["Database:Environment"] = builder.Environment.EnvironmentName;
+if (!builder.Environment.IsDevelopment())
+{
+    BusinessPermitLicensingSystem.Web.Data.DatabaseConnection.Validate(builder.Configuration);
+    // Prevent a staging/production cookie from authenticating against another target.
+    // Development retains its existing cookie protection scope.
+    string scope = string.Join("|", "BPLO", builder.Environment.EnvironmentName,
+        builder.Configuration["Database:ApprovedServerIdentity"],
+        builder.Configuration["Database:ApprovedDatabase"]).ToUpperInvariant();
+    builder.Services.AddDataProtection().SetApplicationName(scope);
+}
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -41,6 +54,7 @@ builder.Services.AddScoped<ArchiveService>();
 builder.Services.AddScoped<TransferService>();
 builder.Services.AddScoped<ReportService>();
 builder.Services.AddScoped<VehiclePaymentReportService>();
+builder.Services.AddScoped<VehicleMayorPermitService>();
 builder.Services.AddScoped<RentalRateService>();
 builder.Services.AddScoped<AuditTrailService>();
 builder.Services.AddScoped<UserAccountService>();

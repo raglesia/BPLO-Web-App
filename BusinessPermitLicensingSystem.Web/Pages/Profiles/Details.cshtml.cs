@@ -1,4 +1,5 @@
 using BusinessPermitLicensingSystem.Web.Profiles;
+using BusinessPermitLicensingSystem.Web.Billing;
 using BusinessPermitLicensingSystem.Web.Archive;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
@@ -6,9 +7,10 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace BusinessPermitLicensingSystem.Web.Pages.Profiles;
 
-public class ProfileDetailsModel(ProfileService profiles, ArchiveService archive, ILogger<ProfileDetailsModel> logger) : PageModel
+public class ProfileDetailsModel(ProfileService profiles, ArchiveService archive, BillingService billing, ILogger<ProfileDetailsModel> logger) : PageModel
 {
     public ProfileRecord? Profile { get; private set; }
+    public BillingView? FinancialSummary { get; private set; }
     public string? LoadError { get; private set; }
     public string? ImportReview { get; private set; }
     public string? Notice { get; private set; }
@@ -39,6 +41,11 @@ public class ProfileDetailsModel(ProfileService profiles, ArchiveService archive
         try
         {
             Profile = await profiles.GetAsync(sin, HttpContext.RequestAborted);
+            if(Profile is not null)
+            {
+                try { FinancialSummary = await billing.GetAsync(sin,DateTime.Today,HttpContext.RequestAborted); }
+                catch(Exception ex) { logger.LogError(ex,"Profile financial summary failed for {Sin}",sin); }
+            }
             ImportReview = await profiles.GetImportReviewAsync(sin, HttpContext.RequestAborted);
             return Profile is null ? NotFound() : Page();
         }

@@ -1,3 +1,4 @@
+using BusinessPermitLicensingSystem.Web.Data;
 using System.Data;
 using System.Globalization;
 using System.Text;
@@ -247,16 +248,8 @@ public sealed class TransferService(IConfiguration configuration)
         catch { await transaction.RollbackAsync(CancellationToken.None); throw; }
     }
 
-    private async Task<SqlConnection> OpenAsync(CancellationToken token)
-    {
-        var builder = new SqlConnectionStringBuilder(configuration.GetConnectionString("BPLS"));
-        if (!string.Equals(builder.InitialCatalog, "BPLS_Dev", StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Transfer requires BPLS_Dev.");
-        var connection = new SqlConnection(builder.ConnectionString);
-        try { await connection.OpenAsync(token);
-            if (!string.Equals(connection.Database, "BPLS_Dev", StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Transfer requires BPLS_Dev.");
-            return connection; }
-        catch { await connection.DisposeAsync(); throw; }
-    }
+    private Task<SqlConnection> OpenAsync(CancellationToken token)
+        => DatabaseConnection.OpenAsync(configuration, token);
 
     private static bool IsZip(Stream stream)
     { int a = stream.ReadByte(), b = stream.ReadByte(); stream.Position = 0; return a == 'P' && b == 'K'; }

@@ -1,7 +1,7 @@
 @page
 @model BusinessPermitLicensingSystem.Web.Pages.Reports.StallPaymentPreviewModel
 @{ ViewData["Title"] = "Rental Payment Report"; }
-<div class="page-header rental-preview-toolbar"><h1>Rental Payment Report</h1><div class="page-actions"><a asp-page="/Profiles/Billing" asp-route-sin="@Model.Sin" class="btn btn-outline-secondary">Back to Billing</a>@if(Model.Payment is not null) { <button type="button" class="btn btn-primary" onclick="window.print()">Print</button> }</div></div>
+<div class="page-header rental-preview-toolbar"><h1>Rental Payment Report</h1><div class="page-actions"><a href="@(Url.IsLocalUrl(Request.Query["returnUrl"].ToString()) ? Request.Query["returnUrl"].ToString() : Url.Page("/Payments/Stalls", new {sin=Model.Sin}))" class="btn btn-outline-secondary">Back</a>@if(Model.Payment is not null) { <button type="button" class="btn btn-primary" onclick="window.print()">Print</button> }</div></div>
 @if(Model.Error is not null) { <p class="alert alert-danger" role="alert">@Model.Error</p> }
 @if(Model.Payment is {} payment) {
 <div class="rental-paper"><article class="rental-payment-block">

@@ -6,9 +6,11 @@ ASP.NET Core Razor Pages for Stall Owners, rental billing/payments, Special Vehi
 
 ## Release gate — resolve before official use
 
-**Current source is development-validated, not production-approved.** Authentication and several services explicitly require `BPLS_Dev`; changing the connection string alone will fail. Development SQL scripts also enforce that database. Authorize and review production configuration/schema support, prepare an approved migration, and validate it on an isolated staging copy before official cutover. Do not remove safeguards blindly or run reset/sample scripts on official data.
+**QA-01 database-target support is implemented and locally validated.** All web database access uses one environment-aware guard. Development requires `BPLS_Dev`; Staging/Production require an explicitly approved endpoint, database, and actual SQL Server identity. The schema-v1 package passed fresh installation, compatibility validation, and isolated backup/restore tests. Official host/IIS/HTTPS, permissions, existing-database compatibility and data cutover still require acceptance. See [database setup](operations/database/README.md) and [QA-01 evidence](operations/database/QA01_ACCEPTANCE_REPORT.md). Development SQL scripts remain restricted to `BPLS_Dev`.
 
 This is the deployment runbook, not evidence that production installation has occurred. No production database, credentials, or backup is included in this repository.
+
+For guided fresh-host setup, see [Setup-BPLO.bat instructions](operations/setup/README.md). Build the full installer package on the build PC, complete the host configuration, review its plan, then apply locally as administrator. The batch file alone is not the complete package. Existing installations/data are never overwritten and the optional weekly backup task remains disabled pending host acceptance.
 
 ## 1. Prepare the Windows host
 
@@ -48,7 +50,7 @@ Office/Excel, SQLite, SQL Server Agent, third-party schedulers, and separate Clo
 
 ## 4. Prepare the approved database
 
-A DBA must supply an approved official schema/data migration or authorized backup to restore. **The development initializer is not a production migration package.** Preserve profiles, rates, bills, payment links, OR references, vehicle drafts/history, arrears, users, and audits; compare identifiers, counts, balances, and constraints before cutover.
+For a fresh approved database, use the guarded [schema-v1 installation package](operations/database/README.md). For an existing database, first validate an isolated restored copy; mismatches require a separately reviewed incremental migration. A DBA must approve the official data migration or backup to restore. **The development initializer is not a production migration package.** Preserve profiles, rates, bills, payment links, OR references, vehicle drafts/history, arrears, users, and audits; compare identifiers, counts, balances, and constraints before cutover.
 
 Never transfer disposable test fixtures into official operation. Do not run `BPLS_Dev.samples.sql`, clean-baseline resets, or the regression console on an official database. Establish the IIS identity's necessary SQL permissions without granting application sysadmin. Review account creation/access policy before exposing the site.
 
@@ -69,7 +71,7 @@ Copy the reviewed **published output**, including `web.config` and `wwwroot`, to
 1. Create a dedicated x64 application pool with **No Managed Code** and reviewed identity. Grant Read & Execute on published files and only necessary writable locations.
 2. Create a site pointing to `C:\BPLO\Web`; configure a trusted HTTPS binding for its approved hostname. The app uses HTTPS redirection/HSTS; resolve certificate setup rather than disabling protections.
 3. Set `ASPNETCORE_ENVIRONMENT=Production`. Supply `ConnectionStrings__BPLS` through protected host configuration. Do not commit credentials or store SQL passwords in scripts. Integrated authentication uses the IIS identity, not the interactive installer.
-4. After the release gate is resolved, connection-string shape: `Server=HOST\INSTANCE;Database=APPROVED_DATABASE;Integrated Security=True;Encrypt=True;TrustServerCertificate=False`. Configure a trusted SQL certificate where required; do not copy development trust overrides without review.
+4. Configure `Database__ApprovedServer`, `Database__ApprovedServerIdentity` and `Database__ApprovedDatabase` as described in the database guide. Connection-string shape: `Server=HOST\INSTANCE;Database=APPROVED_DATABASE;Integrated Security=True;Encrypt=True;TrustServerCertificate=False`. Configure a trusted SQL certificate where required; do not copy development trust overrides without review.
 5. Configure approved host allowlisting, stable Data Protection key storage with appropriate ACLs for authentication cookies, and firewall access restricted to the approved LAN. Do not expose SQL/BPLO publicly as part of installation.
 6. Recycle the pool; verify locally and from an employee PC. Clients use the host name/address, not `127.0.0.1`, which refers to their own PC.
 
@@ -126,6 +128,7 @@ Record deployed commit/package, approved schema, host configuration, backup evid
 - `BusinessPermitLicensingSystem.BillingTests/`: synthetic development regression runner.
 - `development/`: historical development scripts/notes, not official migrations.
 - `operations/backup/`: host backup scripts and guide.
+- `operations/database/`: guarded schema installation, validation, target configuration, and QA-01 report.
 - `BusinessPermitLicensingSystem.slnx`: full solution.
 
 Development uses BPLS_Dev and .NET user secrets for `ConnectionStrings:BPLS`. SQLite demo is separate. Development backup tests passed and its Friday 16:30 task is **disabled**. No production connection, task registration, or deployment occurred during implementation.
