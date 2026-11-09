@@ -1,89 +1,64 @@
 @page
 @model IndexModel
 @{ ViewData["Title"] = "Dashboard"; }
-<header class="desk-header" aria-labelledby="dashboard-title">
-    <div class="desk-intro">
-        <p class="desk-kicker">Dashboard</p>
-        <h1 id="dashboard-title">Administrative Dashboard</h1>
-        <p class="desk-description">Overview of stall owners, billing, permits, and municipal collections.</p>
-    </div>
-    <div class="desk-actions">
-        <a class="btn btn-primary" asp-page="/Profiles/Create">Add Stall Owner</a>
-        <a class="btn btn-outline-primary" asp-page="/Vehicles/Edit">Add Vehicle</a>
-    </div>
+<header class="desk-header midnight-page-heading" aria-labelledby="dashboard-title">
+    <div class="desk-intro"><p class="desk-kicker">Workspace / Overview</p><h1 id="dashboard-title">Office Overview</h1><p class="desk-description">Profiles, billing accounts and municipal collections.</p></div>
+    <div class="desk-actions"><a class="btn btn-outline-primary" asp-page="/Reports/Monthly">Monthly Report</a><a class="btn btn-primary" asp-page="/Profiles/Create">Add Stall Owner</a><a class="btn btn-outline-primary" asp-page="/Vehicles/Edit">Add Vehicle</a></div>
 </header>
-<div class="desk-composition">
-    <section class="desk-register" aria-labelledby="summary-title">
-        <h2 id="summary-title" class="desk-heading">Records Overview</h2>
-        <div class="desk-register-grid">
-            <div class="desk-record">
-                <span class="desk-icon-box desk-active"><svg class="desk-icon" aria-hidden="true"><use href="#i-profiles" /></svg></span>
-                <div class="desk-metric-body"><h3>Active Stall Owners</h3><div class="desk-record-value">@(Model.ActiveProfiles?.ToString() ?? "Unavailable")</div><p>Currently active profiles</p></div>
-            </div>
-            <a class="desk-record desk-record-link" asp-page="/Profiles/Index" asp-route-search="Unverified">
-                <span class="desk-icon-box desk-verification"><svg class="desk-icon" aria-hidden="true"><use href="#i-alert" /></svg></span>
-                <div class="desk-metric-body"><h3>Unverified Profiles</h3><div class="desk-record-value">@(Model.UnverifiedProfiles?.ToString() ?? "Unavailable")</div><p>Awaiting occupancy verification</p></div>
-            </a>
-            <a class="desk-record desk-record-link" asp-page="/Profiles/Index" asp-route-search="Unpaid">
-                <span class="desk-icon-box desk-unpaid"><svg class="desk-icon" aria-hidden="true"><use href="#i-receipt" /></svg></span>
-                <div class="desk-metric-body"><h3>Unpaid Billing Periods</h3><div class="desk-record-value">@(Model.UnpaidPeriods?.ToString() ?? "Unavailable")</div><p>Outstanding billing periods</p></div>
-            </a>
-            <div class="desk-record">
-                <span class="desk-icon-box desk-vehicle"><svg class="desk-icon" aria-hidden="true"><use href="#i-vehicles" /></svg></span>
-                <div class="desk-metric-body"><h3>Active Special Vehicle Permits</h3><div class="desk-record-value">@(Model.ActiveVehicles?.ToString() ?? "Unavailable")</div><p>Current active vehicle records</p></div>
-            </div>
-        </div>
-        @if (!Model.ActiveProfiles.HasValue)
-        {
-            <p class="note" role="status">Record counts are unavailable. You can still open all work areas.</p>
-        }
-    </section>
-    <div class="desk-main-grid">
-@if (Model.Collections.Count == 6)
-{
-    var maximum = Math.Max(1m, Model.Collections.Max(month => Math.Max(month.Rent, month.Vehicles)));
-    <section class="desk-trend" aria-labelledby="collections-title">
-        <div class="desk-trend-heading"><div><h2 id="collections-title" class="desk-heading">Monthly Collection Trend</h2><p>Recorded municipal collections for the previous six months.</p></div><div class="chart-legend"><span><i class="legend-swatch rent"></i> Stall Rent</span><span><i class="legend-swatch vehicle"></i> Special Vehicle Permits</span></div></div>
-        <div class="desk-plot"><div class="desk-scale" aria-hidden="true"><span>@maximum.ToString("₱#,##0.00")</span><span>₱0</span></div><div class="collection-chart" aria-hidden="true">
-            @foreach (var month in Model.Collections)
+<div class="midnight-dashboard-grid">
+    <div class="midnight-dashboard-main">
+        <section class="midnight-metrics" aria-label="Records overview">
+            <a asp-page="/Profiles/Index"><h2>Active Stall Owners</h2><strong>@(Model.ActiveProfiles?.ToString() ?? "Unavailable")</strong><p>Currently active profiles</p></a>
+            <a asp-page="/Vehicles/Index"><h2>Special Vehicles</h2><strong>@(Model.ActiveVehicles?.ToString() ?? "Unavailable")</strong><p>Active vehicle records</p></a>
+            <a asp-page="/Profiles/Index" asp-route-search="Unpaid"><h2>Unpaid Billing Periods</h2><strong>@(Model.UnpaidPeriods?.ToString() ?? "Unavailable")</strong><p>Outstanding rental periods</p></a>
+        </section>
+        @if (!Model.ActiveProfiles.HasValue) { <p class="note" role="status">Record counts are unavailable. You can still open all work areas.</p> }
+        <section class="midnight-trend section-panel" aria-labelledby="collections-title">
+            <div class="midnight-section-heading"><div><h2 id="collections-title">Collection Activity</h2><p>Recorded collections for the previous six months</p></div><div class="chart-legend"><span><i class="legend-swatch rent"></i> Stall Rent</span><span><i class="legend-swatch vehicle"></i> Vehicle Permits</span></div></div>
+            @if (Model.Collections.Count == 6)
             {
-                <div class="chart-month"><div class="chart-bars"><div class="chart-bar rent" style="height:@((month.Rent / maximum * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%" title="Stall rent: @month.Rent.ToString("₱#,##0.00")"></div><div class="chart-bar vehicle" style="height:@((month.Vehicles / maximum * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%" title="Special vehicle permits: @month.Vehicles.ToString("₱#,##0.00")"></div></div><span>@month.Month.ToString("MMM")</span></div>
+                var maximum = Math.Max(1m, Model.Collections.Max(month => Math.Max(month.Rent, month.Vehicles)));
+                <div class="midnight-chart-frame"><div class="midnight-plot"><div class="midnight-scale" aria-hidden="true"><span>@(Model.Collections.Any(month => month.Rent != 0 || month.Vehicles != 0) ? maximum.ToString("₱#,##0.00") : "₱0")</span><span>₱0</span></div><div class="collection-chart" aria-hidden="true">
+                @foreach (var month in Model.Collections)
+                {
+                    <div class="chart-month"><div class="chart-bars"><div class="chart-bar rent" style="height:@((month.Rent / maximum * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%" title="Stall rent: @month.Rent.ToString("₱#,##0.00")"></div><div class="chart-bar vehicle" style="height:@((month.Vehicles / maximum * 100m).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%" title="Vehicle permits: @month.Vehicles.ToString("₱#,##0.00")"></div></div><span>@month.Month.ToString("MMM")</span></div>
+                }
+                </div></div>
+                @if (Model.Collections.All(month => month.Rent == 0 && month.Vehicles == 0)) { <p class="midnight-chart-empty" role="status">No recorded collections in this period.</p> }
+                </div>
+                <p class="midnight-chart-note">Exact figures are listed in the collection register below.</p>
             }
-        </div>
-        </div><details class="dashboard-data"><summary>View Monthly Collection Figures</summary><div class="table-responsive"><table class="table"><caption>Monthly collections in pesos</caption><thead><tr><th scope="col">Month</th><th scope="col">Stall rent</th><th scope="col">Special vehicle permits</th></tr></thead><tbody>@foreach (var month in Model.Collections) { <tr><th scope="row">@month.Month.ToString("MMMM yyyy")</th><td>@month.Rent.ToString("₱#,##0.00")</td><td>@month.Vehicles.ToString("₱#,##0.00")</td></tr> }</tbody></table></div></details>
-    </section>
-}
-
-        <div class="desk-side-grid">
-    <section class="desk-finance" aria-labelledby="municipal-collections-title">
-        <h2 id="municipal-collections-title" class="desk-heading">Municipal Collections</h2>
-        @if (Model.ActiveProfiles.HasValue)
-        {
-            <div class="desk-ledger">
-                <div class="desk-collection">
-                    <span class="desk-icon-box desk-collection-icon"><svg class="desk-icon" aria-hidden="true"><use href="#i-wallet" /></svg></span>
-                    <div class="desk-metric-body"><h3>Stall Rent Collections</h3><div class="desk-money">@Model.RentCollectedThisMonth?.ToString("₱#,##0.00")</div><p>Payments recorded this month</p></div>
-                </div>
-                <div class="desk-collection">
-                    <span class="desk-icon-box desk-collection-icon"><svg class="desk-icon" aria-hidden="true"><use href="#i-receipt" /></svg></span>
-                    <div class="desk-metric-body"><h3>Special Vehicle Permit Collections</h3><div class="desk-money">@Model.VehicleCollectedThisMonth?.ToString("₱#,##0.00")</div><p>Permit payments recorded this month</p></div>
-                </div>
-            </div>
-        }
-        else
-        {
-            <p class="note" role="status">Collection figures are unavailable.</p>
-        }
-    </section>
+            else { <p class="empty-state" role="status">Collection figures are unavailable.</p> }
+        </section>
+        <section class="section-panel midnight-register" aria-labelledby="register-title">
+            <div class="midnight-section-heading"><div><h2 id="register-title">Monthly Collection Register</h2><p>Recorded stall rent and vehicle permit payments</p></div><a asp-page="/Reports/Monthly">Open Monthly Report</a></div>
+            @if (Model.Collections.Count > 0)
+            {
+                <div class="table-responsive"><table class="table financial-table"><caption class="visually-hidden">Monthly municipal collections in Philippine pesos</caption><thead><tr><th scope="col">Month</th><th scope="col" class="text-end">Stall Rent</th><th scope="col" class="text-end">Vehicle Permits</th><th scope="col" class="text-end">Total Recorded</th></tr></thead><tbody>
+                @foreach (var month in Model.Collections)
+                { <tr><th scope="row">@month.Month.ToString("MMMM yyyy")</th><td class="text-end">@month.Rent.ToString("₱#,##0.00")</td><td class="text-end">@month.Vehicles.ToString("₱#,##0.00")</td><td class="text-end"><strong>@((month.Rent + month.Vehicles).ToString("₱#,##0.00"))</strong></td></tr> }
+                </tbody></table></div>
+            }
+            else { <p class="empty-state">No collection figures are available.</p> }
+        </section>
+    </div>
+    <div class="midnight-dashboard-rail">
+        <section class="midnight-collections" aria-labelledby="municipal-collections-title">
+            <div class="midnight-collection-heading"><h2 id="municipal-collections-title">Municipal Collections</h2><span>@DateTime.Today.ToString("MMMM yyyy")</span></div>
+            <p>Total recorded this month</p>
+            @if (Model.RentCollectedThisMonth.HasValue && Model.VehicleCollectedThisMonth.HasValue)
+            { <strong class="midnight-collection-total">@((Model.RentCollectedThisMonth.Value + Model.VehicleCollectedThisMonth.Value).ToString("₱#,##0.00"))</strong> }
+            else { <strong class="midnight-collection-total">Unavailable</strong> }
+            <div class="midnight-collection-breakdown"><div><h3>Stall Rent</h3><strong>@(Model.RentCollectedThisMonth?.ToString("₱#,##0.00") ?? "Unavailable")</strong></div><div><h3>Vehicle Permits</h3><strong>@(Model.VehicleCollectedThisMonth?.ToString("₱#,##0.00") ?? "Unavailable")</strong></div></div>
+            <div class="midnight-collection-footer"><span>Based on recorded payments</span><a asp-page="/Reports/Monthly">View Report</a></div>
+        </section>
+        <section class="section-panel midnight-attention" aria-labelledby="attention-title">
+            <h2 id="attention-title">Needs Attention</h2><p class="form-text">Profiles and billing records awaiting review</p>
+            <a class="midnight-review-row" asp-page="/Profiles/Index" asp-route-search="Unverified"><strong>Unverified Profiles</strong><span>@(Model.UnverifiedProfiles?.ToString() ?? "Unavailable") awaiting occupancy verification</span></a>
             @if (Model.ReviewNeededSin is not null)
-            {
-                <section class="desk-review" aria-labelledby="review-title">
-                    <span class="desk-icon-box desk-verification"><svg class="desk-icon" aria-hidden="true"><use href="#i-alert" /></svg></span>
-                    <div><h2 id="review-title">Requires Review</h2><p><strong>@Model.ReviewNeededPeriods</strong> older billing records</p>
-                        <a asp-page="/Profiles/Billing" asp-route-sin="@Model.ReviewNeededSin">Check Older Bills <span aria-hidden="true">→</span></a>
-                    </div>
-                </section>
-            }
-        </div>
+            { <a class="midnight-review-row" asp-page="/Profiles/Billing" asp-route-sin="@Model.ReviewNeededSin"><strong>Treasury Verification</strong><span>@Model.ReviewNeededPeriods older billing records need review</span></a> }
+            <a class="midnight-review-row" asp-page="/Archive/Profiles"><strong>Archived Profiles</strong><span>@(Model.ArchivedProfiles?.ToString() ?? "Unavailable") retained profile records</span></a>
+        </section>
+        <section class="section-panel midnight-shortcuts" aria-labelledby="actions-title"><h2 id="actions-title">Office Actions</h2><a asp-page="/Profiles/Create"><strong>Create a Profile</strong><span>Add a stall owner record</span></a><a asp-page="/Vehicles/Edit"><strong>Register a Vehicle</strong><span>Enter a vehicle profile</span></a><a asp-page="/Reports/Index"><strong>Prepare a Report</strong><span>Review and print recorded details</span></a></section>
     </div>
 </div>
