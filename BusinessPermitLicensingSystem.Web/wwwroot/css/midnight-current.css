@@ -19,7 +19,7 @@ body.bplo-system.midnight-current.midnight-current .sidebar-office-brand{display
 body.bplo-system.midnight-current.midnight-current .sidebar-office-brand>strong{font-size:24px;font-weight:750;letter-spacing:-1px;line-height:1;color:#162e58;display:block}
 body.bplo-system.midnight-current.midnight-current .sidebar-office-brand>strong>span{color:#396fc7}
 body.bplo-system.midnight-current.midnight-current .sidebar-office-brand>small{display:block;font-size:10px;font-weight:400;color:#5c7191;letter-spacing:0;line-height:1.5;margin-top:5px}
-body.bplo-system.midnight-current.midnight-current .sidebar-nav{display:flex;flex:1;flex-direction:row;align-items:center;gap:5px;padding:0;margin:0;min-width:0}
+body.bplo-system.midnight-current.midnight-current .sidebar-nav{display:flex;flex:1;flex-direction:row;align-items:center;gap:5px;padding:0;margin:0;min-width:0;overflow:visible}
 body.bplo-system.midnight-current.midnight-current .sidebar-link{color:#5c7191;background:transparent;border:0;border-radius:6px;padding:11px 10px;margin:0;min-height:40px;font-size:12px;font-weight:500;line-height:1.4;display:flex;gap:8px;align-items:center;white-space:nowrap;text-decoration:none;box-shadow:none;transition:background-color 150ms,color 150ms}
 body.bplo-system.midnight-current.midnight-current .sidebar-link:is(:hover,:focus-visible){background:#eaf1fc;color:#28559b;transform:none}
 body.bplo-system.midnight-current.midnight-current .app-sidebar .sidebar-link.active{background:linear-gradient(100deg,#eaf1fc,#f8faff);color:#396fc7;font-weight:650;border:0}
