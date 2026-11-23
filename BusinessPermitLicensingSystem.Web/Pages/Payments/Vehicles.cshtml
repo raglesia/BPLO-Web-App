@@ -6,6 +6,10 @@
 }
 <div class="page-header"><div><p class="eyebrow">Special Vehicle Permits</p><h1>Vehicle Billing and Payments</h1><p>Vehicle assessment, billing reports and annual payment.</p></div></div>
 @if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
+@if (Model.RecordedReceipt is not null && Model.Vehicle?.History.FirstOrDefault(payment => payment.OrNumber == Model.RecordedReceipt) is { } recordedPayment)
+{
+    <p><a class="btn btn-outline-primary" asp-page="/Reports/VehiclePaymentPreview" asp-route-selected="@recordedPayment.Id" asp-route-returnUrl="@Url.Page("/Payments/Vehicles", new { vin = Model.Vehicle.Vin, listSearch = Model.ListSearch, listPage = Model.ListPage })">Preview recorded receipt</a></p>
+}
 @if (Model.Notice is not null) { <p class="text-success" role="status">@Model.Notice</p> }
 @if (Model.Vehicle is not null)
 {
@@ -136,7 +140,7 @@
                     <input asp-for="OrNumber" class="form-control" maxlength="100" pattern="[0-9-]+" title="Use numbers and hyphens only." oninput="this.value = this.value.replace(/[^0-9-]/g, &apos;&apos;)" required /></div>
                 <div class="form-check mb-3"><input asp-for="ConfirmPayment" class="form-check-input" required />
                     <label asp-for="ConfirmPayment" class="form-check-label">I confirm the @Model.Vehicle.SelectedYear permit, amount, and OR number entered above.</label></div>
-                <button class="btn btn-primary" type="submit">Record @Model.Vehicle.SelectedYear Permit Payment</button>
+                <button class="btn btn-primary" type="submit">Record @Model.Vehicle.SelectedYear Permit Payment</button><p class="form-text">If the connection drops while saving, reload the record and check the payment history for this OR number before retrying.</p>
             </form>
             </section>
         }
@@ -147,7 +151,7 @@
         <tbody>
         @foreach (var payment in Model.Vehicle.History)
         { <tr><td>@payment.Year</td><td>@payment.OrNumber</td><td class="money">₱@payment.Amount.ToString("N2")</td>
-            <td>@payment.PaidAt.ToString("yyyy-MM-dd HH:mm")</td><td>@payment.Recorder</td><td><a asp-page="/Reports/VehiclePaymentPreview" asp-route-returnUrl="@Url.Page("/Payments/Vehicles",new {vin=Model.Vehicle.Vin,listSearch=Model.ListSearch,listPage=Model.ListPage})" asp-route-selected="@payment.Id">Print Payment Report</a>@if (!Model.Vehicle.Archived) { <form method="post" asp-page="/Reports/VehicleMayorPermit" asp-route-returnUrl="@Url.Page("/Payments/Vehicles",new {vin=Model.Vehicle.Vin,listSearch=Model.ListSearch,listPage=Model.ListPage})" asp-route-listSearch="@Model.ListSearch" asp-route-listPage="@Model.ListPage" asp-page-handler="Prepare" asp-route-id="@payment.Id"><button type="submit" class="vehicle-report-link">Print Mayor’s Permit</button></form> }</td></tr> }
+            <td>@payment.PaidAt.ToString("yyyy-MM-dd HH:mm")</td><td>@payment.Recorder</td><td><a asp-page="/Reports/VehiclePaymentPreview" asp-route-returnUrl="@Url.Page("/Payments/Vehicles",new {vin=Model.Vehicle.Vin,listSearch=Model.ListSearch,listPage=Model.ListPage})" asp-route-selected="@payment.Id">Print Payment Report</a>@if (!Model.Vehicle.Archived) { <form method="post" asp-page="/Reports/VehicleMayorPermit" asp-route-returnUrl="@Url.Page("/Payments/Vehicles",new {vin=Model.Vehicle.Vin,listSearch=Model.ListSearch,listPage=Model.ListPage})" asp-route-listSearch="@Model.ListSearch" asp-route-listPage="@Model.ListPage" asp-page-handler="Prepare" asp-route-id="@payment.Id"><button type="submit" class="vehicle-report-link">Prepare Mayor&#8217;s Permit</button></form> }</td></tr> }
         </tbody>
     </table></div>
     @if (Model.Vehicle.History.Count == 0) { <p class="empty-state">Payment Report and Mayor’s Permit are available after an OR is recorded. Complete the saved permit details before issuing the Mayor’s Permit.</p> }

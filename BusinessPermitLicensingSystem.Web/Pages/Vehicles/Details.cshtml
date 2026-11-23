@@ -34,14 +34,14 @@
         else
         { <p class="mb-0">Saved assessment: <strong class="money">₱@Model.Vehicle.Draft.GrandTotal.ToString("N2")</strong> · <a asp-page="/Payments/Vehicles" asp-route-vin="@Model.Vehicle.Vin">Go to Billing &amp; Payments</a></p> }
     </section>
-    <div class="page-actions mb-3"><a class="btn btn-outline-primary" asp-page="/Vehicles/Edit" asp-route-vin="@Model.Vehicle.Vin">Edit vehicle</a><a class="btn btn-primary" asp-page="/Payments/Vehicles" asp-route-vin="@Model.Vehicle.Vin">Go to Billing &amp; Payments</a></div>
+    <div class="page-actions mb-3"><a class="btn btn-outline-primary" asp-page="/Vehicles/Edit" asp-route-vin="@Model.Vehicle.Vin">Edit vehicle</a><a class="btn btn-primary" asp-page="/Payments/Vehicles" asp-route-vin="@Model.Vehicle.Vin">@(Model.Vehicle.PaidForSelectedYear ? "View payment and documents" : Model.Vehicle.Draft is null || Model.Vehicle.Draft.GrandTotal <= 0 ? "Prepare fee assessment" : "Review assessment and payment")</a></div>
     <p class="eyebrow mt-4">3 · After Payment</p><h2 class="section-heading">Official Documents</h2><p class="form-text">Payment Report: recorded payment and OR details. Mayor’s Permit: official permit for an eligible paid vehicle.</p>
     <div class="table-responsive"><table class="table table-striped financial-table"><caption class="visually-hidden">Vehicle payment history for @Model.Vehicle.Vin</caption>
         <thead><tr><th scope="col">Permit year</th><th scope="col">OR number</th><th scope="col" class="money">Amount paid</th><th scope="col">Payment date</th><th scope="col">Recorded by</th><th scope="col">Report</th></tr></thead>
         <tbody>
         @foreach (var payment in Model.Vehicle.History)
         { <tr><td>@payment.Year</td><td>@payment.OrNumber</td><td class="money">₱@payment.Amount.ToString("N2")</td>
-            <td>@payment.PaidAt.ToString("yyyy-MM-dd HH:mm")</td><td>@payment.Recorder</td><td><a asp-page="/Reports/VehiclePaymentPreview" asp-route-selected="@payment.Id" asp-route-returnUrl="@Url.Page("/Vehicles/Details",new {vin=Model.Vehicle.Vin})">Print Payment Report</a><a asp-page="/Payments/Vehicles" asp-route-vin="@Model.Vehicle.Vin" asp-fragment="official-documents">Mayor�s Permit</a></td></tr> }
+            <td>@payment.PaidAt.ToString("yyyy-MM-dd HH:mm")</td><td>@payment.Recorder</td><td><a asp-page="/Reports/VehiclePaymentPreview" asp-route-selected="@payment.Id" asp-route-returnUrl="@Url.Page("/Vehicles/Details",new {vin=Model.Vehicle.Vin})">Print Payment Report</a><a asp-page="/Payments/Vehicles" asp-route-vin="@Model.Vehicle.Vin" asp-fragment="official-documents">Mayor&#8217;s Permit</a></td></tr> }
         </tbody>
     </table></div>
     @if (Model.Vehicle.History.Count == 0) { <p class="empty-state">Payment Report and Mayor’s Permit are available after an OR is recorded. Complete the saved permit details before issuing the Mayor’s Permit.</p> }
@@ -54,4 +54,4 @@
         </form>
     }
 }
-<a asp-page="/Vehicles/Index">Back to Special Vehicle Permits</a>
+<a asp-page="/Vehicles/Index" asp-route-search="@Request.Query["listSearch"].ToString()" asp-route-pageNumber="@Request.Query["listPage"].ToString()">Back to Special Vehicle Permits</a>

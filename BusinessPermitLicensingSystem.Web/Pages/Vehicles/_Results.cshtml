@@ -4,7 +4,7 @@
 else if (Model.Result is not null)
 {
     <p class="record-count">@Model.Result.Total active special vehicle permits</p>
-    <div class="table-responsive"><table class="table table-striped table-sm"><caption class="visually-hidden">Active special vehicle permits</caption>
+    <div class="table-responsive record-results-table" tabindex="0" role="region" aria-label="Vehicle permit results"><table class="table table-striped table-sm"><caption class="visually-hidden">Active special vehicle permits</caption>
         <thead><tr><th scope="col">VIN</th><th scope="col">Company</th><th scope="col">Driver</th><th scope="col">Plate Number</th><th scope="col">@PhilippineBusinessClock.Today.Year permit</th><th scope="col">Actions</th></tr></thead>
         <tbody>
         @foreach (var vehicle in Model.Result.Items)
@@ -12,7 +12,7 @@ else if (Model.Result is not null)
             <tr><td>@vehicle.Vin</td>
                 <td>@vehicle.Company</td><td>@vehicle.Driver</td><td>@vehicle.Plate</td>
                 <td><span class="status-badge @vehicle.CurrentYearStatus.ToLowerInvariant()">@vehicle.CurrentYearStatus</span></td>
-                <td><a asp-page="/Vehicles/Details" asp-route-vin="@vehicle.Vin">View Profile</a> · <a asp-page="/Vehicles/Edit" asp-route-vin="@vehicle.Vin">Edit</a></td></tr>
+                <td><a asp-page="/Vehicles/Details" asp-route-vin="@vehicle.Vin" asp-route-listSearch="@Model.Search" asp-route-listPage="@Model.CurrentPage">View record</a> · <a asp-page="/Vehicles/Edit" asp-route-vin="@vehicle.Vin">Edit</a></td></tr>
         }
         </tbody>
     </table></div>

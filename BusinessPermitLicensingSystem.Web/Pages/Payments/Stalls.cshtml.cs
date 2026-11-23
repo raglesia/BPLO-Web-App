@@ -12,6 +12,7 @@ public class StallPaymentsModel(BillingService billing, ILogger<StallPaymentsMod
     public BillingView? Record { get; private set; }
     public string? Error { get; private set; }
     public string? Notice { get; private set; }
+    public string? RecordedReceipt { get; private set; }
     public DateTime AsOf { get; private set; }
     [BindProperty] public string OrNumber { get; set; } = "";
     [BindProperty] public bool ConfirmPayment { get; set; }
@@ -67,6 +68,7 @@ public class StallPaymentsModel(BillingService billing, ILogger<StallPaymentsMod
             var result = await billing.PayAsync(sin, OrNumber, userId, PhilippineBusinessClock.Now, HttpContext.RequestAborted);
             if (!result.Success)
             { Error = result.Error; return await LoadAsync(sin); }
+            TempData["BillingReceipt"] = result.OrNumber;
             TempData["BillingNotice"] = $"Payment recorded. OR {result.OrNumber}; {result.Bills} period(s); amount {result.Amount:N2}.";
             return RedirectToPage("/Payments/Stalls", new { sin, listSearch=ListSearch, listPage=ListPage });
         }
@@ -105,6 +107,7 @@ public class StallPaymentsModel(BillingService billing, ILogger<StallPaymentsMod
     {
         AsOf = PhilippineBusinessClock.Today;
         Notice = TempData["BillingNotice"] as string;
+        RecordedReceipt = TempData["BillingReceipt"] as string;
         try
         {
             Record = await billing.GetAsync(sin, AsOf, HttpContext.RequestAborted);

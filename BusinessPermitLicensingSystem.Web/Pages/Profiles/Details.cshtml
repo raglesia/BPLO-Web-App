@@ -25,7 +25,7 @@ else if (Model.Profile is not null)
         <dt class="col-sm-3">Additional charge</dt><dd class="col-sm-9 money">₱@Model.Profile.AdditionalCharge.ToString("N2")</dd>
         <dt class="col-sm-3">Payment status</dt><dd class="col-sm-9"><span class="status-badge @Model.Profile.PaymentStatus.ToLowerInvariant()">@Model.Profile.PaymentStatus</span></dd>
     </dl></section>
-    <div class="page-actions"><a class="btn btn-primary" asp-page="/Profiles/Edit" asp-route-sin="@Model.Profile.Sin">Edit Profile</a>
+    <div class="page-actions"><a class="btn btn-primary" asp-page="/Profiles/Edit" asp-route-sin="@Model.Profile.Sin">@(Model.Profile.PaymentStatus == "Unverified" ? "Review occupancy details" : "Edit profile")</a>
     <a class="btn btn-outline-primary" asp-page="/Payments/Stalls" asp-route-sin="@Model.Profile.Sin">Go to Billing &amp; Payments</a>
     </div>
     @if(Model.FinancialSummary is {} financial) {
@@ -48,4 +48,4 @@ else if (Model.Profile is not null)
         <button class="btn btn-outline-danger mt-2" type="submit">Archive profile</button>
     </form>
 }
-<a class="btn btn-link" asp-page="/Profiles/Index">Back to Stall Owners</a>
+<a class="btn btn-link" asp-page="/Profiles/Index" asp-route-search="@Request.Query["listSearch"].ToString()" asp-route-pageNumber="@Request.Query["listPage"].ToString()">Back to Stall Owners</a>

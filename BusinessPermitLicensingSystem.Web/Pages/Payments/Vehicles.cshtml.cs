@@ -14,6 +14,7 @@ public class VehiclePaymentsModel(VehicleService vehicles, ILogger<VehiclePaymen
     public VehicleDetails? Vehicle { get; private set; }
     public string? Error { get; protected set; }
     public string? Notice { get; private set; }
+    public string? RecordedReceipt { get; private set; }
     [BindProperty] public List<decimal> FeeAmounts { get; set; } = new();
     [BindProperty] public List<string> OtherDescriptions { get; set; } = new();
     [BindProperty] public DraftData PermitDetails { get; set; } = new();
@@ -60,6 +61,7 @@ public class VehiclePaymentsModel(VehicleService vehicles, ILogger<VehiclePaymen
                 userId, PhilippineBusinessClock.Now, HttpContext.RequestAborted);
             if (!result.Success)
             { Error = result.Error; return await LoadAsync(vin, true); }
+            TempData["VehicleReceipt"] = result.OrNumber;
             TempData["VehicleNotice"] = $"Vehicle payment recorded for {result.Year}. OR {result.OrNumber}; amount ₱{result.Amount:N2}.";
             return RedirectToPage("/Payments/Vehicles", new { vin, listSearch=ListSearch, listPage=ListPage });
         }
@@ -72,6 +74,7 @@ public class VehiclePaymentsModel(VehicleService vehicles, ILogger<VehiclePaymen
     protected async Task<IActionResult> LoadAsync(string vin, bool hydrate)
     {
         Notice = TempData["VehicleNotice"] as string;
+        RecordedReceipt = TempData["VehicleReceipt"] as string;
         try
         {
             Vehicle = await vehicles.GetAsync(vin, PhilippineBusinessClock.Today, HttpContext.RequestAborted);

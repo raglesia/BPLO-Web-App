@@ -5,6 +5,10 @@
 }
 <div class="page-header"><div><p class="eyebrow">Billing & Payments / Stall Rentals</p><h1>Billing and Payments</h1><p>Review outstanding periods and recorded payments.</p></div></div>
 @if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
+@if (Model.RecordedReceipt is not null && Model.Record?.Payments.Any(payment => payment.OrNumber == Model.RecordedReceipt) == true)
+{
+    <p><a class="btn btn-outline-primary" asp-page="/Reports/StallPaymentPreview" asp-route-sin="@RouteData.Values["sin"]" asp-route-orNumber="@Model.RecordedReceipt" asp-route-returnUrl="@Url.Page("/Payments/Stalls", new { sin = RouteData.Values["sin"], listSearch = Model.ListSearch, listPage = Model.ListPage })">Preview recorded receipt</a></p>
+}
 @if (Model.Notice is not null) { <p class="text-success" role="status">@Model.Notice</p> }
 @if (Model.Record is not null)
 {
@@ -90,7 +94,7 @@
     @if (!Model.Record.Archived && Model.Record.Status != "Unverified" && Model.Record.TotalDue > 0)
     {
         <section class="section-panel"><p class="eyebrow">3 · Record Payment</p><h2 class="section-heading">Payment</h2><p class="form-text">Recording the OR finalizes payment of the outstanding obligations.</p>
-        <p>One OR number settles all eligible outstanding billing periods and verified arrears included in the total above. The full amount is calculated again when submitted.</p>
+        <p><strong>@Model.Record.Name</strong> · SIN <strong>@RouteData.Values["sin"]</strong> · Total due <strong class="money">₱@(Model.Record.TotalDue?.ToString("N2"))</strong>.</p><p>Includes <strong>₱@(Model.Record.PenaltyDue?.ToString("N2"))</strong> in penalties. One OR number settles all eligible outstanding billing periods and verified arrears included in the total above. The full amount is calculated again when submitted.</p>
         <form method="post" asp-route-listSearch="@Model.ListSearch" asp-route-listPage="@Model.ListPage" asp-page-handler="Pay" asp-route-sin="@RouteData.Values["sin"]" style="max-width: 28rem">
             <div class="mb-3"><label class="form-label" asp-for="OrNumber">OR Number</label>
                 <input class="form-control" asp-for="OrNumber" maxlength="100" pattern="[0-9-]+" title="Use numbers and hyphens only." oninput="this.value = this.value.replace(/[^0-9-]/g, &apos;&apos;)" required /></div>
