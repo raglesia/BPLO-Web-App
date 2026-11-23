@@ -1,6 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
   const toggle = document.getElementById('sidebar-toggle');
   const sidebar = document.getElementById('app-sidebar');
+  // Give the navigation disclosures native one-at-a-time behavior.
+  sidebar?.querySelectorAll('details.sidebar-disclosure').forEach(menu => {
+    menu.setAttribute('name', 'bplo-navigation');
+  });
   const backdrop = document.querySelector('.sidebar-backdrop');
   if (toggle && sidebar && backdrop) {
     const mobile = window.matchMedia('(max-width: 991px)');
