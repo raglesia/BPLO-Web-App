@@ -150,7 +150,7 @@ public sealed class UserAccountService(IConfiguration configuration)
             { await transaction.RollbackAsync(token); return new(false, "Account was not found."); }
             await AuditAsync(connection, transaction, "Reset User Password", username, actorId, token);
             await transaction.CommitAsync(token);
-            return new(true, "Password reset. Existing signed-in sessions remain active.", id);
+            return new(true, "Password reset. Existing sessions must sign in again.", id);
         }
         catch { await transaction.RollbackAsync(CancellationToken.None); throw; }
     }

@@ -15,7 +15,7 @@ public class StallPaymentPreviewModel(BillingService billing, ILogger<StallPayme
     {
         Sin = sin;
         try {
-            Record = await billing.GetAsync(sin, DateTime.Today, HttpContext.RequestAborted);
+            Record = await billing.GetAsync(sin, PhilippineBusinessClock.Today, HttpContext.RequestAborted);
             Payment = Record?.Payments.SingleOrDefault(x => x.OrNumber == orNumber);
             if (Payment is null) Error = "Recorded payment was not found.";
             else {

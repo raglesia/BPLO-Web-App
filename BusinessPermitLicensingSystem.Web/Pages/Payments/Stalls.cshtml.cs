@@ -28,7 +28,7 @@ public class StallPaymentsModel(BillingService billing, ILogger<StallPaymentsMod
     {
         try
         {
-            int added = await billing.GenerateAsync(sin, DateTime.Today, HttpContext.RequestAborted);
+            int added = await billing.GenerateAsync(sin, PhilippineBusinessClock.Today, HttpContext.RequestAborted);
             TempData["BillingNotice"] = $"Generated {added} missing billing period(s).";
             return RedirectToPage("/Payments/Stalls", new { sin, listSearch=ListSearch, listPage=ListPage });
         }
@@ -44,7 +44,7 @@ public class StallPaymentsModel(BillingService billing, ILogger<StallPaymentsMod
     {
         try
         {
-            var amount = await billing.UpdatePenaltyAsync(sin, DateTime.Today, HttpContext.RequestAborted);
+            var amount = await billing.UpdatePenaltyAsync(sin, PhilippineBusinessClock.Today, HttpContext.RequestAborted);
             TempData["BillingNotice"] = $"Profile penalty recalculated: {amount:N2}.";
             return RedirectToPage("/Payments/Stalls", new { sin, listSearch=ListSearch, listPage=ListPage });
         }
@@ -64,7 +64,7 @@ public class StallPaymentsModel(BillingService billing, ILogger<StallPaymentsMod
         { Error = "Sign in again before recording payment."; return await LoadAsync(sin); }
         try
         {
-            var result = await billing.PayAsync(sin, OrNumber, userId, DateTime.Now, HttpContext.RequestAborted);
+            var result = await billing.PayAsync(sin, OrNumber, userId, PhilippineBusinessClock.Now, HttpContext.RequestAborted);
             if (!result.Success)
             { Error = result.Error; return await LoadAsync(sin); }
             TempData["BillingNotice"] = $"Payment recorded. OR {result.OrNumber}; {result.Bills} period(s); amount {result.Amount:N2}.";
@@ -86,7 +86,7 @@ public class StallPaymentsModel(BillingService billing, ILogger<StallPaymentsMod
         {
             var result = await billing.SaveVerifiedArrearsAsync(sin, ArrearsId,
                 ArrearsYear, ArrearsMonth, ArrearsBaseRent, ArrearsAdditional,
-                TreasuryReference, userId, DateTime.Now, HttpContext.RequestAborted);
+                TreasuryReference, userId, PhilippineBusinessClock.Now, HttpContext.RequestAborted);
             if (!result.Success) { Error = result.Error; return await LoadAsync(sin); }
             TempData["BillingNotice"] = ArrearsId is null ?
                 "Verified prior unpaid rent added. No payment was recorded." :
@@ -103,7 +103,7 @@ public class StallPaymentsModel(BillingService billing, ILogger<StallPaymentsMod
 
     private async Task<IActionResult> LoadAsync(string sin)
     {
-        AsOf = DateTime.Today;
+        AsOf = PhilippineBusinessClock.Today;
         Notice = TempData["BillingNotice"] as string;
         try
         {

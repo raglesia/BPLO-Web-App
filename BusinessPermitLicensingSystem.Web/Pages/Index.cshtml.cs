@@ -53,7 +53,7 @@ public class IndexModel(IConfiguration configuration, ILogger<IndexModel> logger
             }
             await reader.CloseAsync();
 
-            var currentMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+            var currentMonth = new DateTime(PhilippineBusinessClock.Today.Year, PhilippineBusinessClock.Today.Month, 1);
             var firstMonth = currentMonth.AddMonths(-5);
             var nextMonth = currentMonth.AddMonths(1);
             await using var collectionsCommand = new SqlCommand("""

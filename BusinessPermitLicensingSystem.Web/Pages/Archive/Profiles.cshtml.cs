@@ -11,6 +11,9 @@ public class ProfilesModel(ArchiveService archive, ILogger<ProfilesModel> logger
     public string? Error { get; private set; }
     public string? Notice { get; private set; }
     [BindProperty(SupportsGet = true)] public string? Search { get; set; }
+    [BindProperty(SupportsGet = true)] public int PageNumber { get; set; } = 1;
+    public int TotalCount { get; private set; }
+    public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)ArchiveService.PageSize));
     [BindProperty] public bool ConfirmRestore { get; set; }
 
     public Task OnGetAsync() => LoadAsync();
@@ -23,7 +26,7 @@ public class ProfilesModel(ArchiveService archive, ILogger<ProfilesModel> logger
         try
         {
             var result = await archive.ProfileAsync(sin, false, userId, HttpContext.RequestAborted);
-            if (result.Success) { TempData["ArchiveNotice"] = result.Message; return RedirectToPage(new { Search }); }
+            if (result.Success) { TempData["ArchiveNotice"] = result.Message; return RedirectToPage(new { Search, PageNumber }); }
             Error = result.Message;
         }
         catch (Exception exception) { logger.LogError(exception, "Profile restore failed for {Sin}", sin); Error = "Restore failed. No change was saved."; }
@@ -33,7 +36,18 @@ public class ProfilesModel(ArchiveService archive, ILogger<ProfilesModel> logger
     private async Task LoadAsync()
     {
         Notice = TempData["ArchiveNotice"] as string;
-        try { Records = await archive.ProfilesAsync(Search, HttpContext.RequestAborted); }
+        try
+        {
+            PageNumber = Math.Max(1, PageNumber);
+            var result = await archive.ProfilesAsync(Search, PageNumber, HttpContext.RequestAborted);
+            if (result.Items.Count == 0 && PageNumber > 1)
+            {
+                PageNumber = 1;
+                result = await archive.ProfilesAsync(Search, PageNumber, HttpContext.RequestAborted);
+            }
+            Records = result.Items;
+            TotalCount = result.TotalCount;
+        }
         catch (Exception exception) { logger.LogError(exception, "Archived profiles could not be loaded."); Error = "Archived profiles could not be loaded."; }
     }
 }

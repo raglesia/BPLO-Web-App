@@ -18,6 +18,9 @@ public class ProfileDetailsModel(ProfileService profiles, ArchiveService archive
 
     public async Task<IActionResult> OnPostArchiveAsync(string sin)
     {
+        var authorization = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Authorization.IAuthorizationService>();
+        var access = await authorization.AuthorizeAsync(User, null, "StaffAdministration");
+        if (!access.Succeeded) return Forbid();
         if (!ConfirmArchive) { LoadError = "Confirm archive before submitting."; return await ReloadAsync(sin); }
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId))
         { LoadError = "Sign in again before archiving."; return await ReloadAsync(sin); }
@@ -43,7 +46,7 @@ public class ProfileDetailsModel(ProfileService profiles, ArchiveService archive
             Profile = await profiles.GetAsync(sin, HttpContext.RequestAborted);
             if(Profile is not null)
             {
-                try { FinancialSummary = await billing.GetAsync(sin,DateTime.Today,HttpContext.RequestAborted); }
+                try { FinancialSummary = await billing.GetAsync(sin,PhilippineBusinessClock.Today,HttpContext.RequestAborted); }
                 catch(Exception ex) { logger.LogError(ex,"Profile financial summary failed for {Sin}",sin); }
             }
             ImportReview = await profiles.GetImportReviewAsync(sin, HttpContext.RequestAborted);

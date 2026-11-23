@@ -47,7 +47,7 @@ public sealed class VehicleService(IConfiguration configuration)
         Search(command, term, pattern);
         command.Parameters.Add("@skip", SqlDbType.Int).Value = (page - 1) * PageSize;
         command.Parameters.Add("@take", SqlDbType.Int).Value = PageSize;
-        command.Parameters.Add("@year", SqlDbType.Int).Value = DateTime.Today.Year;
+        command.Parameters.Add("@year", SqlDbType.Int).Value = PhilippineBusinessClock.Today.Year;
         var items = new List<VehicleSummary>();
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         while (await reader.ReadAsync(cancellationToken))

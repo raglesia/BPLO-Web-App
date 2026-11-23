@@ -6,42 +6,65 @@ namespace BusinessPermitLicensingSystem.Web.Archive;
 
 public sealed record ArchivedProfile(string Sin, string Owner, string Business, string Stall, string Status);
 public sealed record ArchivedVehicle(string Vin, string Company, string Driver, string Plate, string Status, int Year);
+public sealed record ArchivePage<T>(IReadOnlyList<T> Items, int TotalCount);
 public sealed record ArchiveResult(bool Success, string Message);
 
 public sealed class ArchiveService(IConfiguration configuration)
 {
-    public async Task<IReadOnlyList<ArchivedProfile>> ProfilesAsync(string? search, CancellationToken token)
+    public const int PageSize = 50;
+
+    public async Task<IReadOnlyList<ArchivedProfile>> ProfilesAsync(string? search, CancellationToken token) =>
+        (await ProfilesAsync(search, 1, token)).Items;
+
+    public async Task<ArchivePage<ArchivedProfile>> ProfilesAsync(string? search, int page, CancellationToken token)
     {
         await using var connection = await OpenAsync(token);
         await using var command = new SqlCommand("""
-            SELECT TOP (100) SIN, FullName, BusinessName, StallNumber, PaymentStatus
+            SELECT SIN, FullName, BusinessName, StallNumber, PaymentStatus, COUNT(*) OVER()
             FROM Profiling WHERE IsArchived=1 AND
             (@search='' OR SIN LIKE @pattern OR FullName LIKE @pattern OR BusinessName LIKE @pattern OR StallNumber LIKE @pattern)
-            ORDER BY SIN
+            ORDER BY SIN OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY
             """, connection);
         AddSearch(command, search);
+        command.Parameters.Add("@skip", SqlDbType.BigInt).Value = ((long)Math.Max(1, page) - 1) * PageSize;
+        command.Parameters.Add("@take", SqlDbType.Int).Value = PageSize;
+        int totalCount = 0;
         var result = new List<ArchivedProfile>();
         await using var reader = await command.ExecuteReaderAsync(token);
-        while (await reader.ReadAsync(token)) result.Add(new(reader.GetString(0), reader.GetString(1), reader.GetString(2),
+        while (await reader.ReadAsync(token))
+        {
+            totalCount = reader.GetInt32(5);
+            result.Add(new(reader.GetString(0), reader.GetString(1), reader.GetString(2),
             reader.IsDBNull(3) ? "" : reader.GetString(3), reader.IsDBNull(4) ? "" : reader.GetString(4)));
-        return result;
+        }
+        return new(result, totalCount);
     }
 
-    public async Task<IReadOnlyList<ArchivedVehicle>> VehiclesAsync(string? search, CancellationToken token)
+    public async Task<IReadOnlyList<ArchivedVehicle>> VehiclesAsync(string? search, CancellationToken token) =>
+        (await VehiclesAsync(search, 1, token)).Items;
+
+    public async Task<ArchivePage<ArchivedVehicle>> VehiclesAsync(string? search, int page, CancellationToken token)
     {
         await using var connection = await OpenAsync(token);
         await using var command = new SqlCommand("""
-            SELECT TOP (100) VIN, CompanyName, DriverName, PlateNo, PermitStatus, PermitYear
+            SELECT VIN, CompanyName, DriverName, PlateNo, PermitStatus, PermitYear, COUNT(*) OVER()
             FROM VehiclePermits WHERE IsArchived=1 AND
             (@search='' OR VIN LIKE @pattern OR CompanyName LIKE @pattern OR DriverName LIKE @pattern OR PlateNo LIKE @pattern)
-            ORDER BY VIN
+            ORDER BY VIN OFFSET @skip ROWS FETCH NEXT @take ROWS ONLY
             """, connection);
         AddSearch(command, search);
+        command.Parameters.Add("@skip", SqlDbType.BigInt).Value = ((long)Math.Max(1, page) - 1) * PageSize;
+        command.Parameters.Add("@take", SqlDbType.Int).Value = PageSize;
+        int totalCount = 0;
         var result = new List<ArchivedVehicle>();
         await using var reader = await command.ExecuteReaderAsync(token);
-        while (await reader.ReadAsync(token)) result.Add(new(reader.GetString(0), reader.GetString(1), reader.GetString(2),
+        while (await reader.ReadAsync(token))
+        {
+            totalCount = reader.GetInt32(6);
+            result.Add(new(reader.GetString(0), reader.GetString(1), reader.GetString(2),
             reader.GetString(3), reader.GetString(4), reader.GetInt32(5)));
-        return result;
+        }
+        return new(result, totalCount);
     }
 
     public Task<ArchiveResult> ProfileAsync(string sin, bool archive, int userId, CancellationToken token) =>
@@ -78,7 +101,7 @@ public sealed class ArchiveService(IConfiguration configuration)
             if (await update.ExecuteNonQueryAsync(token) != 1) return new(false, "Record state changed. Refresh and try again.");
             await using var audit = new SqlCommand("""
                 INSERT INTO AuditTrail (Action, SIN, UserId, Timestamp, Details)
-                VALUES (@action, @id, @user, GETDATE(), @details)
+                VALUES (@action, @id, @user, CONVERT(datetime2, SYSUTCDATETIME() AT TIME ZONE 'UTC' AT TIME ZONE 'Singapore Standard Time'), @details)
                 """, connection, transaction);
             audit.Parameters.Add("@action", SqlDbType.NVarChar, 255).Value = action;
             audit.Parameters.Add("@id", SqlDbType.NVarChar, 100).Value = id;

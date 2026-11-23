@@ -54,7 +54,8 @@ public class LoginModel(UserAuthenticationService users, AuditTrailService audit
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.Username),
             new Claim("FullName", user.FullName),
-            new Claim("Position", user.Position)
+            new Claim("Position", user.Position),
+            new Claim("SessionVersion", user.SessionVersion)
         };
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         await HttpContext.SignInAsync(

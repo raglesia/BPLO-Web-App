@@ -4,7 +4,7 @@ using Microsoft.Data.SqlClient;
 
 namespace BusinessPermitLicensingSystem.Web.Authentication;
 
-public sealed record AuthenticatedUser(int Id, string Username, string FullName, string Position);
+public sealed record AuthenticatedUser(int Id, string Username, string FullName, string Position, string SessionVersion);
 
 public sealed class UserAuthenticationService(
     IConfiguration configuration,
@@ -29,7 +29,7 @@ public sealed class UserAuthenticationService(
         if (!await reader.ReadAsync(cancellationToken)) return null;
 
         var user = new AuthenticatedUser(
-            reader.GetInt32(0), reader.GetString(1), reader.GetString(2), reader.GetString(3));
+            reader.GetInt32(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), "");
         string storedHash = reader.GetString(4);
         await reader.CloseAsync();
 
@@ -41,11 +41,12 @@ public sealed class UserAuthenticationService(
             {
                 await using var upgrade = new SqlCommand(
                     "UPDATE Users SET Password = @newHash WHERE Id = @id AND Password = @oldHash", connection);
-                upgrade.Parameters.Add("@newHash", SqlDbType.NVarChar, 512).Value =
+                string newHash =
                     PasswordCompatibility.HashPbkdf2(password);
                 upgrade.Parameters.Add("@oldHash", SqlDbType.NVarChar, 512).Value = storedHash;
                 upgrade.Parameters.Add("@id", SqlDbType.Int).Value = user.Id;
-                await upgrade.ExecuteNonQueryAsync(cancellationToken);
+                upgrade.Parameters.Add("@newHash", SqlDbType.NVarChar, 512).Value = newHash;
+                if (await upgrade.ExecuteNonQueryAsync(cancellationToken) == 1) storedHash = newHash;
             }
             catch (Exception exception)
             {
@@ -54,6 +55,18 @@ public sealed class UserAuthenticationService(
             }
         }
 
-        return user;
+        return user with { SessionVersion = SessionVersion(storedHash) };
     }
+
+    public async Task<bool> IsSessionCurrentAsync(int userId, string sessionVersion, CancellationToken token)
+    {
+        await using var connection = await DatabaseConnection.OpenAsync(configuration, token);
+        await using var command = new SqlCommand("SELECT Password FROM Users WHERE Id = @id", connection);
+        command.Parameters.Add("@id", SqlDbType.Int).Value = userId;
+        return await command.ExecuteScalarAsync(token) is string storedHash &&
+            string.Equals(SessionVersion(storedHash), sessionVersion, StringComparison.Ordinal);
+    }
+
+    private static string SessionVersion(string storedHash) =>
+        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(storedHash)));
 }

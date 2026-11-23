@@ -5,7 +5,7 @@
     <p class="mb-0">Municipality of Masinloc<br />Business Permit and Licensing Office</p>
     <h1 class="h3 mt-3">Monthly Collection Summary Report</h1>
     @if (Model.Report is not null) { <p>@Model.Report.From.ToString("MMMM yyyy") – @Model.Report.To.ToString("MMMM yyyy")</p> }
-    <p>Generated @DateTime.Now.ToString("MMMM dd, yyyy hh:mm tt")</p>
+    <p>Generated @PhilippineBusinessClock.Now.ToString("MMMM dd, yyyy hh:mm tt")</p>
 </div>
 <form method="get" class="report-controls search-panel row g-2 mb-4">
     <div class="col-auto"><label asp-for="FromMonth">From month</label><input asp-for="FromMonth" type="number" min="1" max="12" class="form-control" required /></div>

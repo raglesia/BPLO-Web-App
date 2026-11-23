@@ -1,0 +1,10 @@
+@page
+@{
+    ViewData["Title"] = "Access denied";
+    Response.StatusCode = 403;
+}
+<div class="section-panel">
+    <h1>Access denied</h1>
+    <p>Your account does not have permission for this task. Contact your BPLO administrator if you need access.</p>
+    <a class="btn btn-primary" asp-page="/Index">Back to dashboard</a>
+</div>

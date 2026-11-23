@@ -15,7 +15,7 @@
 {
     <tr><td>@item.Vin</td><td>@item.Company</td><td>@item.Driver</td><td>@item.Plate</td><td><span class="status-badge @item.Status.ToLowerInvariant()">@item.Status</span> / @item.Year</td>
         <td><a asp-page="/Vehicles/Details" asp-route-vin="@item.Vin">Permit history and draft</a></td>
-        <td><form method="post" asp-page-handler="Restore" asp-route-vin="@item.Vin">
+        <td><form method="post" asp-page-handler="Restore" asp-route-search="@Model.Search" asp-route-pageNumber="@Model.PageNumber" asp-route-vin="@item.Vin">
             <div class="form-check"><input type="checkbox" name="ConfirmRestore" value="true" id="confirm-@item.Vin" class="form-check-input" required />
                 <label for="confirm-@item.Vin" class="form-check-label">Confirm @item.Company (@item.Vin)</label></div>
             <button type="submit" class="btn btn-outline-primary btn-sm mt-1">Restore</button>
@@ -23,4 +23,17 @@
 }
 </tbody></table></div>
 @if (Model.Records.Count == 0) { <p class="empty-state">No archived vehicles found.</p> }
-@if (Model.Records.Count == 100) { <p>Showing first 100 records. Narrow the search to find more.</p> }
+@if (Model.TotalCount > 0)
+{
+    <nav class="page-actions" aria-label="Archive pages">
+        @if (Model.PageNumber > 1)
+        {
+            <a asp-route-search="@Model.Search" asp-route-pageNumber="@(Model.PageNumber - 1)">Previous</a>
+        }
+        <span>Page @Model.PageNumber of @Model.TotalPages · @Model.TotalCount records</span>
+        @if (Model.PageNumber < Model.TotalPages)
+        {
+            <a asp-route-search="@Model.Search" asp-route-pageNumber="@(Model.PageNumber + 1)">Next</a>
+        }
+    </nav>
+}

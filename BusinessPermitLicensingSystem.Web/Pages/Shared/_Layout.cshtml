@@ -1,5 +1,10 @@
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService StaffAuthorization
 @{
     var path = Context.Request.Path.Value ?? "/";
+    bool canAdminister = User.Identity?.IsAuthenticated == true &&
+        (await StaffAuthorization.AuthorizeAsync(User, null, "StaffAdministration")).Succeeded;
+    bool canRecordPayments = User.Identity?.IsAuthenticated == true &&
+        (await StaffAuthorization.AuthorizeAsync(User, null, "StaffPayments")).Succeeded;
     bool home = path == "/";
     bool profiles = path.StartsWith("/Profiles", StringComparison.OrdinalIgnoreCase);
     bool vehicles = path.StartsWith("/Vehicles", StringComparison.OrdinalIgnoreCase);
@@ -65,6 +70,7 @@
 <a class="sidebar-link @(vehicles && !transfer ? "active" : "")" aria-current="@(vehicles && !transfer ? "page" : null)" asp-page="/Vehicles/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-vehicles" /></svg>Vehicles</a>
 <a class="sidebar-link @(payments ? "active" : "")" aria-current="@(payments ? "page" : null)" asp-page="/Payments/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-wallet" /></svg>Billing &amp; Payments</a>
 <a class="sidebar-link @(reports ? "active" : "")" aria-current="@(reports ? "page" : null)" asp-page="/Reports/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-reports" /></svg>Reports</a>
+@if (canAdminister) {
 <a class="sidebar-link @(rates ? "active" : "")" aria-current="@(rates ? "page" : null)" asp-page="/RentalRates/Index"><svg class="nav-icon" aria-hidden="true"><use href="#i-rates" /></svg>Rental Rates</a>
                     <details class="sidebar-disclosure"><summary class="sidebar-link @(archive || accounts || audit || health ? "active" : "")">Management<span class="disclosure-chevron" aria-hidden="true">⌄</span></summary><div class="midnight-dropdown">
 <a class="sidebar-link @(archive && !archiveVehicles ? "active" : "")" aria-current="@(archive && !archiveVehicles ? "page" : null)" asp-page="/Archive/Profiles"><svg class="nav-icon" aria-hidden="true"><use href="#i-archive" /></svg>Archived Stall Owners</a>
@@ -77,8 +83,9 @@
 <a class="sidebar-link @(transfer && !vehicleTransfer ? "active" : "")" aria-current="@(transfer && !vehicleTransfer ? "page" : null)" asp-page="/Profiles/Transfer"><svg class="nav-icon" aria-hidden="true"><use href="#i-transfer" /></svg>Stall Owners</a>
 <a class="sidebar-link @(vehicleTransfer ? "active" : "")" aria-current="@(vehicleTransfer ? "page" : null)" asp-page="/Vehicles/Transfer"><svg class="nav-icon" aria-hidden="true"><use href="#i-transfer" /></svg>Vehicles</a>
                     </div></details>
+                    }
                 </nav>
-                <div class="sidebar-user"><span class="user-avatar" aria-hidden="true">@((User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "U").Substring(0, 1).ToUpperInvariant())</span><span class="user-label"><strong>@(User.FindFirst("FullName")?.Value ?? User.Identity?.Name)</strong><small>@User.FindFirst("Position")?.Value</small></span></div>
+                <div class="sidebar-user"><span class="user-avatar" aria-hidden="true">@((User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "U").Substring(0, 1).ToUpperInvariant())</span><details class="user-label account-identity"><summary><strong title="@(User.FindFirst("FullName")?.Value ?? User.Identity?.Name)">@(User.FindFirst("FullName")?.Value ?? User.Identity?.Name)</strong><small>@User.FindFirst("Position")?.Value</small></summary><div class="account-identity-full"><strong>@(User.FindFirst("FullName")?.Value ?? User.Identity?.Name)</strong><small>@User.FindFirst("Position")?.Value</small></div></details></div>
                 <form class="sidebar-logout" method="post" asp-page="/Account/Logout"><button type="submit" class="btn btn-outline-secondary">Sign Out</button></form>
             </aside>
             <div class="app-workspace">

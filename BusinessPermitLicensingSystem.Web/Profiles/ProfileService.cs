@@ -80,7 +80,7 @@ public sealed class ProfileService(IConfiguration configuration)
             var (data, error) = await ValidateAsync(connection, transaction, input, null, cancellationToken);
             if (error is not null) return error;
 
-            string year = DateTime.Now.Year.ToString(CultureInfo.InvariantCulture);
+            string year = PhilippineBusinessClock.Now.Year.ToString(CultureInfo.InvariantCulture);
             await using var numberCommand = new SqlCommand("""
                 SELECT MAX(CAST(RIGHT(SIN, 4) AS INT))
                 FROM Profiling WITH (UPDLOCK, HOLDLOCK)
@@ -278,7 +278,7 @@ public sealed class ProfileService(IConfiguration configuration)
     {
         await using var command = new SqlCommand("""
             INSERT INTO AuditTrail (Action, SIN, UserId, Timestamp, Details)
-            VALUES (@action, @sin, @user, GETDATE(), @details)
+            VALUES (@action, @sin, @user, CONVERT(datetime2, SYSUTCDATETIME() AT TIME ZONE 'UTC' AT TIME ZONE 'Singapore Standard Time'), @details)
             """, connection, transaction);
         command.Parameters.Add("@action", SqlDbType.NVarChar, 255).Value = action;
         command.Parameters.Add("@sin", SqlDbType.NVarChar, 100).Value = sin;

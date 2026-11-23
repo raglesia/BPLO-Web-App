@@ -56,7 +56,7 @@ public sealed class RentalRateService(IConfiguration configuration)
             }
             await using var audit = new SqlCommand("""
                 INSERT INTO AuditTrail (Action, SIN, UserId, Timestamp, Details)
-                VALUES (@action, NULL, @user, GETDATE(), @details)
+                VALUES (@action, NULL, @user, CONVERT(datetime2, SYSUTCDATETIME() AT TIME ZONE 'UTC' AT TIME ZONE 'Singapore Standard Time'), @details)
                 """, connection, transaction);
             audit.Parameters.Add("@action", SqlDbType.NVarChar, 255).Value = add ? "AddRate" : "UpdateRate";
             audit.Parameters.Add("@user", SqlDbType.Int).Value = userId;

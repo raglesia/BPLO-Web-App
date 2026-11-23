@@ -21,13 +21,14 @@ public sealed record ImportResult(int Total, int Imported, IReadOnlyList<ImportI
 
 public sealed class TransferService(IConfiguration configuration)
 {
+    public const int MaxRows = 2000;
     public const long MaxFileBytes = 5 * 1024 * 1024;
     public static readonly string[] ProfileHeaders = ["SIN", "FullName", "BusinessName", "BusinessSection", "StallNumber", "StallSize", "MonthlyRental", "PaymentStatus", "StartDate", "Penalty", "AdditionalCharge"];
     public static readonly string[] VehicleHeaders = ["CompanyName", "DriverName", "PlateNo", "SECRegNo", "DTINumber"];
     private static readonly string[] ProfileExportHeaders = ["SIN", "Full Name", "Business Name", "Business Section", "Stall Number", "Stall Size", "Monthly Rental", "Payment Status", "Penalty", "Additional Charge", "Date of Occupancy"];
     private static readonly string[] VehicleExportHeaders = ["VIN", "Company Name", "Driver Name", "Plate No", "SEC Reg No", "DTI Number", "Permit Status", "Permit Year", "Date Added"];
 
-    public async Task<ImportResult> ImportAsync(IFormFile file, bool vehicle, CancellationToken token, int? userId = null)
+    public async Task<ImportResult> ImportAsync(IFormFile file, bool vehicle, CancellationToken token, int? userId = null, bool validateOnly = false)
     {
         if (file.Length == 0 || file.Length > MaxFileBytes) throw new ArgumentException("Choose a nonempty CSV or XLSX file no larger than 5 MB.");
         string extension = Path.GetExtension(file.FileName).ToLowerInvariant();
@@ -46,6 +47,7 @@ public sealed class TransferService(IConfiguration configuration)
         await using var connection = await OpenAsync(token);
         var issues = new List<ImportIssue>();
         int imported = 0;
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var row in rows.Rows)
         {
             if (row.Values.Values.All(string.IsNullOrWhiteSpace)) { issues.Add(new(row.Number, "Skipped", "Empty row.")); continue; }
@@ -56,6 +58,20 @@ public sealed class TransferService(IConfiguration configuration)
             if (error is not null) { issues.Add(new(row.Number, "Invalid", error)); continue; }
             try
             {
+                if (validateOnly)
+                {
+                    var identifier = Value(row.Values, vehicle ? "PlateNo" : "SIN");
+                    var sql = vehicle
+                        ? "SELECT TOP (1) 1 FROM VehiclePermits WHERE PlateNo = @id"
+                        : "SELECT TOP (1) 1 FROM Profiling WHERE SIN = @id";
+                    await using var check = new SqlCommand(sql, connection);
+                    check.Parameters.Add("@id", SqlDbType.NVarChar, 100).Value = identifier;
+                    if (!seen.Add(identifier) || await check.ExecuteScalarAsync(token) is not null)
+                        issues.Add(new(row.Number, "Duplicate", vehicle ? "Plate already exists." : "SIN already exists."));
+                    else
+                        imported++;
+                    continue;
+                }
                 if (vehicle) await InsertVehicleAsync(connection, row.Values, token);
                 else await InsertProfileAsync(connection, row.Values, token, review ? userId : null);
                 imported++;
@@ -128,6 +144,7 @@ public sealed class TransferService(IConfiguration configuration)
         var rows = new List<(int, Dictionary<string, string>)>();
         while (csv.Read())
         {
+            if (rows.Count >= MaxRows) throw new ArgumentException($"Each file may contain at most {MaxRows:N0} data rows.");
             var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (string header in headers) values[header] = csv.GetField(header) ?? "";
             rows.Add((csv.Parser.Row, values));
@@ -144,6 +161,7 @@ public sealed class TransferService(IConfiguration configuration)
         var rows = new List<(int, Dictionary<string, string>)>();
         foreach (var row in sheet.RowsUsed().Skip(1))
         {
+            if (rows.Count >= MaxRows) throw new ArgumentException($"Each file may contain at most {MaxRows:N0} data rows.");
             var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var (column, header) in headers) if (header.Length > 0) values[header] = row.Cell(column).GetFormattedString();
             rows.Add((row.RowNumber(), values));
@@ -208,7 +226,7 @@ public sealed class TransferService(IConfiguration configuration)
         {
             await using var note = new SqlCommand("""
                 INSERT INTO AuditTrail (Action,SIN,UserId,Timestamp,Details)
-                VALUES ('Import Review',@sin,@user,SYSDATETIME(),@details)
+                VALUES ('Import Review',@sin,@user,CONVERT(datetime2, SYSUTCDATETIME() AT TIME ZONE 'UTC' AT TIME ZONE 'Singapore Standard Time'),@details)
                 """, connection, transaction);
             note.Parameters.AddWithValue("@sin", Value(values, "SIN"));
             note.Parameters.AddWithValue("@user", reviewUserId.Value);
@@ -225,7 +243,7 @@ public sealed class TransferService(IConfiguration configuration)
         await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(IsolationLevel.Serializable, token);
         try
         {
-            int year = DateTime.Today.Year;
+            int year = PhilippineBusinessClock.Today.Year;
             await using var next = new SqlCommand("""
                 SELECT ISNULL(MAX(TRY_CONVERT(int, RIGHT(VIN, 4))), 0) + 1
                 FROM VehiclePermits WITH (UPDLOCK, HOLDLOCK) WHERE VIN LIKE @prefix

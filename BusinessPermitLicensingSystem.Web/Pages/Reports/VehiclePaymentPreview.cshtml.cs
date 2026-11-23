@@ -24,7 +24,7 @@ public class VehiclePaymentPreviewModel(VehiclePaymentReportService reports,
                 if (report is null) { Error = "A selected annual payment was not found. Choose recorded payments again."; return; }
                 list.Add(report);
             }
-            PrintedAt = DateTime.Now;
+            PrintedAt = PhilippineBusinessClock.Now;
             Reports = list;
         }
         catch (Exception exception)

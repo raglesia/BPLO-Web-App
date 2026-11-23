@@ -31,12 +31,35 @@ builder.Services.AddRazorPages(options =>
 {
     options.Conventions.AuthorizeFolder("/");
     options.Conventions.AllowAnonymousToPage("/Account/Login");
-    options.Conventions.AllowAnonymousToPage("/Account/Create");
+    options.Conventions.AuthorizePage("/Account/Create", "StaffAdministration");
+    options.Conventions.AuthorizeFolder("/UserAccounts", "StaffAdministration");
+    options.Conventions.AuthorizePage("/AuditTrail", "StaffAdministration");
+    options.Conventions.AuthorizePage("/DatabaseHealth", "StaffAdministration");
+    options.Conventions.AuthorizeFolder("/RentalRates", "StaffAdministration");
+    options.Conventions.AuthorizeFolder("/Archive", "StaffAdministration");
+    options.Conventions.AuthorizeFolder("/Payments", "StaffPayments");
+    options.Conventions.AuthorizePage("/Profiles/Billing", "StaffPayments");
+    options.Conventions.AuthorizePage("/Profiles/Transfer", "StaffAdministration");
+    options.Conventions.AuthorizePage("/Vehicles/Transfer", "StaffAdministration");
 });
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
         options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.Events.OnValidatePrincipal = async context =>
+        {
+            var principal = context.Principal;
+            var version = principal?.FindFirst("SessionVersion")?.Value;
+            if (int.TryParse(principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out int id) &&
+                !string.IsNullOrEmpty(version) &&
+                await context.HttpContext.RequestServices.GetRequiredService<UserAuthenticationService>()
+                    .IsSessionCurrentAsync(id, version, context.HttpContext.RequestAborted))
+                return;
+
+            context.RejectPrincipal();
+            context.Response.Cookies.Delete(context.Options.Cookie.Name!, context.Options.Cookie.Build(context.HttpContext));
+        };
         options.Cookie.Name = "BPLS.Auth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
@@ -44,7 +67,23 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    bool IsListed(System.Security.Claims.ClaimsPrincipal user, string configSection)
+    {
+        var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        return int.TryParse(userId, out int id) && id > 0 &&
+            builder.Configuration.GetSection(configSection).GetChildren()
+                .Any(entry => int.TryParse(entry.Value, out int allowedId) && allowedId == id);
+    }
+
+    options.AddPolicy("StaffPayments", policy => policy.RequireAuthenticatedUser()
+        .RequireAssertion(context => IsListed(context.User, "StaffAccess:AdministratorIds") ||
+            IsListed(context.User, "StaffAccess:PaymentOperatorIds")));
+    options.AddPolicy("StaffAdministration", policy => policy
+        .RequireAuthenticatedUser()
+        .RequireAssertion(context => IsListed(context.User, "StaffAccess:AdministratorIds")));
+});
 builder.Services.AddScoped<UserAuthenticationService>();
 builder.Services.AddScoped<ProfileService>();
 builder.Services.AddScoped<BillingService>();

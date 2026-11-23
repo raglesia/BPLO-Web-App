@@ -36,11 +36,11 @@ public class VehiclePaymentsModel(VehicleService vehicles, ILogger<VehiclePaymen
         }
         try
         {
-            var result = await vehicles.SaveDraftAsync(vin, DateTime.Today.Year,
-                FeeAmounts, OtherDescriptions, DateTime.Today, HttpContext.RequestAborted, PermitDetails);
+            var result = await vehicles.SaveDraftAsync(vin, PhilippineBusinessClock.Today.Year,
+                FeeAmounts, OtherDescriptions, PhilippineBusinessClock.Today, HttpContext.RequestAborted, PermitDetails);
             if (!result.Success)
             { Error = result.Error; return await LoadAsync(vin, false); }
-            TempData["VehicleNotice"] = $"{DateTime.Today.Year} fee draft saved: ₱{result.Total:N2}. No payment was recorded.";
+            TempData["VehicleNotice"] = $"{PhilippineBusinessClock.Today.Year} fee draft saved: ₱{result.Total:N2}. No payment was recorded.";
             return RedirectToPage("/Payments/Vehicles", new { vin, listSearch=ListSearch, listPage=ListPage });
         }
         catch (Exception exception)
@@ -56,8 +56,8 @@ public class VehiclePaymentsModel(VehicleService vehicles, ILogger<VehiclePaymen
         { Error = "Sign in again before recording payment."; return await LoadAsync(vin, true); }
         try
         {
-            var result = await vehicles.PayAsync(vin, OrNumber, DateTime.Today.Year,
-                userId, DateTime.Now, HttpContext.RequestAborted);
+            var result = await vehicles.PayAsync(vin, OrNumber, PhilippineBusinessClock.Today.Year,
+                userId, PhilippineBusinessClock.Now, HttpContext.RequestAborted);
             if (!result.Success)
             { Error = result.Error; return await LoadAsync(vin, true); }
             TempData["VehicleNotice"] = $"Vehicle payment recorded for {result.Year}. OR {result.OrNumber}; amount ₱{result.Amount:N2}.";
@@ -74,7 +74,7 @@ public class VehiclePaymentsModel(VehicleService vehicles, ILogger<VehiclePaymen
         Notice = TempData["VehicleNotice"] as string;
         try
         {
-            Vehicle = await vehicles.GetAsync(vin, DateTime.Today, HttpContext.RequestAborted);
+            Vehicle = await vehicles.GetAsync(vin, PhilippineBusinessClock.Today, HttpContext.RequestAborted);
             if (Vehicle is null) return NotFound();
             if (hydrate)
             {

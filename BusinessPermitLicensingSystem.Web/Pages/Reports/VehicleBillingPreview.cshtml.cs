@@ -16,11 +16,11 @@ public class VehicleBillingPreviewModel(VehicleService vehicles,
     {
         try
         {
-            var vehicle = await vehicles.GetAsync(vin, DateTime.Today, HttpContext.RequestAborted);
+            var vehicle = await vehicles.GetAsync(vin, PhilippineBusinessClock.Today, HttpContext.RequestAborted);
             if (vehicle is null) Error = "Vehicle was not found.";
             else if (vehicle.Archived) Error = "Current-year billing is unavailable for archived vehicles.";
             else if (vehicle.Draft is null) Error = "Save a valid current-year fee assessment before printing billing.";
-            else { Vehicle = vehicle; PrintedAt = DateTime.Now; }
+            else { Vehicle = vehicle; PrintedAt = PhilippineBusinessClock.Now; }
         }
         catch (Exception exception)
         {

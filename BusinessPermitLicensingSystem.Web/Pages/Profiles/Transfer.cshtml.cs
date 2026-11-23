@@ -18,6 +18,28 @@ public class TransferModel(TransferService transfer, ILogger<TransferModel> logg
             Result = JsonSerializer.Deserialize<ImportSummary>(json);
     }
 
+    public bool IsPreview { get; private set; }
+    public string? IssueDownload { get; private set; }
+
+    public async Task<IActionResult> OnPostPreviewAsync()
+    {
+        IsPreview = true;
+        if (Upload is null) { Error = "Choose a CSV or XLSX file."; return Page(); }
+        try
+        {
+            var result = await transfer.ImportAsync(Upload, false, HttpContext.RequestAborted, int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!), validateOnly: true);
+            Result = ImportSummary.From(result);
+            if (result.Issues.Count > 0) IssueDownload = ImportSummary.CreateIssueDownload(result.Issues);
+        }
+        catch (ArgumentException exception) { Error = exception.Message; }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Import preview failed.");
+            Error = "Preview failed. Check the file format and try again.";
+        }
+        return Page();
+    }
+
     public async Task<IActionResult> OnPostImportAsync()
     {
         if (Upload is null) { Error = "Choose a CSV or XLSX file."; return Page(); }

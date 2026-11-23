@@ -28,7 +28,7 @@
                 </div>
                 <p class="midnight-chart-note">Exact figures are listed in the collection register below.</p>
             }
-            else { <p class="empty-state" role="status">Collection figures are unavailable.</p> }
+            else { <div class="empty-state"><p role="status">Collection figures are unavailable.</p><a asp-page="/Index">Retry dashboard</a></div> }
         </section>
         <section class="section-panel midnight-register" aria-labelledby="register-title">
             <div class="midnight-section-heading"><div><h2 id="register-title">Monthly Collection Register</h2><p>Recorded stall rent and vehicle permit payments</p></div><a asp-page="/Reports/Monthly">Open Monthly Report</a></div>
@@ -44,7 +44,7 @@
     </div>
     <div class="midnight-dashboard-rail">
         <section class="midnight-collections" aria-labelledby="municipal-collections-title">
-            <div class="midnight-collection-heading"><h2 id="municipal-collections-title">Municipal Collections</h2><span>@DateTime.Today.ToString("MMMM yyyy")</span></div>
+            <div class="midnight-collection-heading"><h2 id="municipal-collections-title">Municipal Collections</h2><span>@PhilippineBusinessClock.Today.ToString("MMMM yyyy")</span></div>
             <p>Total recorded this month</p>
             @if (Model.RentCollectedThisMonth.HasValue && Model.VehicleCollectedThisMonth.HasValue)
             { <strong class="midnight-collection-total">@((Model.RentCollectedThisMonth.Value + Model.VehicleCollectedThisMonth.Value).ToString("₱#,##0.00"))</strong> }

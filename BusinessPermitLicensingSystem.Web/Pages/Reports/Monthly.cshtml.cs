@@ -6,10 +6,10 @@ namespace BusinessPermitLicensingSystem.Web.Pages.Reports;
 
 public class MonthlyModel(ReportService reports, ILogger<MonthlyModel> logger) : PageModel
 {
-    [BindProperty(SupportsGet = true)] public int FromYear { get; set; } = DateTime.Today.Year;
-    [BindProperty(SupportsGet = true)] public int FromMonth { get; set; } = DateTime.Today.Month;
-    [BindProperty(SupportsGet = true)] public int ToYear { get; set; } = DateTime.Today.Year;
-    [BindProperty(SupportsGet = true)] public int ToMonth { get; set; } = DateTime.Today.Month;
+    [BindProperty(SupportsGet = true)] public int FromYear { get; set; } = PhilippineBusinessClock.Today.Year;
+    [BindProperty(SupportsGet = true)] public int FromMonth { get; set; } = PhilippineBusinessClock.Today.Month;
+    [BindProperty(SupportsGet = true)] public int ToYear { get; set; } = PhilippineBusinessClock.Today.Year;
+    [BindProperty(SupportsGet = true)] public int ToMonth { get; set; } = PhilippineBusinessClock.Today.Month;
     public MonthlyReport? Report { get; private set; }
     public string? Error { get; private set; }
 
@@ -30,7 +30,7 @@ public class MonthlyModel(ReportService reports, ILogger<MonthlyModel> logger) :
         {
             Report = await reports.MonthlyAsync(FromYear, FromMonth, ToYear, ToMonth, HttpContext.RequestAborted);
             string preparedBy = User.FindFirst("FullName")?.Value ?? User.Identity?.Name ?? "";
-            var bytes = reports.MonthlyExcel(Report, preparedBy, DateTime.Now);
+            var bytes = reports.MonthlyExcel(Report, preparedBy, PhilippineBusinessClock.Now);
             return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 $"MonthlyReport_{FromYear}-{FromMonth:D2}_to_{ToYear}-{ToMonth:D2}.xlsx");
         }

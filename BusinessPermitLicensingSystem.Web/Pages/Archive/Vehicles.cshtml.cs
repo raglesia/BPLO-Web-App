@@ -11,6 +11,9 @@ public class VehiclesModel(ArchiveService archive, ILogger<VehiclesModel> logger
     public string? Error { get; private set; }
     public string? Notice { get; private set; }
     [BindProperty(SupportsGet = true)] public string? Search { get; set; }
+    [BindProperty(SupportsGet = true)] public int PageNumber { get; set; } = 1;
+    public int TotalCount { get; private set; }
+    public int TotalPages => Math.Max(1, (int)Math.Ceiling(TotalCount / (double)ArchiveService.PageSize));
     [BindProperty] public bool ConfirmRestore { get; set; }
 
     public Task OnGetAsync() => LoadAsync();
@@ -23,7 +26,7 @@ public class VehiclesModel(ArchiveService archive, ILogger<VehiclesModel> logger
         try
         {
             var result = await archive.VehicleAsync(vin, false, userId, HttpContext.RequestAborted);
-            if (result.Success) { TempData["ArchiveNotice"] = result.Message; return RedirectToPage(new { Search }); }
+            if (result.Success) { TempData["ArchiveNotice"] = result.Message; return RedirectToPage(new { Search, PageNumber }); }
             Error = result.Message;
         }
         catch (Exception exception) { logger.LogError(exception, "Vehicle restore failed for {Vin}", vin); Error = "Restore failed. No change was saved."; }
@@ -33,7 +36,18 @@ public class VehiclesModel(ArchiveService archive, ILogger<VehiclesModel> logger
     private async Task LoadAsync()
     {
         Notice = TempData["ArchiveNotice"] as string;
-        try { Records = await archive.VehiclesAsync(Search, HttpContext.RequestAborted); }
+        try
+        {
+            PageNumber = Math.Max(1, PageNumber);
+            var result = await archive.VehiclesAsync(Search, PageNumber, HttpContext.RequestAborted);
+            if (result.Items.Count == 0 && PageNumber > 1)
+            {
+                PageNumber = 1;
+                result = await archive.VehiclesAsync(Search, PageNumber, HttpContext.RequestAborted);
+            }
+            Records = result.Items;
+            TotalCount = result.TotalCount;
+        }
         catch (Exception exception) { logger.LogError(exception, "Archived vehicles could not be loaded."); Error = "Archived vehicles could not be loaded."; }
     }
 }

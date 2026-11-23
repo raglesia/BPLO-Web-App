@@ -44,7 +44,7 @@ public sealed class VehicleRecordService(IConfiguration configuration)
         {
             if (create)
             {
-                int year = DateTime.Now.Year;
+                int year = PhilippineBusinessClock.Now.Year;
                 await using var next = new SqlCommand("""
                     SELECT ISNULL(MAX(TRY_CONVERT(int, SUBSTRING(VIN, 10, 100))), 0) + 1
                     FROM VehiclePermits WITH (UPDLOCK, HOLDLOCK) WHERE VIN LIKE @prefix
