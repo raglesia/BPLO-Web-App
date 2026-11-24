@@ -32,15 +32,6 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AuthorizeFolder("/");
     options.Conventions.AllowAnonymousToPage("/Account/Login");
     options.Conventions.AllowAnonymousToPage("/Account/Create");
-    options.Conventions.AuthorizeFolder("/UserAccounts", "StaffAdministration");
-    options.Conventions.AuthorizePage("/AuditTrail", "StaffAdministration");
-    options.Conventions.AuthorizePage("/DatabaseHealth", "StaffAdministration");
-    options.Conventions.AuthorizeFolder("/RentalRates", "StaffAdministration");
-    options.Conventions.AuthorizeFolder("/Archive", "StaffAdministration");
-    options.Conventions.AuthorizeFolder("/Payments", "StaffPayments");
-    options.Conventions.AuthorizePage("/Profiles/Billing", "StaffPayments");
-    options.Conventions.AuthorizePage("/Profiles/Transfer", "StaffAdministration");
-    options.Conventions.AuthorizePage("/Vehicles/Transfer", "StaffAdministration");
 });
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -67,23 +58,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
         options.SlidingExpiration = true;
     });
-builder.Services.AddAuthorization(options =>
-{
-    bool IsListed(System.Security.Claims.ClaimsPrincipal user, string configSection)
-    {
-        var userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        return int.TryParse(userId, out int id) && id > 0 &&
-            builder.Configuration.GetSection(configSection).GetChildren()
-                .Any(entry => int.TryParse(entry.Value, out int allowedId) && allowedId == id);
-    }
-
-    options.AddPolicy("StaffPayments", policy => policy.RequireAuthenticatedUser()
-        .RequireAssertion(context => IsListed(context.User, "StaffAccess:AdministratorIds") ||
-            IsListed(context.User, "StaffAccess:PaymentOperatorIds")));
-    options.AddPolicy("StaffAdministration", policy => policy
-        .RequireAuthenticatedUser()
-        .RequireAssertion(context => IsListed(context.User, "StaffAccess:AdministratorIds")));
-});
+builder.Services.AddAuthorization();
 builder.Services.AddScoped<UserAuthenticationService>();
 builder.Services.AddScoped<ProfileService>();
 builder.Services.AddScoped<BillingService>();

@@ -203,12 +203,6 @@ Record test evidence and approval before official opening. Take a verified backu
 - [Microsoft RESTORE VERIFYONLY](https://learn.microsoft.com/en-us/sql/t-sql/statements/restore-statements-verifyonly-transact-sql?view=sql-server-ver17)
 - Repository README and `operations/backup/README.md` for technical configuration details.
 
-### Staff access configuration
+### Existing sessions
 
-Set `StaffAccess__AdministratorIds__0` to the verified numeric user ID of an
-existing approved administrator. Add more IDs using incremented indexes.
-Set `StaffAccess__PaymentOperatorIds__0` and subsequent entries for authorized
-cashiers. Administrators can also access payment workflows. An empty list
-grants no access for that role. Recheck IDs after switching database targets.
-Provision additional users through User Accounts. Existing sign-ins must
-sign in again after this release because older cookies lack a session version.
+Users with older session cookies must sign in again after this release.

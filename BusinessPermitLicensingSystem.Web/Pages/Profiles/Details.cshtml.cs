@@ -18,9 +18,6 @@ public class ProfileDetailsModel(ProfileService profiles, ArchiveService archive
 
     public async Task<IActionResult> OnPostArchiveAsync(string sin)
     {
-        var authorization = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Authorization.IAuthorizationService>();
-        var access = await authorization.AuthorizeAsync(User, null, "StaffAdministration");
-        if (!access.Succeeded) return Forbid();
         if (!ConfirmArchive) { LoadError = "Confirm archive before submitting."; return await ReloadAsync(sin); }
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId))
         { LoadError = "Sign in again before archiving."; return await ReloadAsync(sin); }

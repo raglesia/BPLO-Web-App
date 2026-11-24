@@ -9,9 +9,6 @@ public class DetailsModel(VehicleService vehicles, ArchiveService archive, ILogg
     [BindProperty] public bool ConfirmArchive { get; set; }
     public async Task<IActionResult> OnPostArchiveAsync(string vin)
     {
-        var authorization = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Authorization.IAuthorizationService>();
-        var access = await authorization.AuthorizeAsync(User, null, "StaffAdministration");
-        if (!access.Succeeded) return Forbid();
         if (!ConfirmArchive) { Error = "Confirm archive before submitting."; return await LoadAsync(vin, true); }
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out int userId))
         { Error = "Sign in again before archiving."; return await LoadAsync(vin, true); }
