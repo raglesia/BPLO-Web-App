@@ -121,3 +121,44 @@ document.addEventListener('DOMContentLoaded', () => {
     update();
     setInterval(update, 1000);
 })();
+
+(() => {
+    const dialog = document.getElementById('bplo-confirm');
+    if (!dialog?.showModal) return;
+
+    const title = document.getElementById('bplo-confirm-title');
+    const message = document.getElementById('bplo-confirm-message');
+    const action = document.getElementById('bplo-confirm-action');
+    let pending;
+    let approvedForm;
+
+    document.addEventListener('submit', event => {
+        const form = event.target;
+        if (event.defaultPrevented || !(form instanceof HTMLFormElement) ||
+            !form.hasAttribute('data-confirm-message') || form === approvedForm) return;
+
+        event.preventDefault();
+        if (pending) return;
+
+        pending = { form, submitter: event.submitter };
+        title.textContent = form.dataset.confirmTitle || 'Confirm action';
+        message.textContent = form.dataset.confirmMessage;
+        action.textContent = form.dataset.confirmAction || 'Confirm';
+        dialog.returnValue = '';
+        dialog.showModal();
+    });
+
+    dialog.addEventListener('close', () => {
+        const submission = pending;
+        pending = undefined;
+        if (!submission || dialog.returnValue !== 'confirm' || !submission.form.isConnected) return;
+
+        const { form, submitter } = submission;
+        approvedForm = form;
+        try {
+            form.requestSubmit(submitter?.form === form ? submitter : undefined);
+        } finally {
+            approvedForm = undefined;
+        }
+    });
+})();

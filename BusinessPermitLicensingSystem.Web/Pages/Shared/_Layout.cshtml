@@ -92,6 +92,16 @@
     {
         <main id="main-content" class="container app-main" tabindex="-1">@RenderBody()</main>
     }
+    <dialog id="bplo-confirm" class="bplo-confirm" aria-labelledby="bplo-confirm-title" aria-describedby="bplo-confirm-message">
+        <form method="dialog">
+            <h2 id="bplo-confirm-title"></h2>
+            <p id="bplo-confirm-message"></p>
+            <div class="bplo-confirm-actions">
+                <button type="submit" value="cancel" class="btn btn-outline-secondary" autofocus>Cancel</button>
+                <button type="submit" value="confirm" class="btn btn-primary" id="bplo-confirm-action">Confirm</button>
+            </div>
+        </form>
+    </dialog>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

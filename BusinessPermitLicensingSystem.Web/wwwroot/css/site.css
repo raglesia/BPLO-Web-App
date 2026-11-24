@@ -2718,3 +2718,37 @@ body:has(.bplo-login) { background:#f1f8fc; }
 .sidebar-brand .sidebar-office-brand { width:100%; }
 .sidebar-brand .sidebar-office-name { margin-top:0; font-size:15px; font-weight:700; line-height:1.35; }
 }
+
+.bplo-confirm {
+    width: min(30rem, calc(100% - 2rem));
+    max-height: calc(100% - 2rem);
+    padding: 1.5rem;
+    border: 1px solid var(--bplo-border, #dce5f2);
+    border-top: 4px solid var(--bplo-teal, #396fc7);
+    border-radius: 12px;
+    color: var(--bplo-text, #243b5c);
+    background: var(--bplo-surface, #fff);
+    box-shadow: 0 16px 48px #162e5833;
+}
+
+.bplo-confirm::backdrop {
+    background: #162e5866;
+}
+
+.bplo-confirm h2 {
+    margin: 0 0 .5rem;
+    font-size: 1.25rem;
+}
+
+.bplo-confirm p {
+    margin: 0;
+    white-space: pre-line;
+}
+
+.bplo-confirm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: .5rem;
+    margin-top: 1.25rem;
+}
