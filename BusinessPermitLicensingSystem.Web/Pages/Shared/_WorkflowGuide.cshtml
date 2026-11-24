@@ -1,0 +1,47 @@
+@{
+    var page = ViewContext.RouteData.Values["page"] as string;
+    (string Title, string Tip, string? Page, string? Link)? guide = page switch
+    {
+        "/Index" => ("Choose where to start", "Add a stall owner or vehicle first. For an existing record, open Billing & Payments to review obligations or record an official receipt.", "/Payments/Index", "Open Billing & Payments"),
+        "/Profiles/Index" => ("Find or add a stall owner", "Open an existing record to review occupancy or billing. Use Add Stall Owner for a new record.", "/Profiles/Create", "Add stall owner"),
+        "/Profiles/Create" => ("Set up the stall before billing", "Choose the rental section and check the occupancy date. Leave the first billable month blank to start billing the month after occupancy.", "/RentalRates/Index", "Review rental rates"),
+        "/Profiles/Edit" => ("Check details before saving", "Review occupancy, rental section, and stall size. After saving, reopen the record to review billing.", "/Profiles/Index", "Back to stall owners"),
+        "/Profiles/Details" => ("Move from occupancy to billing", "If the record is unverified, review the occupancy details first. Use Go to Billing & Payments to review outstanding periods.", null, null),
+        "/Profiles/Billing" => ("Review periods before recording payment", "Confirm the outstanding periods and any verified arrears before entering an official receipt number.", null, null),
+        "/Vehicles/Index" => ("Find or register a vehicle", "Open vehicle details to review the record. Use Billing & Payments for the annual assessment and payment.", "/Vehicles/Edit", "Register vehicle"),
+        "/Vehicles/Edit" => ("Save the vehicle before assessing fees", "Check the plate number before saving. Then find the vehicle in Billing & Payments to prepare the annual assessment.", "/Vehicles/Index", "Back to vehicles"),
+        "/Vehicles/Details" => ("Continue to the permit assessment", "Review the vehicle details, then use Billing & Payments to assess fees, record an official receipt, or review payment history.", null, null),
+        "/Payments/Index" => ("Choose the record you’re processing", "Select Stall rentals or Special vehicles, search for the record, then open it to review the assessment.", null, null),
+        "/Payments/Stalls" => ("Review assessment → record receipt → print report", "Check the outstanding periods and verify older balances where applicable. After recording the official receipt (OR), open its Rental Payment Report.", null, null),
+        "/Payments/Vehicles" => ("Save assessment → record receipt → prepare permit", "Confirm the permit year and save the fee assessment. After recording the official receipt (OR), open Official Documents to prepare the permit or print the payment report.", null, null),
+        "/Reports/Index" => ("Choose the report that matches the task", "Use Monthly Collection Summary for a month’s totals. Use a payment report to review individual receipts.", "/Reports/Monthly", "Open monthly report"),
+        "/Reports/Monthly" => ("Check the period before printing", "Select the month and year, then choose View report. Review Recorded Collections before printing.", "/Reports/Index", "Back to reports"),
+        "/Reports/RentalPayment" => ("Find the receipt before printing", "Search for the stall owner or official receipt, then open the payment report for the matching entry.", "/Reports/Index", "Back to reports"),
+        "/Reports/VehiclePayment" => ("Find the vehicle receipt", "Filter by vehicle, receipt, or permit year, then open the matching payment report.", "/Reports/Index", "Back to reports"),
+        "/RentalRates/Index" => ("Check the rate type before editing", "Review whether the section charges per square meter or uses a fixed rate. Use the matching section when setting up a stall owner.", null, null),
+        "/RentalRates/Edit" => ("Enter the rate for the selected type", "Use the per-square-meter amount for size-based rent or the flat amount for fixed rent.", "/RentalRates/Index", "Back to rental rates"),
+        "/Profiles/Transfer" => ("Preview the file before importing", "Choose Preview import to check for invalid rows or duplicates. Fix issues in your file before choosing Import profiles.", "/Profiles/Index", "Back to stall owners"),
+        "/Vehicles/Transfer" => ("Preview the file before importing", "Choose Preview import to check for invalid rows or duplicate plates. Fix issues in your file before importing.", "/Vehicles/Index", "Back to vehicles"),
+        "/Archive/Profiles" => ("Find the archived record before restoring", "Search for the stall owner and verify the record before choosing Restore. Restored records return to the active list.", "/Profiles/Index", "Open active stall owners"),
+        "/Archive/Vehicles" => ("Find the archived vehicle before restoring", "Verify the plate and record before choosing Restore. Restored vehicles return to the active list.", "/Vehicles/Index", "Open active vehicles"),
+        "/UserAccounts/Index" => ("Choose the account action", "Use Create to add an account. Open an existing account to edit details or reset its password.", null, null),
+        "/UserAccounts/Create" => ("Check the username before saving", "Give the user their username and share the initial password securely.", "/UserAccounts/Index", "Back to user accounts"),
+        "/UserAccounts/Edit" => ("Review the account details before saving", "Check that you selected the right account before applying changes.", "/UserAccounts/Index", "Back to user accounts"),
+        "/UserAccounts/ResetPassword" => ("Confirm the account before resetting", "Give the new password to the account holder securely. They must sign in again after the reset.", "/UserAccounts/Index", "Back to user accounts"),
+        "/AuditTrail" => ("Narrow the event list", "Filter by event type or search for a record before paging through the results.", null, null),
+        _ => null
+    };
+}
+@if (guide is { } step)
+{
+    <details class="workflow-guide">
+        <summary><span class="workflow-guide-label">Next step</span> @step.Title</summary>
+        <div class="workflow-guide-body">
+            <p>@step.Tip</p>
+            @if (step.Page is not null)
+            {
+                <a asp-page="@step.Page">@step.Link</a>
+            }
+        </div>
+    </details>
+}

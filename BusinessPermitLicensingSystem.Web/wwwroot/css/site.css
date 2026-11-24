@@ -2752,3 +2752,48 @@ body:has(.bplo-login) { background:#f1f8fc; }
     gap: .5rem;
     margin-top: 1.25rem;
 }
+
+.workflow-guide {
+    margin-bottom: 1rem;
+    border: 1px solid var(--bplo-border, #dce5f2);
+    border-radius: 8px;
+    background: var(--bplo-tint, #eaf1fc);
+    color: var(--bplo-text, #243b5c);
+}
+
+.workflow-guide summary {
+    padding: .65rem .9rem;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.workflow-guide summary:focus-visible {
+    outline: 2px solid #28559b;
+    outline-offset: 2px;
+    border-radius: 8px;
+}
+
+.workflow-guide-label {
+    margin-inline: .25rem .4rem;
+    color: #28559b;
+    font-size: .875em;
+}
+
+.workflow-guide-body {
+    padding: 0 .9rem .75rem;
+    max-width: 75ch;
+}
+
+.workflow-guide-body p {
+    margin: 0 0 .35rem;
+}
+
+.workflow-guide-body a {
+    color: #28559b;
+    text-decoration: underline;
+    text-underline-offset: .15em;
+}
+
+@media print {
+    .workflow-guide { display: none !important; }
+}

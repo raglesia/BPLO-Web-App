@@ -5,6 +5,7 @@
     ViewData["Title"] = "Vehicle Billing & Payments";
 }
 <div class="page-header"><div><p class="eyebrow">Special Vehicle Permits</p><h1>Vehicle Billing and Payments</h1><p>Vehicle assessment, billing reports and annual payment.</p></div></div>
+<div class="mb-3"><a asp-page="/Payments/Index" asp-route-kind="vehicles" asp-route-search="@Model.ListSearch" asp-route-pageNumber="@Math.Max(1,Model.ListPage)">Back to Billing &amp; Payments</a></div>
 @if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
 @if (Model.RecordedReceipt is not null && Model.Vehicle?.History.FirstOrDefault(payment => payment.OrNumber == Model.RecordedReceipt) is { } recordedPayment)
 {
@@ -157,6 +158,6 @@
     @if (Model.Vehicle.History.Count == 0) { <p class="empty-state">Payment Report and Mayor’s Permit are available after an OR is recorded. Complete the saved permit details before issuing the Mayor’s Permit.</p> }
 
 }
-<a asp-page="/Payments/Index" asp-route-kind="vehicles" asp-route-search="@Model.ListSearch" asp-route-pageNumber="@Math.Max(1,Model.ListPage)">Back to Billing &amp; Payments</a>
+
 @section Scripts { <script src="~/js/vehicle-fee-assessment.js" asp-append-version="true"></script> }
 

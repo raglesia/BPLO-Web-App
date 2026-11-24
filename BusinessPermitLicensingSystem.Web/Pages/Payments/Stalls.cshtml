@@ -4,6 +4,7 @@
     ViewData["Title"] = "Stall Billing & Payments";
 }
 <div class="page-header"><div><p class="eyebrow">Billing & Payments / Stall Rentals</p><h1>Billing and Payments</h1><p>Review outstanding periods and recorded payments.</p></div></div>
+<div class="mb-3"><a asp-page="/Payments/Index" asp-route-kind="stalls" asp-route-search="@Model.ListSearch" asp-route-pageNumber="@Math.Max(1,Model.ListPage)">Back to Billing &amp; Payments</a></div>
 @if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }
 @if (Model.RecordedReceipt is not null && Model.Record?.Payments.Any(payment => payment.OrNumber == Model.RecordedReceipt) == true)
 {
@@ -119,5 +120,3 @@
     </table></div>
     @if (Model.Record.Payments.Count == 0) { <p class="empty-state">Rental Payment Report available after an OR is recorded.</p> }
 }
-<a asp-page="/Payments/Index" asp-route-kind="stalls" asp-route-search="@Model.ListSearch" asp-route-pageNumber="@Math.Max(1,Model.ListPage)">Back to Billing &amp; Payments</a>
-

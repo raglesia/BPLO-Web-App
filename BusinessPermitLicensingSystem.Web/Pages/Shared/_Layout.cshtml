@@ -82,7 +82,10 @@
                 <form class="sidebar-logout" method="post" asp-page="/Account/Logout"><button type="submit" class="btn btn-outline-secondary">Sign Out</button></form>
             </aside>
             <div class="app-workspace">
-                <main id="main-content" class="app-main wrap" tabindex="-1">@RenderBody()</main>
+                <main id="main-content" class="app-main wrap" tabindex="-1">
+                    <partial name="_WorkflowGuide" />
+                    @RenderBody()
+                </main>
                 <footer class="app-footer"><span>BPLO · Business Permit and Licensing Office</span><span class="footer-credit">Developed by Raglesia · © 2026. All rights reserved.</span></footer>
             </div>
         </div>
