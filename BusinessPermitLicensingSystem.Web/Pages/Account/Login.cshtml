@@ -33,7 +33,7 @@
     <div class="form-check mb-3"><input asp-for="Input.RememberMe" class="form-check-input" /><label asp-for="Input.RememberMe" class="form-check-label">Remember me</label></div>
     <button type="submit" class="btn btn-primary w-100 login-submit">Sign In</button>
 </form>
-<p class="text-center mt-3 mb-0 login-signup">Need access? Contact your BPLO administrator.</p>
+<p class="text-center mt-3 mb-0 login-signup">Don't have an account? <a asp-page="/Account/Create">Sign up</a></p>
 </div></div>
 @section Scripts {
     <script src="~/js/login.js" asp-append-version="true"></script>
