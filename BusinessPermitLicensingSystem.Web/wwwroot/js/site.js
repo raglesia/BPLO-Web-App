@@ -14,8 +14,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const section = rentalEstimate.form.elements.namedItem('Input.BusinessSection');
     const size = rentalEstimate.form.elements.namedItem('Input.StallSize');
     const peso = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
+    let previousArea = size.value === '0' ? '' : size.value;
     const showRent = () => {
       const rate = section.selectedOptions[0]?.dataset;
+      const isFlat = Boolean(rate?.flat);
+      if (isFlat && !size.disabled) {
+        previousArea = size.value === '0' ? '' : size.value;
+        size.value = '0';
+      } else if (!isFlat && size.disabled) {
+        size.value = previousArea;
+      }
+      size.disabled = isFlat;
       const area = Number(size.value.trim());
       const estimate = rate?.flat ? Number(rate.flat)
         : area > 0 && rate?.perArea ? area * Number(rate.perArea) : NaN;
