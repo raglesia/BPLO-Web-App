@@ -33,7 +33,9 @@
             partial.innerHTML = html;
             const count = partial.content.querySelector('.record-count');
             if (!count) throw new Error('Results unavailable');
+            const restoreSearchFocus = results.contains(document.activeElement);
             results.replaceChildren(partial.content);
+            if (restoreSearchFocus) input.focus({ preventScroll: true });
             history.replaceState(history.state, '', displayUrl);
             status.textContent = results.querySelector('.empty-state')?.textContent.trim() || count.textContent.trim();
         } catch (error) {
