@@ -428,9 +428,9 @@ strong,dt {
 }
 
 .btn:focus-visible,a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible {
-    outline:3px solid #62b6ad!important;
+    outline:3px solid var(--teal);
     outline-offset:2px;
-    box-shadow:none!important;
+    box-shadow:none;
 }
 
 .form-control,.form-select {
@@ -908,12 +908,8 @@ strong,dt {
     padding:.25rem .2rem;
 }
 
-.btn:focus-visible,a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible {
-    outline-color:#1a766f!important;
-}
-
 .validation-summary-errors:focus,.text-danger[role="alert"]:focus,.text-success[role="status"]:focus {
-    outline:3px solid #1a766f;
+    outline:3px solid var(--teal);
     outline-offset:3px;
 }
 

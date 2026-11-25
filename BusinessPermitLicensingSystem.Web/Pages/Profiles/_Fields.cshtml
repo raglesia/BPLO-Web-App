@@ -11,7 +11,7 @@
             <option value="">Choose a section</option>
             @foreach (var rate in (IReadOnlyList<BusinessPermitLicensingSystem.Web.Profiles.RentalRate>)ViewData["Rates"]!)
             {
-                <option value="@rate.Section">@rate.Section — @(rate.RateType == "Flat" ? $"{rate.FlatRate:N2} flat" : $"{rate.RatePerSqm:N2} per sqm")</option>
+                <option value="@rate.Section" data-flat="@(rate.RateType == "Flat" ? rate.FlatRate.ToString(System.Globalization.CultureInfo.InvariantCulture) : null)" data-per-area="@(rate.RateType != "Flat" ? rate.RatePerSqm.ToString(System.Globalization.CultureInfo.InvariantCulture) : null)">@rate.Section — @(rate.RateType == "Flat" ? $"{rate.FlatRate:N2} flat" : $"{rate.RatePerSqm:N2} per sqm")</option>
             }
         </select>
         <span asp-validation-for="BusinessSection" class="text-danger"></span>
@@ -38,4 +38,4 @@
     <div class="col-12"><div class="form-check"><input asp-for="IncludeAdditionalCharge" class="form-check-input" /><label asp-for="IncludeAdditionalCharge" class="form-check-label"></label></div></div>
     <div class="col-md-6"><label asp-for="AdditionalCharge" class="form-label">Additional Charge (₱, optional)</label><input asp-for="AdditionalCharge" type="number" min="0" step="0.01" class="form-control" /><span asp-validation-for="AdditionalCharge" class="text-danger"></span><div class="form-text">Leave blank for no additional charge. Use this for applicable freezer charges.</div></div>
 </div></fieldset>
-<p class="note">Monthly rental is calculated from the selected section, stall size, and included additional charge when saved.</p>
+<p class="note"><output id="rental-estimate" for="Input_BusinessSection Input_StallSize">Select a section to preview base rent.</output><br />Monthly rental, including any applicable additional charge, is calculated when saved.</p>

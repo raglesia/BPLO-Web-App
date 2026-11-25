@@ -4,10 +4,14 @@
     const status = document.querySelector('[data-search-status]');
     if (!form || !results || !status) return;
     const input = form.querySelector('[name="search"]');
+    const clear = form.querySelector('[data-clear-search]');
     let timer, controller, version = 0;
     const invalidate = () => {
+        if (clear) clear.hidden = !input.value.trim();
         clearTimeout(timer);
         controller?.abort();
+        results.removeAttribute('aria-busy');
+        status.textContent = '';
         return ++version;
     };
     const search = async (token) => {
@@ -25,11 +29,15 @@
             if (!response.ok || response.redirected) throw new Error('Search failed');
             const html = await response.text();
             if (token !== version) return;
-            results.innerHTML = html;
-            history.replaceState(null, '', displayUrl);
-            status.textContent = results.querySelector('.record-count')?.textContent || 'Search complete.';
+            const partial = document.createElement('template');
+            partial.innerHTML = html;
+            const count = partial.content.querySelector('.record-count');
+            if (!count) throw new Error('Results unavailable');
+            results.replaceChildren(partial.content);
+            history.replaceState(history.state, '', displayUrl);
+            status.textContent = results.querySelector('.empty-state')?.textContent.trim() || count.textContent.trim();
         } catch (error) {
-            if (token === version && error.name !== 'AbortError') status.textContent = 'Search could not be completed. Try again.';
+            if (token === version && error.name !== 'AbortError') status.textContent = 'Search could not be completed. Previous results are still shown. Choose Search to retry.';
         } finally {
             if (token === version) results.removeAttribute('aria-busy');
         }
@@ -43,5 +51,6 @@
         const token = invalidate();
         timer = setTimeout(() => search(token), 300);
     });
-    form.addEventListener('submit', () => invalidate());
+    form.addEventListener('submit', invalidate);
+    window.addEventListener('pagehide', invalidate);
 })();

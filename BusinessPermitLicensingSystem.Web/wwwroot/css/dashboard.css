@@ -18,12 +18,10 @@
 .dashboard-workspace .sidebar-group:first-child { margin-top:18px; }
 .dashboard-workspace .sidebar-link { font-size:13px; min-height:42px; padding:10px; gap:11px; border-radius:2px; color:#e1e9ee; font-weight:500; }
 .dashboard-workspace .nav-icon { width:18px; height:18px; flex-shrink:0; color:inherit; }
-.dashboard-workspace .sidebar-link:hover,.dashboard-workspace .sidebar-link:focus-visible { background:#304f63; color:#fff; }
 .dashboard-workspace .sidebar-link.active { background:#eaf0f3; color:var(--desk-navy); font-weight:700; }
 .dashboard-workspace .sidebar-link.active::before { background:#fff; border-radius:0; width:3px; }
 .dashboard-workspace .sidebar-link.active .nav-icon { color:var(--desk-navy); }
 .dashboard-workspace .sidebar-sublink { color:#dae6ed; font-size:13px; }
-.dashboard-workspace .sidebar-sublink:hover,.dashboard-workspace .sidebar-sublink:focus-visible { color:#fff; background:#304f63; }
 .dashboard-workspace .sidebar-user { border-color:#496272; padding:16px 6px 12px; gap:10px; }
 .dashboard-workspace .user-avatar { background:#3c5c6e; color:#fff; border-radius:3px; width:34px; height:34px; }
 .dashboard-workspace .sidebar-user .user-label { font-size:13px; color:#fff; }
@@ -100,14 +98,11 @@
 .dashboard-workspace .chart-bars::before { content:""; position:absolute; inset:25% 0 auto; height:25%; border-top:1px solid #F0F3F5; border-bottom:1px solid #F0F3F5; pointer-events:none; }
 .dashboard-workspace .chart-bars::after { content:""; position:absolute; inset:75% 0 auto; border-top:1px solid #F0F3F5; pointer-events:none; }
 .dashboard-workspace .chart-bar { width:28px; max-width:32%; min-height:0; border-radius:2px 2px 0 0; z-index:1; }
-.dashboard-workspace .chart-month>span { font-size:12px; line-height:1.4; color:var(--content-secondary); padding-top:8px; }
+.dashboard-workspace .chart-month-label { font-size:12px; line-height:1.4; color:var(--content-secondary); padding-top:8px; }
 .dashboard-workspace .dashboard-data { border-top:1px solid var(--content-border); margin-top:14px; padding-top:6px; }
 .dashboard-workspace .dashboard-data summary { width:fit-content; max-width:100%; cursor:pointer; font-size:12px; font-weight:600; color:var(--content-teal); padding:8px 0; }
 .dashboard-workspace .dashboard-data .table-responsive { margin-top:10px; border-radius:4px; }
 .dashboard-workspace .dashboard-data caption { font-size:12px; }
-.dashboard-workspace :is(a,button,summary):focus-visible { outline:2px solid #0F5C5E!important; outline-offset:4px; box-shadow:none; }
-.dashboard-workspace .app-sidebar :is(a,button,summary):focus-visible { outline-color:#fff!important; outline-offset:-2px; }
-.dashboard-workspace .app-sidebar .sidebar-link.active:focus-visible { outline-color:var(--desk-navy)!important; outline-offset:-3px; }
 /* Reference composition: four compact metrics above a chart and an operational side column. */
 .dashboard-workspace .desk-header { padding:24px; border:0; border-left:4px solid #0F5C5E; border-radius:0 8px 8px 0; background:#E7F2F1; margin-bottom:20px; }
 .dashboard-workspace .desk-kicker { font-size:12px; }

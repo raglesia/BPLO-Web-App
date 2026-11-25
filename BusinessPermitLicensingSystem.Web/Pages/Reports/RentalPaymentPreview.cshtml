@@ -17,7 +17,8 @@
 @if (Model.Error is not null) { <p class="alert alert-danger" role="alert">@Model.Error <a asp-page="/Reports/RentalPayment">Choose stall owners again</a>.</p> }
 @if (Model.Reports.Count > 0)
 {
-    <div class="rental-paper rental-signature-paper" aria-label="Rental payment report preview">
+    <p class="form-text rental-preview-hint d-print-none">Scroll sideways to see the full A4 preview.</p>
+    <div class="rental-paper rental-signature-paper" tabindex="0" role="region" aria-label="Rental payment report preview">
     @foreach (var report in Model.Reports)
     {
         var assessmentBills = report.AssessmentBills(Model.PrintedAt);

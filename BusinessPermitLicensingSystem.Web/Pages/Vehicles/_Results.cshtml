@@ -9,17 +9,23 @@ else if (Model.Result is not null)
         <tbody>
         @foreach (var vehicle in Model.Result.Items)
         {
-            <tr><td>@vehicle.Vin</td>
-                <td>@vehicle.Company</td><td>@vehicle.Driver</td><td>@vehicle.Plate</td>
+            <tr><td class="record-id">@vehicle.Vin</td>
+                <td><a asp-page="/Vehicles/Details" asp-route-vin="@vehicle.Vin" asp-route-listSearch="@Model.Search" asp-route-listPage="@Model.CurrentPage">@vehicle.Company</a></td><td>@vehicle.Driver</td><td>@vehicle.Plate</td>
                 <td><span class="status-badge @vehicle.CurrentYearStatus.ToLowerInvariant()">@vehicle.CurrentYearStatus</span></td>
-                <td><a asp-page="/Vehicles/Details" asp-route-vin="@vehicle.Vin" asp-route-listSearch="@Model.Search" asp-route-listPage="@Model.CurrentPage">View record</a> · <a asp-page="/Vehicles/Edit" asp-route-vin="@vehicle.Vin">Edit</a></td></tr>
+                <td><a asp-page="/Vehicles/Edit" asp-route-vin="@vehicle.Vin">Edit</a></td></tr>
         }
         </tbody>
     </table></div>
     @if (Model.Result.Items.Count == 0) { <p class="empty-state">No special vehicle permits found.</p> }
+    @if (Model.Result.Total > VehicleService.PageSize)
+    {
+    <nav class="record-pagination" aria-label="Vehicle permit pages">
     @if (Model.CurrentPage > 1)
-    { <a class="btn btn-outline-secondary" asp-page="/Vehicles/Index" asp-route-search="@Model.Search" asp-route-pageNumber="@(Model.CurrentPage - 1)">Previous Page</a> }
+    { <a class="btn btn-sm btn-outline-secondary" asp-page="/Vehicles/Index" asp-route-search="@Model.Search" asp-route-pageNumber="@(Model.CurrentPage - 1)">Previous Page</a> }
+    <span aria-current="page">Page @Model.CurrentPage of @((Model.Result.Total + VehicleService.PageSize - 1) / VehicleService.PageSize)</span>
     @if (Model.CurrentPage * VehicleService.PageSize < Model.Result.Total)
-    { <a class="btn btn-outline-secondary" asp-page="/Vehicles/Index" asp-route-search="@Model.Search" asp-route-pageNumber="@(Model.CurrentPage + 1)">Next Page</a> }
+    { <a class="btn btn-sm btn-outline-secondary" asp-page="/Vehicles/Index" asp-route-search="@Model.Search" asp-route-pageNumber="@(Model.CurrentPage + 1)">Next Page</a> }
+    </nav>
+    }
 }
 

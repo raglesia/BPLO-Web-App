@@ -10,7 +10,7 @@
 @if (Model.Vehicle is not null)
 {
     var currentPayment = Model.Vehicle.History.FirstOrDefault(payment => payment.Year == Model.Vehicle.SelectedYear);
-    <section class="section-panel vehicle-assessment-width"><h2 class="section-heading">Vehicle Identity</h2><dl class="row detail-list">
+    <section class="section-panel vehicle-assessment-width"><h2 class="section-heading">Vehicle Identity</h2><dl class="row detail-list record-identity">
         <dt class="col-sm-3">VIN</dt><dd class="col-sm-9">@Model.Vehicle.Vin</dd>
         <dt class="col-sm-3">Company</dt><dd class="col-sm-9">@Model.Vehicle.Company</dd>
         <dt class="col-sm-3">Driver</dt><dd class="col-sm-9">@Model.Vehicle.Driver</dd>

@@ -8,10 +8,14 @@
     <p>Generated @PhilippineBusinessClock.Now.ToString("MMMM dd, yyyy hh:mm tt")</p>
 </div>
 <form method="get" class="report-controls search-panel row g-2 mb-4">
-    <div class="col-auto"><label asp-for="FromMonth">From month</label><input asp-for="FromMonth" type="number" min="1" max="12" class="form-control" required /></div>
-    <div class="col-auto"><label asp-for="FromYear">From year</label><input asp-for="FromYear" type="number" min="2000" max="2100" class="form-control" required /></div>
-    <div class="col-auto"><label asp-for="ToMonth">To month</label><input asp-for="ToMonth" type="number" min="1" max="12" class="form-control" required /></div>
-    <div class="col-auto"><label asp-for="ToYear">To year</label><input asp-for="ToYear" type="number" min="2000" max="2100" class="form-control" required /></div>
+    <fieldset class="report-period"><legend>From</legend>
+        <div><label class="form-label" asp-for="FromMonth">Month</label><input asp-for="FromMonth" type="number" min="1" max="12" class="form-control" required /></div>
+        <div><label class="form-label" asp-for="FromYear">Year</label><input asp-for="FromYear" type="number" min="2000" max="2100" class="form-control" required /></div>
+    </fieldset>
+    <fieldset class="report-period"><legend>To</legend>
+        <div><label class="form-label" asp-for="ToMonth">Month</label><input asp-for="ToMonth" type="number" min="1" max="12" class="form-control" required /></div>
+        <div><label class="form-label" asp-for="ToYear">Year</label><input asp-for="ToYear" type="number" min="2000" max="2100" class="form-control" required /></div>
+    </fieldset>
     <div class="col-auto align-self-end"><button type="submit" class="btn btn-primary">View report</button></div>
 </form>
 @if (Model.Error is not null) { <p class="text-danger" role="alert">@Model.Error</p> }

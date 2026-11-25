@@ -14,7 +14,7 @@
         <input id="search" name="search" value="@Model.Search" class="form-control" placeholder="SIN, owner, business, or section" />
     </div>
     <div class="col-auto"><button class="btn btn-outline-primary" type="submit">Search</button></div>
-    @if (!string.IsNullOrWhiteSpace(Model.Search)) { <div class="col-auto"><a class="btn btn-link" asp-page="/Profiles/Index">Clear Search</a></div> }
+    <div class="col-auto" data-clear-search hidden="@string.IsNullOrWhiteSpace(Model.Search)"><a class="btn btn-link" asp-page="/Profiles/Index">Clear search</a></div>
 </form>
 
 <p class="form-text" data-search-status role="status" aria-live="polite"></p><div data-search-results><partial name="_Results" model="Model" /></div>

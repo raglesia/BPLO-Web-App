@@ -95,10 +95,10 @@
     @if (!Model.Record.Archived && Model.Record.Status != "Unverified" && Model.Record.TotalDue > 0)
     {
         <section class="section-panel"><p class="eyebrow">3 · Record Payment</p><h2 class="section-heading">Payment</h2><p class="form-text">Recording the OR finalizes payment of the outstanding obligations.</p>
-        <p><strong>@Model.Record.Name</strong> · SIN <strong>@RouteData.Values["sin"]</strong> · Total due <strong class="money">₱@(Model.Record.TotalDue?.ToString("N2"))</strong>.</p><p>Includes <strong>₱@(Model.Record.PenaltyDue?.ToString("N2"))</strong> in penalties. One OR number settles all eligible outstanding billing periods and verified arrears included in the total above. The full amount is calculated again when submitted.</p>
-        <form method="post" asp-route-listSearch="@Model.ListSearch" asp-route-listPage="@Model.ListPage" asp-page-handler="Pay" asp-route-sin="@RouteData.Values["sin"]" style="max-width: 28rem">
+        <p class="payment-context"><strong>@Model.Record.Name</strong> · SIN <strong>@RouteData.Values["sin"]</strong> · Total due <strong class="money">₱@(Model.Record.TotalDue?.ToString("N2"))</strong>.</p><p>Includes <strong>₱@(Model.Record.PenaltyDue?.ToString("N2"))</strong> in penalties. One OR number settles all eligible outstanding billing periods and verified arrears included in the total above. The full amount is calculated again when submitted.</p>
+        <form method="post" asp-route-listSearch="@Model.ListSearch" asp-route-listPage="@Model.ListPage" data-warn-unsaved data-processing="Recording payment…" asp-page-handler="Pay" asp-route-sin="@RouteData.Values["sin"]" style="max-width: 28rem">
             <div class="mb-3"><label class="form-label" asp-for="OrNumber">OR Number</label>
-                <input class="form-control" asp-for="OrNumber" maxlength="100" pattern="[0-9-]+" title="Use numbers and hyphens only." oninput="this.value = this.value.replace(/[^0-9-]/g, &apos;&apos;)" required /></div>
+                <input class="form-control" asp-for="OrNumber" maxlength="100" pattern="(?:[0-9]|-)+" title="Use numbers and hyphens only." oninput="this.value = this.value.replace(/[^0-9-]/g, &apos;&apos;)" required /><span asp-validation-for="OrNumber" class="text-danger"></span></div>
             <div class="form-check mb-3"><input class="form-check-input" asp-for="ConfirmPayment" required />
                 <label class="form-check-label" asp-for="ConfirmPayment">Confirm full payment of all outstanding periods</label></div>
             <button class="btn btn-primary" type="submit">Record payment</button>
