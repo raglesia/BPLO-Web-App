@@ -1,16 +1,18 @@
+using BusinessPermitLicensingSystem.Web;
+using BusinessPermitLicensingSystem.Web.Administration;
+using BusinessPermitLicensingSystem.Web.Data;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 using BusinessPermitLicensingSystem.Web.Transfer;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Data.SqlClient;
 
 internal static class BrowserScenarios
 {
-    private const string ConnectionString = "Server=.\\SQLEXPRESS;Database=BPLS_Dev;Integrated Security=True;Encrypt=True;TrustServerCertificate=True";
     private static readonly Regex TokenPattern = new("name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"", RegexOptions.Compiled);
     private static readonly Regex SinPattern = new(@"SIN-\d{4}-\d{4}", RegexOptions.Compiled);
     private static readonly Regex VinPattern = new(@"VIN-\d{4}-\d{4,}", RegexOptions.Compiled);
@@ -87,6 +89,18 @@ internal static class BrowserScenarios
         Console.WriteLine("PASS browser " + label);
     }
     private static bool Has(Page page, string text) => page.Html.Contains(text, StringComparison.OrdinalIgnoreCase);
+    private static bool HasPostForm(Page page, string path, string handler) =>
+        Regex.Matches(page.Html, """<form\b[^>]*\baction="([^"]+)"[^>]*>""", RegexOptions.IgnoreCase)
+            .Cast<Match>()
+            .Where(match => Regex.IsMatch(match.Value, @"\bmethod=""post""", RegexOptions.IgnoreCase))
+            .Select(match => new Uri(page.Url, WebUtility.HtmlDecode(match.Groups[1].Value)))
+            .Any(action => action.AbsolutePath == path &&
+                QueryHelpers.ParseQuery(action.Query)["handler"] == handler);
+
+    private static bool HasLink(Page page, string path, string queryKey, string queryValue) =>
+        Links(page).Select(link => new Uri(page.Url, link)).Any(link =>
+            link.AbsolutePath == path && QueryHelpers.ParseQuery(link.Query)[queryKey] == queryValue);
+
     private static string Unique() => Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
     private static string[] Links(Page page) => AnchorPattern.Matches(page.Html)
         .Select(x => WebUtility.HtmlDecode(x.Groups[1].Value))
@@ -120,16 +134,26 @@ internal static class BrowserScenarios
     {
         Uri root = new(baseUrl.TrimEnd('/') + "/");
         if (!root.IsLoopback) throw new InvalidOperationException("Browser tests require a loopback server.");
-        string accountsFile = Path.Combine(Path.GetTempPath(), "BPLS_Dev.test-accounts.json");
-        Account[] accounts = JsonSerializer.Deserialize<Account[]>(await File.ReadAllTextAsync(accountsFile),
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? throw new Exception("No accounts");
-        Account primary = accounts.First(x => x.Kind == "PBKDF2");
-        Account secondary = accounts.Last(x => x.Kind == "PBKDF2");
+        var configuration = QaDatabase.Configuration();
+        QaDatabase.RequireIsolated(configuration);
+        await using var sql = await DatabaseConnection.OpenAsync(configuration, default);
+        var accounts = new UserAccountService(configuration);
+        var primary = await CreateBrowserAccount("Primary");
+        var secondary = await CreateBrowserAccount("Secondary");
+
+        async Task<Account> CreateBrowserAccount(string role)
+        {
+            string username = "qa_" + Unique();
+            string password = "Qa!" + Guid.NewGuid().ToString("N");
+            string fullName = "Synthetic HTTP " + role;
+            var result = await accounts.CreatePublicAsync(fullName, username, "QA Staff", password, default);
+            Check(result.Success, "synthetic " + role + " account created");
+            return new Account(username, password, fullName, "PBKDF2");
+        }
+
         string tag = "PHASE12-" + Unique();
-        await using var sql = new SqlConnection(ConnectionString);
-        await sql.OpenAsync();
         await using (var check = new SqlCommand("SELECT DB_NAME()", sql))
-            Check((string?)await check.ExecuteScalarAsync() == "BPLS_Dev", "database guard");
+            Check((string?)await check.ExecuteScalarAsync() == configuration["Database:ApprovedDatabase"], "database guard");
         async Task<int> Count(string query, params (string Key, object Value)[] values)
         {
             await using var command = new SqlCommand(query, sql);
@@ -442,15 +466,15 @@ internal static class BrowserScenarios
               Extract(VinPattern, concurrentVehicles[0]) != Extract(VinPattern, concurrentVehicles[1]),
             "concurrent HTTP vehicle creation allocates distinct VINs");
 
-        string orNumber = "P12-OR-" + Unique();
+        string orNumber = QaDatabase.OrRun();
         Page staleBill = await second.Get($"/Profiles/{sin}/Billing");
         Page billToPay = await first.Get($"/Profiles/{sin}/Billing");
-        Check(Has(billToPay, "Record full payment"), "stall payment action available");
+        Check(HasPostForm(billToPay, canonicalBilling, "Pay"), "stall payment action available");
         int stallAuditBefore = await Count("SELECT COUNT(*) FROM AuditTrail");
         int stallBillsBefore = await Count("SELECT COUNT(*) FROM MonthlyBilling");
         Page stallBilling = await first.Get($"/Reports/RentalPaymentPreview?selected={sin}");
-        Check(!Has(billToPay, "Print Billing Report") && Has(billToPay, "Due date") &&
-              Has(stallBilling, "STALL OWNER RENTAL PAYMENT") && Has(stallBilling, "Unpaid") &&
+        Check(HasLink(billToPay, "/Reports/RentalPaymentPreview", "selected", sin) && Has(billToPay, "Due date") &&
+              Has(stallBilling, "RENTAL REPORT") && Has(stallBilling, "Unpaid") &&
               Has(stallBilling, "Grand Total Due") && !Has(stallBilling, "OR Number") &&
               await Count("SELECT COUNT(*) FROM PaymentHistory WHERE SIN=@sin", ("@sin", sin)) == 0 &&
               await Count("SELECT COUNT(*) FROM AuditTrail") == stallAuditBefore &&
@@ -458,11 +482,17 @@ internal static class BrowserScenarios
             "stall pre-payment billing needs no OR and leaves bills, payment history and audit unchanged");
         Check(Has(await first.Get($"/Reports/StallPaymentPreview?sin={sin}&orNumber=missing"), "Recorded payment was not found"),
             "stall payment report requires a recorded payment");
+        Page invalidReceipt = await first.Post($"/Profiles/{sin}/Billing?handler=Pay", billToPay,
+            ("OrNumber", "AB-12"), ("ConfirmPayment", "true"));
+        Check(Has(invalidReceipt, "numbers and hyphens only") &&
+              await Count("SELECT COUNT(*) FROM PaymentHistory WHERE SIN=@sin", ("@sin", sin)) == 0,
+            "alphabetic receipt rejected without recording a stall payment");
         Page paid = await first.Post($"/Profiles/{sin}/Billing?handler=Pay", billToPay,
             ("OrNumber", orNumber), ("ConfirmPayment", "true"));
         Check(Has(paid, "Payment recorded") && Has(paid, orNumber), "stall payment PRG and history");
         Page stallPaymentReport = await first.Get($"/Reports/StallPaymentPreview?sin={sin}&orNumber={orNumber}");
-        Check(Has(paid, "Print Payment Report") && Has(stallPaymentReport, "STALL OWNER PAYMENT REPORT") &&
+        Check(HasLink(paid, "/Reports/StallPaymentPreview", "orNumber", orNumber) &&
+              Has(stallPaymentReport, "RENTAL PAYMENT REPORT") &&
               Has(stallPaymentReport, orNumber) && Has(stallPaymentReport, "Total Amount Paid") &&
               Has(stallPaymentReport, primary.FullName), "stall post-payment report uses recorded OR, amount and recorder");
         Check(await Count("SELECT COUNT(*) FROM PaymentHistory WHERE SIN=@sin AND ORNumber=@or",
@@ -471,7 +501,7 @@ internal static class BrowserScenarios
                 ("@sin", sin), ("@or", orNumber)) > 0,
             "stall payment exact bill links");
         Page stalePay = await second.Post($"/Profiles/{sin}/Billing?handler=Pay", staleBill,
-            ("OrNumber", "P12-STALE-" + Unique()), ("ConfirmPayment", "true"));
+            ("OrNumber", QaDatabase.OrRun()), ("ConfirmPayment", "true"));
         Check(Has(stalePay, "no outstanding") || Has(stalePay, "already"),
             "stale stall payment refused");
         Check(await Count("SELECT COUNT(*) FROM PaymentHistory WHERE SIN=@sin", ("@sin", sin)) == 1,
@@ -488,9 +518,9 @@ internal static class BrowserScenarios
         Page payFormB = await second.Get($"/Profiles/{paySin}/Billing");
         Page[] competingPays = await Task.WhenAll(
             first.Post($"/Profiles/{paySin}/Billing?handler=Pay", payFormA,
-                ("OrNumber", "P12-PAY-A-" + Unique()), ("ConfirmPayment", "true")),
+                ("OrNumber", QaDatabase.OrRun()), ("ConfirmPayment", "true")),
             second.Post($"/Profiles/{paySin}/Billing?handler=Pay", payFormB,
-                ("OrNumber", "P12-PAY-B-" + Unique()), ("ConfirmPayment", "true")));
+                ("OrNumber", QaDatabase.OrRun()), ("ConfirmPayment", "true")));
         Check(competingPays.Count(x => Has(x, "Payment recorded")) == 1 &&
               await Count("SELECT COUNT(*) FROM PaymentHistory WHERE SIN=@sin", ("@sin", paySin)) == 1,
             "concurrent HTTP stall payment has one winner");
@@ -500,7 +530,7 @@ internal static class BrowserScenarios
         duplicateOrBill = await first.Get($"/Profiles/{duplicateOrSin}/Billing");
         Page duplicateOrResult = await first.Post($"/Profiles/{duplicateOrSin}/Billing?handler=Pay", duplicateOrBill,
             ("OrNumber", orNumber), ("ConfirmPayment", "true"));
-        Check(Has(duplicateOrResult, "OR number already exists") &&
+        Check(Has(duplicateOrResult, "already been recorded in the system") &&
               await Count("SELECT COUNT(*) FROM PaymentHistory WHERE SIN=@sin", ("@sin", duplicateOrSin)) == 0,
             "duplicate stall OR rejected without payment");
         Check(Has(await first.Get($"/Reports/StallPaymentPreview?sin={sin}&orNumber={Uri.EscapeDataString(orNumber)}"), orNumber), "retained printable payment report includes payment");
@@ -543,10 +573,16 @@ internal static class BrowserScenarios
               await Count("SELECT COUNT(*) FROM PaymentHistory") == rentalPaymentsBefore &&
               await Count("SELECT COUNT(*) FROM AuditTrail") == rentalAuditsBefore,
               "rental preview leaves bills, payments, and audit unchanged");
-        string currentMonth = $"FromMonth={DateTime.Today.Month}&FromYear={DateTime.Today.Year}&ToMonth={DateTime.Today.Month}&ToYear={DateTime.Today.Year}";
+        string currentMonth = $"FromMonth={PhilippineBusinessClock.Today.Month}&FromYear={PhilippineBusinessClock.Today.Year}&ToMonth={PhilippineBusinessClock.Today.Month}&ToYear={PhilippineBusinessClock.Today.Year}";
         Check(Has(await first.Get("/Reports/Monthly?" + currentMonth), orNumber), "monthly report includes collection");
 
-        Page draftForm = await first.Get("/Vehicles/Details/" + vin);
+        string vehicleWorkspace = $"/Payments/Vehicles/{vin}";
+        Page vehicleProfile = await first.Get("/Vehicles/Details/" + vin);
+        Check(Links(vehicleProfile).Contains(vehicleWorkspace) &&
+              !HasPostForm(vehicleProfile, vehicleWorkspace, "SaveDraft") &&
+              !HasPostForm(vehicleProfile, vehicleWorkspace, "Pay"),
+            "vehicle profile links to canonical workspace and does not host financial forms");
+        Page draftForm = await first.Get(vehicleWorkspace);
         Check(Has(await first.Get($"/Reports/VehicleBillingPreview?vin={vin}"), "Save a valid current-year") &&
               !Has(draftForm, "href=\"/Reports/VehicleBillingPreview"), "billing requires a saved valid current-year draft");
         Check(Has(draftForm, "Vehicle Identity") && Has(draftForm, vin) && Has(draftForm, plate) &&
@@ -566,8 +602,8 @@ internal static class BrowserScenarios
                 ("PermitDetails.Quarter", "2ND QUARTER"),
                 ("PermitDetails.SanitaryType", "FOOD"), ("PermitDetails.FireType", "OTHER") }).ToArray();
         Page draftSaved = await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", draftForm, draftFields);
-        Check(Has(draftSaved, "Fee draft saved") && Has(draftSaved, "1,023.45"), "vehicle draft persists through PRG");
-        Page draftReloaded = await first.Get("/Vehicles/Details/" + vin);
+        Check(draftSaved.Url.AbsolutePath == vehicleWorkspace && Has(draftSaved, "fee draft saved") && Has(draftSaved, "1,023.45"), "vehicle draft persists through PRG");
+        Page draftReloaded = await first.Get(vehicleWorkspace);
         Check(Has(draftReloaded, "Saved total:") && Has(draftReloaded, "₱1,023.45") &&
               Has(draftReloaded, "Transport services") && Has(draftReloaded, "Annual shuttle permit") &&
               Has(draftReloaded, "Masinloc terminal") && Has(draftReloaded, "1,234.56") &&
@@ -579,10 +615,10 @@ internal static class BrowserScenarios
             "vehicle draft and all permit details survive reload");
         var invalidDetails = draftFields.Select(field => field.Item1 == "PermitDetails.Employees"
             ? (field.Item1, "-2") : field).ToArray();
-        Page rejectedDetails = await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", draftReloaded, invalidDetails);
+        Page rejectedDetails = await first.Post($"{vehicleWorkspace}?handler=SaveDraft", draftReloaded, invalidDetails);
         Check(Has(rejectedDetails, "whole number of employees") && Has(rejectedDetails, "Transport services") &&
               Has(rejectedDetails, "value=\"-2\"") && Has(rejectedDetails, "Annual shuttle permit") &&
-              Has(await first.Get("/Vehicles/Details/" + vin), "value=\"3\""),
+              Has(await first.Get(vehicleWorkspace), "value=\"3\""),
             "invalid permit details retain submitted fields and saved draft");
         var namedOtherFee = draftFields.Select(field => field.Item1 switch
         {
@@ -590,17 +626,17 @@ internal static class BrowserScenarios
             "FeeAmounts[15]" => (field.Item1, "25.00"),
             _ => field
         }).ToArray();
-        Page namedDraft = await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", draftReloaded, namedOtherFee);
-        Check(Has(namedDraft, "Fee draft saved"), "named other-fee draft saves");
-        Page namedReloaded = await first.Get("/Vehicles/Details/" + vin);
+        Page namedDraft = await first.Post($"{vehicleWorkspace}?handler=SaveDraft", draftReloaded, namedOtherFee);
+        Check(Has(namedDraft, "fee draft saved"), "named other-fee draft saves");
+        Page namedReloaded = await first.Get(vehicleWorkspace);
         Check(Has(namedReloaded, "Special inspection") && Has(namedReloaded, "₱1,048.45"),
             "other-fee name, amount, and computed total survive reload");
         int billingAudits = await Count("SELECT COUNT(*) FROM AuditTrail");
         int billingDrafts = await Count("SELECT COUNT(*) FROM VehiclePermitFeeDrafts");
-        Page billing = await first.Get($"/Reports/VehicleBillingPreview?vin={vin}&year={DateTime.Today.Year - 1}");
+        Page billing = await first.Get($"/Reports/VehicleBillingPreview?vin={vin}&year={PhilippineBusinessClock.Today.Year - 1}");
         Check(Has(namedReloaded, "Print Billing Report") && Has(billing, "SPECIAL VEHICLE PERMIT BILLING REPORT") &&
               Has(billing, "₱1,048.45") && Has(billing, "Special inspection") &&
-              Has(billing, "Transport services") && Has(billing, DateTime.Today.Year.ToString()) &&
+              Has(billing, "Transport services") && Has(billing, PhilippineBusinessClock.Today.Year.ToString()) &&
               Has(billing, "For Payment") && Has(billing, "Unpaid") && !Has(billing, "OR Number"),
             "unpaid billing uses saved current-year details, classifications and total without OR");
         await first.Get($"/Reports/VehicleBillingPreview?vin={vin}");
@@ -611,39 +647,39 @@ internal static class BrowserScenarios
             "repeated billing preview leaves payment history, status, drafts and audit unchanged");
         var invalidDraft = draftFields.Select(field => field.Item1 == "FeeAmounts[0]"
             ? (field.Item1, "invalid") : field).ToArray();
-        Page rejectedDraft = await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", namedReloaded, invalidDraft);
+        Page rejectedDraft = await first.Post($"{vehicleWorkspace}?handler=SaveDraft", namedReloaded, invalidDraft);
         Check(Has(rejectedDraft, "Enter valid fee amounts") &&
-              Has(await first.Get("/Vehicles/Details/" + vin), "₱1,048.45"),
+              Has(await first.Get(vehicleWorkspace), "₱1,048.45"),
             "invalid fee input is rejected without changing saved draft");
-        await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", namedReloaded, draftFields);
+        await first.Post($"{vehicleWorkspace}?handler=SaveDraft", namedReloaded, draftFields);
         string competingVin = Extract(VinPattern, concurrentVehicles[0]);
-        Page noTokenPay = await first.PostWithoutToken($"/Vehicles/Details/{vin}?handler=Pay",
-            ("OrNumber", "P15-NO-TOKEN-" + Unique()), ("ConfirmPayment", "true"));
+        Page noTokenPay = await first.PostWithoutToken($"{vehicleWorkspace}?handler=Pay",
+            ("OrNumber", QaDatabase.OrRun()), ("ConfirmPayment", "true"));
         Check(noTokenPay.Status == HttpStatusCode.BadRequest &&
               await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin", ("@vin", vin)) == 0,
             "vehicle payment without anti-forgery token refused");
-        Page staleVehicle = await second.Get("/Vehicles/Details/" + vin);
-        Page crossLedgerRejected = await first.Post($"/Vehicles/Details/{vin}?handler=Pay", draftReloaded,
-            ("OrNumber", "  " + orNumber.ToLowerInvariant() + "  "), ("ConfirmPayment", "true"));
+        Page staleVehicle = await second.Get(vehicleWorkspace);
+        Page crossLedgerRejected = await first.Post($"{vehicleWorkspace}?handler=Pay", draftReloaded,
+            ("OrNumber", "  " + orNumber + "  "), ("ConfirmPayment", "true"));
         Check(Has(crossLedgerRejected, "already been recorded in the system") &&
               await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin", ("@vin", vin)) == 0,
-            "rental OR cannot be reused for vehicle payment, including case and edge spaces");
-        orNumber += "-VEH";
+            "rental OR cannot be reused for vehicle payment, including edge spaces");
+        orNumber = QaDatabase.OrRun();
         Page vehiclePaid = await first.Post($"/Vehicles/Details/{vin}?handler=Pay", draftReloaded,
             ("OrNumber", orNumber), ("ConfirmPayment", "true"), ("Amount", "0.01"),
-            ("PermitYear", (DateTime.Today.Year + 1).ToString()), ("RecordedBy", "-1"),
+            ("PermitYear", (PhilippineBusinessClock.Today.Year + 1).ToString()), ("RecordedBy", "-1"),
             ("vin", competingVin));
-        Check(Has(vehiclePaid, "Vehicle payment recorded") && Has(vehiclePaid, "1,023.45"),
+        Check(vehiclePaid.Url.AbsolutePath == vehicleWorkspace && Has(vehiclePaid, "Vehicle payment recorded") && Has(vehiclePaid, "1,023.45"),
             "vehicle payment uses route VIN and stored year/draft despite tampered form fields");
         Check(await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin AND ORNumber=@or AND AmountPaid=1023.45",
             ("@vin", vin), ("@or", orNumber)) == 1 &&
               await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin AND ORNumber=@or AND PermitYear=@year AND RecordedBy=(SELECT Id FROM Users WHERE Username=@user)",
-                  ("@vin", vin), ("@or", orNumber), ("@year", DateTime.Today.Year), ("@user", primary.Username)) == 1 &&
+                  ("@vin", vin), ("@or", orNumber), ("@year", PhilippineBusinessClock.Today.Year), ("@user", primary.Username)) == 1 &&
               await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin", ("@vin", competingVin)) == 0,
             "vehicle payment stores authenticated user and authoritative VIN/year with a distinct global OR");
         int vehiclePaymentId = await Count("SELECT Id FROM VehiclePermitHistory WHERE VIN=@vin AND ORNumber=@or",
             ("@vin", vin), ("@or", orNumber));
-        Check(Has(await first.Get("/Vehicles/Details/" + vin), $"/Reports/VehiclePaymentPreview?selected={vehiclePaymentId}"),
+        Check(HasLink(await first.Get(vehicleWorkspace), "/Reports/VehiclePaymentPreview", "selected", vehiclePaymentId.ToString()),
             "vehicle payment history links exact recorded payment report");
         int vehicleHistoryBeforeReport = await Count("SELECT COUNT(*) FROM VehiclePermitHistory");
         int vehicleDraftBeforeReport = await Count("SELECT COUNT(*) FROM VehiclePermitFeeDrafts");
@@ -657,7 +693,7 @@ internal static class BrowserScenarios
         Check(Has(await first.Get("/Reports/VehiclePayment?search=" + Uri.EscapeDataString(orNumber)), vin) &&
               Has(await first.Get("/Reports/VehiclePayment?search=" + Uri.EscapeDataString(plate)), orNumber) &&
               Has(await first.Get("/Reports/VehiclePayment?search=" + Uri.EscapeDataString(tag + " Transport")), orNumber) &&
-              Has(await first.Get($"/Reports/VehiclePayment?search={vin}&year={DateTime.Today.Year}"), orNumber),
+              Has(await first.Get($"/Reports/VehiclePayment?search={vin}&year={PhilippineBusinessClock.Today.Year}"), orNumber),
               "vehicle report selection searches OR, plate, company, VIN, and permit year");
         Check(Has(await first.Get($"/Reports/VehiclePayment?search={competingVin}"), "No recorded payments"),
               "fee draft without payment is absent from report selection");
@@ -666,43 +702,50 @@ internal static class BrowserScenarios
               await Count("SELECT COUNT(*) FROM VehiclePermitFeeDrafts") == vehicleDraftBeforeReport &&
               await Count("SELECT COUNT(*) FROM AuditTrail") == vehicleAuditBeforeReport,
               "vehicle report rejects nonexistent payment and leaves business tables unchanged");
-        Page staleVehiclePay = await second.Post($"/Vehicles/Details/{vin}?handler=Pay", staleVehicle,
-            ("OrNumber", "P12-VEH-STALE-" + Unique()), ("ConfirmPayment", "true"));
+        Page staleVehiclePay = await second.Post($"{vehicleWorkspace}?handler=Pay", staleVehicle,
+            ("OrNumber", QaDatabase.OrRun()), ("ConfirmPayment", "true"));
         Check(Has(staleVehiclePay, "already") || Has(staleVehiclePay, "paid"), "stale vehicle payment refused");
         Check(await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin AND PermitYear=@year",
-            ("@vin", vin), ("@year", DateTime.Today.Year)) == 1, "one vehicle payment per year");
-        Page repeatedVehiclePay = await first.Post($"/Vehicles/Details/{vin}?handler=Pay", draftReloaded,
+            ("@vin", vin), ("@year", PhilippineBusinessClock.Today.Year)) == 1, "one vehicle payment per year");
+        Page repeatedVehiclePay = await first.Post($"{vehicleWorkspace}?handler=Pay", draftReloaded,
             ("OrNumber", orNumber), ("ConfirmPayment", "true"));
         Check(Has(repeatedVehiclePay, "already paid") &&
               await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin AND PermitYear=@year",
-                  ("@vin", vin), ("@year", DateTime.Today.Year)) == 1,
+                  ("@vin", vin), ("@year", PhilippineBusinessClock.Today.Year)) == 1,
             "double-submit vehicle payment refused");
-        Page competingDraftForm = await first.Get("/Vehicles/Details/" + competingVin);
-        await first.Post($"/Vehicles/Details/{competingVin}?handler=SaveDraft", competingDraftForm, draftFields);
-        Page competingVehicleA = await first.Get("/Vehicles/Details/" + competingVin);
-        Page competingVehicleB = await second.Get("/Vehicles/Details/" + competingVin);
+        Page competingDraftForm = await first.Get($"/Payments/Vehicles/{competingVin}");
+        await first.Post($"/Payments/Vehicles/{competingVin}?handler=SaveDraft", competingDraftForm, draftFields);
+        Page competingVehicleA = await first.Get($"/Payments/Vehicles/{competingVin}");
+        Page competingVehicleB = await second.Get($"/Payments/Vehicles/{competingVin}");
         Page[] competingVehiclePays = await Task.WhenAll(
-            first.Post($"/Vehicles/Details/{competingVin}?handler=Pay", competingVehicleA,
-                ("OrNumber", "P12-VPAY-A-" + Unique()), ("ConfirmPayment", "true")),
-            second.Post($"/Vehicles/Details/{competingVin}?handler=Pay", competingVehicleB,
-                ("OrNumber", "P12-VPAY-B-" + Unique()), ("ConfirmPayment", "true")));
+            first.Post($"/Payments/Vehicles/{competingVin}?handler=Pay", competingVehicleA,
+                ("OrNumber", QaDatabase.OrRun()), ("ConfirmPayment", "true")),
+            second.Post($"/Payments/Vehicles/{competingVin}?handler=Pay", competingVehicleB,
+                ("OrNumber", QaDatabase.OrRun()), ("ConfirmPayment", "true")));
         Check(competingVehiclePays.Count(x => Has(x, "Vehicle payment recorded")) == 1 &&
               await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin AND PermitYear=@year",
-                  ("@vin", competingVin), ("@year", DateTime.Today.Year)) == 1,
+                  ("@vin", competingVin), ("@year", PhilippineBusinessClock.Today.Year)) == 1,
             "concurrent HTTP vehicle payment has one winner");
         string duplicateVehicleVin = Extract(VinPattern, concurrentVehicles[1]);
-        Page duplicateVehicleDraft = await first.Get("/Vehicles/Details/" + duplicateVehicleVin);
-        await first.Post($"/Vehicles/Details/{duplicateVehicleVin}?handler=SaveDraft", duplicateVehicleDraft, draftFields);
-        Page duplicateVehicleBill = await first.Get("/Vehicles/Details/" + duplicateVehicleVin);
-        Page duplicateVehicleOrResult = await first.Post($"/Vehicles/Details/{duplicateVehicleVin}?handler=Pay", duplicateVehicleBill,
+        Page duplicateVehicleDraft = await first.Get($"/Payments/Vehicles/{duplicateVehicleVin}");
+        await first.Post($"/Payments/Vehicles/{duplicateVehicleVin}?handler=SaveDraft", duplicateVehicleDraft, draftFields);
+        Page duplicateVehicleBill = await first.Get($"/Payments/Vehicles/{duplicateVehicleVin}");
+        Page duplicateVehicleOrResult = await first.Post($"/Payments/Vehicles/{duplicateVehicleVin}?handler=Pay", duplicateVehicleBill,
             ("OrNumber", orNumber), ("ConfirmPayment", "true"));
-        Check(Has(duplicateVehicleOrResult, "OR number already exists") &&
+        Check(Has(duplicateVehicleOrResult, "already been recorded in the system") &&
               await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin", ("@vin", duplicateVehicleVin)) == 0,
             "duplicate vehicle OR rejected without payment");
         int secondVehiclePaymentId = await Count("SELECT Id FROM VehiclePermitHistory WHERE VIN=@vin",
             ("@vin", competingVin));
-        int thirdVehiclePaymentId = await Count("SELECT TOP (1) Id FROM VehiclePermitHistory WHERE Id<>@first AND Id<>@second ORDER BY Id",
-            ("@first", vehiclePaymentId), ("@second", secondVehiclePaymentId));
+        string thirdVehicleOr = QaDatabase.OrRun();
+        Page thirdVehiclePayment = await first.Post($"/Payments/Vehicles/{duplicateVehicleVin}?handler=Pay", duplicateVehicleOrResult,
+            ("OrNumber", thirdVehicleOr), ("ConfirmPayment", "true"));
+        Check(Has(thirdVehiclePayment, "Vehicle payment recorded") &&
+              await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE VIN=@vin AND ORNumber=@or",
+                  ("@vin", duplicateVehicleVin), ("@or", thirdVehicleOr)) == 1,
+            "vehicle rejected for duplicate OR can pay with a different OR");
+        int thirdVehiclePaymentId = await Count("SELECT Id FROM VehiclePermitHistory WHERE VIN=@vin AND ORNumber=@or",
+            ("@vin", duplicateVehicleVin), ("@or", thirdVehicleOr));
         Page twoVehicleReports = await first.Get($"/Reports/VehiclePaymentPreview?selected={vehiclePaymentId}&selected={secondVehiclePaymentId}");
         Check(Regex.Matches(twoVehicleReports.Html, "class=\"rental-payment-block vehicle-payment-block\"").Count == 2,
             "two selected vehicle payments render two report blocks");
@@ -725,17 +768,19 @@ internal static class BrowserScenarios
               threeVehicleReports.Html.IndexOf(vin, StringComparison.Ordinal) <
                   threeVehicleReports.Html.IndexOf(competingVin, StringComparison.Ordinal),
             "three vehicle reports keep selection order and repeat municipal logos");
-        var changedDraftFields = Enumerable.Range(0, 19).Select(i => ($"FeeAmounts[{i}]", i == 0 ? "124.45" : "0"))
-            .Concat(Enumerable.Range(0, 4).Select(i => ($"OtherDescriptions[{i}]", ""))).ToArray();
-        Page paidDraftForm = await first.Get("/Vehicles/Details/" + vin);
-        Page changedDraft = await first.Post($"/Vehicles/Details/{vin}?handler=SaveDraft", paidDraftForm, changedDraftFields);
-        Check(Has(changedDraft, "124.45"), "synthetic paid-year draft update creates mismatch for report test");
+        var changedDraftFields = draftFields.Select(field => field.Item1 == "FeeAmounts[0]"
+            ? (field.Item1, "124.45") : field).ToArray();
+        Page paidDraftForm = await first.Get(vehicleWorkspace);
+        Page changedDraft = await first.Post($"{vehicleWorkspace}?handler=SaveDraft", paidDraftForm, changedDraftFields);
+        Check(Has(changedDraft, "assessment is locked because payment has already been recorded") &&
+              !HasPostForm(await first.Get(vehicleWorkspace), vehicleWorkspace, "SaveDraft"),
+            "paid-year assessment refuses a forged draft update");
         Page mismatchReport = await first.Get($"/Reports/VehiclePaymentPreview?selected={vehiclePaymentId}");
-        Check(Has(mismatchReport, "₱124.45") && Has(mismatchReport, "differs from recorded amount paid") &&
+        Check(!Has(mismatchReport, "₱124.45") && Has(mismatchReport, "payment-time snapshot") &&
               Has(mismatchReport, "Total Amount Paid") && Has(mismatchReport, "₱1,023.45") &&
               await Count("SELECT COUNT(*) FROM VehiclePermitHistory WHERE Id=@id AND AmountPaid=1023.45",
                   ("@id", vehiclePaymentId)) == 1,
-            "draft mismatch is flagged; historical payment amount stays authoritative");
+            "rejected draft edit leaves the historical assessment and payment amount authoritative");
 
         var (legacySin, _) = await CreateProfile(first, "LegacyReview", section, "1");
         await using (var legacy = new SqlCommand("""
@@ -748,10 +793,10 @@ internal static class BrowserScenarios
             await legacy.ExecuteNonQueryAsync();
         }
         Page legacyBill = await first.Get($"/Profiles/{legacySin}/Billing");
-        Check(Has(legacyBill, "Review needed") && !Has(legacyBill, "Record full payment"),
+        Check(Has(legacyBill, "Review needed") && !HasPostForm(legacyBill, $"/Payments/Stalls/{legacySin}", "Pay"),
             "ambiguous legacy bill cannot be paid from page");
         Page forcedLegacyPay = await first.Post($"/Profiles/{legacySin}/Billing?handler=Pay", legacyBill,
-            ("OrNumber", "P12-LEGACY-" + Unique()), ("ConfirmPayment", "true"));
+            ("OrNumber", QaDatabase.OrRun()), ("ConfirmPayment", "true"));
         Check(Has(forcedLegacyPay, "need review") &&
               await Count("SELECT COUNT(*) FROM PaymentHistory WHERE SIN=@sin", ("@sin", legacySin)) == 0,
             "forged legacy payment refused");
@@ -961,7 +1006,7 @@ internal static class BrowserScenarios
         Check(Has(duplicateArrears, "already exists") &&
               await Count("SELECT COUNT(*) FROM StallOwnerArrears WHERE SIN=@sin", ("@sin", legacyHttpSin)) == 1,
             "duplicate Treasury HTTP arrears rejected");
-        string legacyHttpOr = "P12-ARREARS-" + Unique();
+        string legacyHttpOr = QaDatabase.OrRun();
         Page legacyHttpPaid = await first.Post($"/Profiles/{legacyHttpSin}/Billing?handler=Pay", savedArrears,
             ("OrNumber", legacyHttpOr), ("ConfirmPayment", "true"));
         Check(Has(legacyHttpPaid, "Payment recorded") && Has(legacyHttpPaid, legacyHttpOr) &&
@@ -1002,6 +1047,6 @@ internal static class BrowserScenarios
         Check(loggedOut.Url.AbsolutePath == "/Account/Login" &&
               (await first.Get("/Profiles/Index")).Url.AbsolutePath == "/Account/Login", "logout and back access");
         Check((await second.Get("/Profiles/Index")).Url.AbsolutePath == "/Profiles/Index", "second session remains valid");
-        Console.WriteLine($"Browser fixture retained in BPLS_Dev: {tag}; SIN {sin}, {newSin}; VIN {vin}");
+        Console.WriteLine($"Browser fixture retained in isolated staging: {tag}; SIN {sin}, {newSin}; VIN {vin}");
     }
 }
