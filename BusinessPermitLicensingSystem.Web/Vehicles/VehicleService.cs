@@ -317,6 +317,18 @@ public sealed class VehicleService(IConfiguration configuration)
             if (await update.ExecuteNonQueryAsync(cancellationToken) != 1)
                 throw new InvalidOperationException("Vehicle permit status update failed.");
 
+            await using var audit = new SqlCommand("""
+                INSERT INTO AuditTrail (Action, SIN, UserId, Timestamp, Details)
+                VALUES ('Update Vehicle Permit', @vin, @user, @date, @details)
+                """, connection, transaction);
+            audit.Parameters.Add("@vin", SqlDbType.NVarChar, 100).Value = vin;
+            audit.Parameters.Add("@user", SqlDbType.Int).Value = userId;
+            audit.Parameters.Add("@date", SqlDbType.DateTime).Value = paidAt;
+            audit.Parameters.Add("@details", SqlDbType.NVarChar, -1).Value = FormattableString.Invariant(
+                $"Updated vehicle permit, Status: Paid, OR#: {orNumber}, Amount: ₱{amount:N2}, Permit year: {year}");
+            if (await audit.ExecuteNonQueryAsync(cancellationToken) != 1)
+                throw new InvalidOperationException("Vehicle payment audit insert failed.");
+
             await transaction.CommitAsync(cancellationToken);
             return new(true, null, orNumber, amount, year);
         }

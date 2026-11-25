@@ -69,7 +69,9 @@ internal static class VehicleScenarios
         Check(await CountHistory(connection, first) == 1 && await VehicleStatus(connection, first) == ("Paid", 2026) &&
               await Recorder(connection, orFirst) == users[0] && await HistoryAmount(connection, orFirst) == 1010m,
             "history, vehicle status/year, and first recorder stored atomically");
-        Check(await CountAudit(connection, first) == 0, "desktop vehicle payment creates no audit row");
+        Check(await CountAudit(connection, first) == 1 &&
+              await MatchesAudit(connection, first, orFirst, users[0], PaidAt, 1010m, 2026),
+            "one vehicle payment audit captures VIN, authenticated user, timestamp, OR, amount and year");
         amounts[0] = 200m;
         Check(!(await service.SaveDraftAsync(first, 2026, amounts, ["changed", "", "", ""], PaidAt, default)).Success &&
               await HistoryAmount(connection, orFirst) == 1010m,
@@ -78,17 +80,19 @@ internal static class VehicleScenarios
 
         var duplicateOr = await service.PayAsync(second, orFirst, 2026, users[1], PaidAt, default);
         Check(!duplicateOr.Success && duplicateOr.Error == BusinessPermitLicensingSystem.Web.Receipts.ReceiptRegistry.DuplicateMessage &&
-              await CountHistory(connection, second) == 0 && await VehicleStatus(connection, second) == ("Unpaid", 0),
+              await CountHistory(connection, second) == 0 && await CountAudit(connection, second) == 0 &&
+              await VehicleStatus(connection, second) == ("Unpaid", 0),
             "duplicate vehicle OR rejected without status change");
         string orSecond = $"{orRun}-2";
         Check((await service.PayAsync(second, orSecond, 2026, users[1], PaidAt, default)).Success &&
-              await Recorder(connection, orSecond) == users[1],
+              await Recorder(connection, orSecond) == users[1] && await CountAudit(connection, second) == 1 &&
+              await MatchesAudit(connection, second, orSecond, users[1], PaidAt, 110m, 2026),
             "second authenticated user recorded separately");
         var alreadyPaid = await service.PayAsync(first, $"{orRun}-3", 2026, users[0], PaidAt, default);
-        Check(!alreadyPaid.Success && await CountHistory(connection, first) == 1,
+        Check(!alreadyPaid.Success && await CountHistory(connection, first) == 1 && await CountAudit(connection, first) == 1,
             "already-paid VIN/year cannot be paid again");
         var wrongYear = await service.PayAsync(second, $"{orRun}-4", 2025, users[0], PaidAt, default);
-        Check(!wrongYear.Success && await CountHistory(connection, second) == 1,
+        Check(!wrongYear.Success && await CountHistory(connection, second) == 1 && await CountAudit(connection, second) == 1,
             "requested permit year checked server-side");
 
         var attempts = await Task.WhenAll(
@@ -97,15 +101,19 @@ internal static class VehicleScenarios
         Check(attempts.Count(x => x.Success) == 1 && await CountHistory(connection, concurrent) == 1 &&
               await VehicleStatus(connection, concurrent) == ("Paid", 2026),
             "concurrent same VIN/year produces exactly one payment");
+        string? winningOr = attempts.First(x => x.Success).OrNumber;
+        Check(winningOr is not null && await CountAudit(connection, concurrent) == 1 &&
+              await MatchesAudit(connection, concurrent, winningOr, await Recorder(connection, winningOr), PaidAt, 110m, 2026),
+            "same VIN/year race produces one audit attributed to the winning payment");
 
         const string trigger = "dbo.TR_BPLS_Phase7_TestRollback";
         await Execute(connection, $"DROP TRIGGER IF EXISTS {trigger}");
         try
         {
             await Execute(connection, $"""
-                CREATE TRIGGER {trigger} ON dbo.VehiclePermitHistory AFTER INSERT AS
+                CREATE TRIGGER {trigger} ON dbo.AuditTrail AFTER INSERT AS
                 BEGIN
-                    IF EXISTS (SELECT 1 FROM inserted WHERE VIN='{rollback}')
+                    IF EXISTS (SELECT 1 FROM inserted WHERE SIN='{rollback}')
                         THROW 51000, 'Synthetic vehicle rollback test', 1;
                 END
                 """);
@@ -115,15 +123,22 @@ internal static class VehicleScenarios
             Check(failed && await CountHistory(connection, rollback) == 0 &&
                   await VehicleStatus(connection, rollback) == ("Unpaid", 0) &&
                   await CountAudit(connection, rollback) == 0,
-                "intermediate failure rolls back history and vehicle state");
+                "audit insert failure rolls back payment, vehicle status and audit");
         }
         finally { await Execute(connection, $"DROP TRIGGER IF EXISTS {trigger}"); }
 
         await Execute(connection, $"UPDATE VehiclePermits SET IsArchived=1 WHERE VIN='{rollback}'");
         var archivedPay = await service.PayAsync(rollback, $"{orRun}-8", 2026, users[0], PaidAt, default);
-        Check(!archivedPay.Success && await CountHistory(connection, rollback) == 0 &&
+        Check(!archivedPay.Success && await CountHistory(connection, rollback) == 0 && await CountAudit(connection, rollback) == 0 &&
               await VehicleStatus(connection, rollback) == ("Unpaid", 0),
             "archived vehicle cannot receive annual payment");
+
+        await Execute(connection, $"UPDATE VehiclePermits SET IsArchived=0 WHERE VIN='{rollback}'");
+        string retryOr = $"{orRun}-7";
+        Check((await service.PayAsync(rollback, retryOr, 2026, users[0], PaidAt, default)).Success &&
+              await CountHistory(connection, rollback) == 1 && await CountAudit(connection, rollback) == 1 &&
+              await MatchesAudit(connection, rollback, retryOr, users[0], PaidAt, 110m, 2026),
+            "retry reuses the rolled-back OR and commits exactly one payment audit");
 
         var nextYear = new DateTime(2027, 1, 2, 9, 0, 0);
         var beforeRenewal = (await service.GetAsync(first, nextYear, default))!;
@@ -133,7 +148,9 @@ internal static class VehicleScenarios
         Check((await service.SaveDraftAsync(first, 2027, amounts, ["", "", "", ""], nextYear, default)).Success,
             "new year has independent fee draft");
         Check((await service.PayAsync(first, $"{orRun}-9", 2027, users[0], nextYear, default)).Success &&
-              await CountHistory(connection, first) == 2 && await VehicleStatus(connection, first) == ("Paid", 2027),
+              await CountHistory(connection, first) == 2 && await CountAudit(connection, first) == 2 &&
+              await MatchesAudit(connection, first, $"{orRun}-9", users[0], nextYear, 110m, 2027) &&
+              await VehicleStatus(connection, first) == ("Paid", 2027),
             "same VIN can pay later permit year once");
         var listed = (await service.ListAsync(first, 1, default)).Items.Single(x => x.Vin == first);
         string expectedListStatus = DateTime.Today.Year is 2026 or 2027 ? "Paid" : "Unpaid";
@@ -191,6 +208,20 @@ internal static class VehicleScenarios
         await using var command = new SqlCommand("SELECT AmountPaid FROM VehiclePermitHistory WHERE ORNumber=@or", connection);
         command.Parameters.AddWithValue("@or", orNumber);
         return (decimal)(await command.ExecuteScalarAsync() ?? 0m);
+    }
+    private static async Task<bool> MatchesAudit(SqlConnection connection, string vin, string orNumber,
+        int userId, DateTime paidAt, decimal amount, int year)
+    {
+        await using var command = new SqlCommand("""
+            SELECT COUNT(*) FROM AuditTrail
+            WHERE Action='Update Vehicle Permit' AND SIN=@vin AND UserId=@user AND Timestamp=@date AND Details=@details
+            """, connection);
+        command.Parameters.AddWithValue("@vin", vin);
+        command.Parameters.AddWithValue("@user", userId);
+        command.Parameters.AddWithValue("@date", paidAt);
+        command.Parameters.AddWithValue("@details", FormattableString.Invariant(
+            $"Updated vehicle permit, Status: Paid, OR#: {orNumber}, Amount: ₱{amount:N2}, Permit year: {year}"));
+        return (int)(await command.ExecuteScalarAsync() ?? 0) == 1;
     }
     private static async Task<int> CountAudit(SqlConnection connection, string vin)
     {

@@ -44,6 +44,9 @@ internal static class GlobalReceiptScenarios
             var vv=await Task.WhenAll(vehicle.PayAsync(vv1,orV,2026,user,date,default),vehicle.PayAsync(vv2,orV,2026,user,date,default));
             Check(vv.Count(x=>x.Success)==1 && vv.Single(x=>!x.Success).Error==ReceiptRegistry.DuplicateMessage && await CountOr(orV)==1,
                 "vehicle versus vehicle same OR has one clean winner");
+            Check(await CountVehicleAudit(vv1, orV) + await CountVehicleAudit(vv2, orV) == 1 &&
+                  await CountVehicleAudit(vv[0].Success ? vv1 : vv2, orV) == 1,
+                "competing vehicles sharing an OR produce one audit on the winning VIN");
             string cr=await Profile(),cv=await Car();
             var rentalTask=rental.PayAsync(cr,fixedOrs[2],user,date,default);
             var vehicleTask=vehicle.PayAsync(cv,fixedOrs[2],2026,user,date,default);
@@ -53,6 +56,8 @@ internal static class GlobalReceiptScenarios
                 "cross-ledger concurrency one registry row and one payment");
             Check((rentalTask.Result.Success?vehicleTask.Result.Error:rentalTask.Result.Error)==ReceiptRegistry.DuplicateMessage,
                 "cross-ledger loser receives friendly error");
+            Check(await CountVehicleAudit(cv, fixedOrs[2]) == (vehicleTask.Result.Success ? 1 : 0),
+                "cross-ledger race audits vehicle payment only if vehicle wins");
             foreach(bool isRental in new[]{true,false})
             {
                 string owner=isRental?await Profile():await Car();
@@ -102,6 +107,10 @@ internal static class GlobalReceiptScenarios
             // is disposable; retain exact transaction evidence for post-run integrity review.
             Console.WriteLine("Global receipt fixtures retained only in " + targetDatabase);
         }
+        async Task<int> CountVehicleAudit(string vin, string orNumber) => Convert.ToInt32(await Scalar("""
+            SELECT COUNT(*) FROM AuditTrail
+            WHERE Action='Update Vehicle Permit' AND SIN=@vin AND Details LIKE @details
+            """, ("@vin", vin), ("@details", $"%, Status: Paid, OR#: {orNumber}, Amount:%")));
         async Task<string> Profile()
         {
             string sin="SIN-GLOBAL-"+tag+"-"+profiles.Count; profiles.Add(sin);

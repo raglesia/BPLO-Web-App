@@ -326,10 +326,15 @@ internal static class BrowserScenarios
             ("Input.AdditionalCharge", "10.25"));
         Check(Has(edited, "Phase Twelve Updated") && edited.Url.AbsolutePath.Contains("/Profiles/Details/"),
             "profile edit PRG");
+        string canonicalBilling = $"/Payments/Stalls/{sin}";
         Page billBefore = await first.Get($"/Profiles/{sin}/Billing");
-        Check(Has(billBefore, "Billing history"), "billing page");
+        Check(billBefore.Status == HttpStatusCode.OK && billBefore.Url.AbsolutePath == canonicalBilling &&
+              Has(billBefore, "Billing and Payments") && Has(billBefore, "Billing Periods") &&
+              Has(billBefore, sin), "legacy stall billing GET redirects to the canonical workspace for the same SIN");
         Page generated = await first.Post($"/Profiles/{sin}/Billing?handler=Generate", billBefore);
-        Check(Has(generated, "Generated") && generated.Url.AbsolutePath.EndsWith("/Billing"), "billing generation PRG");
+        Check(generated.Status == HttpStatusCode.OK && Has(generated, "Generated") &&
+              generated.Url.AbsolutePath == canonicalBilling,
+            "legacy billing generation POST redirects to the canonical workspace for the same SIN");
         Check(Has(await first.Get($"/Profiles/{sin}/Billing"), "February 2025") &&
               Has(await first.Get($"/Profiles/{sin}/Billing"), "February 20, 2025"), "first billable month after occupancy and full due date");
         Page repeated = await first.Post($"/Profiles/{sin}/Billing?handler=Generate", generated);
